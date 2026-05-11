@@ -14,5 +14,5 @@ type eddsaKeyStoreBackend interface {
 	loadPrivateKey(ctx context.Context, kid string) (ed25519.PrivateKey, error)
 	loadPublicKey(ctx context.Context, kid string) (ed25519.PublicKey, error)
 	storeKey(ctx context.Context, kid string, privateKey ed25519.PrivateKey, ttl time.Duration) error
-	retireKey(ctx context.Context, kid string) error
+	retireKey(ctx context.Context, kid string, ttl time.Duration) error
 }

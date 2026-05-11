@@ -27,6 +27,18 @@ type TokenMaker interface {
 	// VerifyRefreshToken parses and validates a refresh token string.
 	VerifyRefreshToken(token string) (*RefreshPayload, error)
 
+	// CreateSessionRefreshToken mints a session-mode refresh token.
+	CreateSessionRefreshToken(userID, sessionID string, gen int64, globalVer int, duration time.Duration) (string, *SessionRefreshPayload, error)
+
+	// CreateSessionAccessToken mints a session-mode access token.
+	CreateSessionAccessToken(userID string, roles []string, globalVer int, duration time.Duration) (string, *SessionAccessPayload, error)
+
+	// VerifySessionRefreshToken parses and validates a session-mode refresh token.
+	VerifySessionRefreshToken(token string) (*SessionRefreshPayload, error)
+
+	// VerifySessionAccessToken parses and validates a session-mode access token.
+	VerifySessionAccessToken(token string) (*SessionAccessPayload, error)
+
 	// GetCurrentKeyID returns the current active signing key ID.
 	GetCurrentKeyID() string
 }

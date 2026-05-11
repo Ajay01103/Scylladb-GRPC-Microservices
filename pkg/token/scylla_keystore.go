@@ -4,6 +4,8 @@ import (
 	"context"
 	"crypto/ed25519"
 	"crypto/x509"
+	"encoding/base64"
+	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"time"
@@ -15,6 +17,8 @@ import (
 type eddsaScyllaKeyStore struct {
 	session *gocql.Session
 }
+
+const rotatedKeyRetention = 7 * 24 * time.Hour
 
 // newEDDSAScyllaKeyStore creates a new ScyllaDB-backed EDDSA keystore
 func newEDDSAScyllaKeyStore(session *gocql.Session) *eddsaScyllaKeyStore {
@@ -164,13 +168,10 @@ func (s *eddsaScyllaKeyStore) storeKey(ctx context.Context, kid string, privateK
 		return err
 	}
 
-	ttlSeconds := int(ttl.Seconds())
-
 	// Insert signing key record
 	err = s.session.Query(
 		`INSERT INTO signing_keys (kid, private_key, public_key, algorithm, status, created_at, expires_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
-		USING TTL ?`,
+		VALUES (?, ?, ?, ?, ?, ?, ?)`,
 		kid,
 		[]byte(privPEM),
 		[]byte(pubPEM),
@@ -178,14 +179,13 @@ func (s *eddsaScyllaKeyStore) storeKey(ctx context.Context, kid string, privateK
 		string(KeyStatusActive),
 		now,
 		expiresAt,
-		ttlSeconds,
 	).WithContext(ctx).Exec()
 	if err != nil {
 		return fmt.Errorf("insert signing key: %w", err)
 	}
 
 	// Update JWKS cache
-	err = s.updateJWKSCache(ctx, kid, ttl)
+	err = s.updateJWKSCache(ctx)
 	if err != nil {
 		// Log but don't fail - key is stored even if JWKS update fails
 		fmt.Printf("warning: failed to update jwks cache: %v\n", err)
@@ -195,10 +195,14 @@ func (s *eddsaScyllaKeyStore) storeKey(ctx context.Context, kid string, privateK
 }
 
 // retireKey marks a key as retired
-func (s *eddsaScyllaKeyStore) retireKey(ctx context.Context, kid string) error {
+func (s *eddsaScyllaKeyStore) retireKey(ctx context.Context, kid string, ttl time.Duration) error {
+	now := time.Now().UTC()
+	expiresAt := now.Add(ttl)
 	err := s.session.Query(
-		`UPDATE signing_keys SET status = ? WHERE kid = ?`,
+		`UPDATE signing_keys USING TTL ? SET status = ?, expires_at = ? WHERE kid = ?`,
+		int(ttl.Seconds()),
 		string(KeyStatusRetired),
+		expiresAt,
 		kid,
 	).WithContext(ctx).Exec()
 	if err != nil {
@@ -208,17 +212,43 @@ func (s *eddsaScyllaKeyStore) retireKey(ctx context.Context, kid string) error {
 }
 
 // updateJWKSCache updates the cached JWKS JSON representation
-func (s *eddsaScyllaKeyStore) updateJWKSCache(ctx context.Context, kid string, ttl time.Duration) error {
-	// Get the public key (validate it exists)
-	_, err := s.loadPublicKey(ctx, kid)
+func (s *eddsaScyllaKeyStore) updateJWKSCache(ctx context.Context) error {
+	kids, err := s.loadAllKids(ctx)
 	if err != nil {
-		return fmt.Errorf("load public key for jwks: %w", err)
+		return fmt.Errorf("load kids for jwks: %w", err)
 	}
 
-	// Build JWKS structure - simplified version
-	jwksJSON := fmt.Sprintf(`{"keys":[{"kty":"OKP","use":"sig","alg":"EdDSA","kid":"%s","crv":"Ed25519","x":"..."}]}`, kid)
+	response := JWKSResponse{Keys: []JWKSKey{}}
+	now := time.Now().UTC()
+	for _, kid := range kids {
+		meta, err := s.loadKeyMeta(ctx, kid)
+		if err != nil || meta == nil {
+			continue
+		}
+		if !meta.ExpiresAt.IsZero() && now.After(meta.ExpiresAt) {
+			continue
+		}
 
-	ttlSeconds := int(ttl.Seconds())
+		pubKey, err := s.loadPublicKey(ctx, kid)
+		if err != nil || pubKey == nil {
+			continue
+		}
+
+		response.Keys = append(response.Keys, JWKSKey{
+			KTY: "OKP",
+			Use: "sig",
+			KID: kid,
+			CRV: "Ed25519",
+			X:   base64.RawURLEncoding.EncodeToString(pubKey),
+			Alg: "EdDSA",
+		})
+	}
+
+	jwksJSON, err := json.Marshal(response)
+	if err != nil {
+		return fmt.Errorf("marshal jwks cache: %w", err)
+	}
+	ttlSeconds := int(rotatedKeyRetention.Seconds())
 
 	// Store or update JWKS cache
 	err = s.session.Query(
@@ -228,8 +258,8 @@ func (s *eddsaScyllaKeyStore) updateJWKSCache(ctx context.Context, kid string, t
 		"current", // Always use 'current' as the key
 		jwksJSON,
 		time.Now().UnixNano(),
-		time.Now().UTC(),
-		time.Now().UTC(),
+		now,
+		now,
 		ttlSeconds,
 	).WithContext(ctx).Exec()
 	if err != nil {

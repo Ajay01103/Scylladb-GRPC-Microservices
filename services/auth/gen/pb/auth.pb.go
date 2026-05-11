@@ -133,11 +133,10 @@ func (x *LoginRequest) GetPassword() string {
 	return ""
 }
 
-// RefreshTokenRequest: the client passes its current refresh token and DPoP proof.
+// RefreshTokenRequest: the client passes its current refresh token.
 type RefreshTokenRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	RefreshToken  string                 `protobuf:"bytes,1,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
-	DpopProof     string                 `protobuf:"bytes,2,opt,name=dpop_proof,json=dpopProof,proto3" json:"dpop_proof,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -175,13 +174,6 @@ func (*RefreshTokenRequest) Descriptor() ([]byte, []int) {
 func (x *RefreshTokenRequest) GetRefreshToken() string {
 	if x != nil {
 		return x.RefreshToken
-	}
-	return ""
-}
-
-func (x *RefreshTokenRequest) GetDpopProof() string {
-	if x != nil {
-		return x.DpopProof
 	}
 	return ""
 }
@@ -661,11 +653,9 @@ const file_auth_proto_rawDesc = "" +
 	"\bpassword\x18\x03 \x01(\tR\bpassword\"@\n" +
 	"\fLoginRequest\x12\x14\n" +
 	"\x05email\x18\x01 \x01(\tR\x05email\x12\x1a\n" +
-	"\bpassword\x18\x02 \x01(\tR\bpassword\"t\n" +
+	"\bpassword\x18\x02 \x01(\tR\bpassword\":\n" +
 	"\x13RefreshTokenRequest\x12#\n" +
-	"\rrefresh_token\x18\x01 \x01(\tR\frefreshToken\x12\x1d\n" +
-	"\n" +
-	"dpop_proof\x18\x02 \x01(\tR\tdpopProofJ\x04\b\x03\x10\x04R\x13dpop_key_thumbprint\"4\n" +
+	"\rrefresh_token\x18\x01 \x01(\tR\frefreshToken\"4\n" +
 	"\rLogoutRequest\x12#\n" +
 	"\rrefresh_token\x18\x01 \x01(\tR\frefreshToken\"9\n" +
 	"\x14ValidateTokenRequest\x12!\n" +
@@ -699,7 +689,7 @@ const file_auth_proto_rawDesc = "" +
 	"\x06Logout\x12\x13.auth.LogoutRequest\x1a\x14.auth.LogoutResponse\x12Q\n" +
 	"\x10LogoutAllDevices\x12\x1d.auth.LogoutAllDevicesRequest\x1a\x1e.auth.LogoutAllDevicesResponse\x12H\n" +
 	"\rValidateToken\x12\x1a.auth.ValidateTokenRequest\x1a\x1b.auth.ValidateTokenResponse\x12K\n" +
-	"\x0eGetCurrentUser\x12\x1b.auth.GetCurrentUserRequest\x1a\x1c.auth.GetCurrentUserResponseB2Z0github.com/Ajay01103/go-grpc-sqlc/auth/gen/pb;pbb\x06proto3"
+	"\x0eGetCurrentUser\x12\x1b.auth.GetCurrentUserRequest\x1a\x1c.auth.GetCurrentUserResponseB/Z-github.com/Ajay01103/go-notion/auth/gen/pb;pbb\x06proto3"
 
 var (
 	file_auth_proto_rawDescOnce sync.Once

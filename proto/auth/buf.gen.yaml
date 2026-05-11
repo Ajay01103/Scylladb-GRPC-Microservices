@@ -1,17 +1,15 @@
-version: v1
+version: v2
+clean: true
+inputs:
+  - directory: .
 plugins:
-  - plugin: buf.build/protocolbuffers/go
+  - remote: buf.build/protocolbuffers/go
     out: ../../services/auth/gen/pb
     opt: paths=source_relative
-  - plugin: buf.build/connectrpc/go
+  - remote: buf.build/connectrpc/go
     out: ../../services/auth/gen/pb
     opt: paths=source_relative
-  - plugin: buf.build/bufbuild/es:v1.10.0
-    out: ../../web/src/gen/pb
-    opt:
-      - target=ts
-      - import_extension=none
-  - plugin: buf.build/connectrpc/es:v1.6.1
+  - remote: buf.build/bufbuild/es:v2.12.0
     out: ../../web/src/gen/pb
     opt:
       - target=ts

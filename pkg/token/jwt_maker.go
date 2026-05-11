@@ -160,6 +160,115 @@ func (m *JWTMaker) VerifyRefreshToken(tokenStr string) (*RefreshPayload, error) 
 	return payload, nil
 }
 
+// ─── Session Token ───────────────────────────────────────────────────────────
+
+func (m *JWTMaker) CreateSessionRefreshToken(
+	userID, sessionID string,
+	gen int64,
+	globalVer int,
+	duration time.Duration,
+) (string, *SessionRefreshPayload, error) {
+	uid, err := uuid.Parse(userID)
+	if err != nil {
+		return "", nil, fmt.Errorf("invalid user id: %w", err)
+	}
+	sid, err := uuid.Parse(sessionID)
+	if err != nil {
+		return "", nil, fmt.Errorf("invalid session id: %w", err)
+	}
+
+	payload, err := NewSessionRefreshPayload(uid, sid, gen, globalVer, duration)
+	if err != nil {
+		return "", nil, err
+	}
+
+	claims := jwt.MapClaims{
+		"jti":        payload.JTI.String(),
+		"sub":        payload.UserID.String(),
+		"sid":        payload.SessionID.String(),
+		"gen":        payload.Gen,
+		"gv":         payload.GlobalVer,
+		"iat":        payload.IssuedAt.Unix(),
+		"exp":        payload.ExpiredAt.Unix(),
+		"token_type": string(TokenTypeRefresh),
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signed, err := token.SignedString(m.secretKeyBytes)
+	if err != nil {
+		return "", nil, err
+	}
+	return signed, payload, nil
+}
+
+func (m *JWTMaker) CreateSessionAccessToken(
+	userID string,
+	roles []string,
+	globalVer int,
+	duration time.Duration,
+) (string, *SessionAccessPayload, error) {
+	uid, err := uuid.Parse(userID)
+	if err != nil {
+		return "", nil, fmt.Errorf("invalid user id: %w", err)
+	}
+
+	payload, err := NewSessionAccessPayload(uid, roles, globalVer, duration)
+	if err != nil {
+		return "", nil, err
+	}
+
+	claims := jwt.MapClaims{
+		"jti":        payload.JTI.String(),
+		"sub":        payload.UserID.String(),
+		"roles":      encodeSessionRoles(payload.Roles),
+		"gv":         payload.GlobalVer,
+		"iat":        payload.IssuedAt.Unix(),
+		"exp":        payload.ExpiredAt.Unix(),
+		"token_type": string(TokenTypeAccess),
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signed, err := token.SignedString(m.secretKeyBytes)
+	if err != nil {
+		return "", nil, err
+	}
+	return signed, payload, nil
+}
+
+func (m *JWTMaker) VerifySessionRefreshToken(tokenStr string) (*SessionRefreshPayload, error) {
+	claims := &SessionRefreshClaims{}
+	jwtToken, err := jwt.ParseWithClaims(tokenStr, claims, m.keyFunc)
+	if err != nil {
+		if errors.Is(err, jwt.ErrTokenExpired) {
+			return nil, ErrExpiredToken
+		}
+		return nil, ErrInvalidToken
+	}
+	if !jwtToken.Valid || claims.Subject == "" {
+		return nil, ErrInvalidToken
+	}
+	if claims.TokenType != TokenTypeRefresh {
+		return nil, ErrInvalidToken
+	}
+	return sessionRefreshPayloadFromClaims(claims)
+}
+
+func (m *JWTMaker) VerifySessionAccessToken(tokenStr string) (*SessionAccessPayload, error) {
+	claims := &SessionAccessClaims{}
+	jwtToken, err := jwt.ParseWithClaims(tokenStr, claims, m.keyFunc)
+	if err != nil {
+		if errors.Is(err, jwt.ErrTokenExpired) {
+			return nil, ErrExpiredToken
+		}
+		return nil, ErrInvalidToken
+	}
+	if !jwtToken.Valid || claims.Subject == "" {
+		return nil, ErrInvalidToken
+	}
+	if claims.TokenType != TokenTypeAccess {
+		return nil, ErrInvalidToken
+	}
+	return sessionAccessPayloadFromClaims(claims)
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 func (m *JWTMaker) parseClaims(tokenStr string) (jwt.MapClaims, error) {

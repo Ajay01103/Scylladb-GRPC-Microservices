@@ -1,11 +1,7 @@
 PROTO_DIR   := proto
 AUTH_SVC    := services/auth
-VOICE_SVC   := services/voice
-GEN_SVC     := services/generation
 
 AUTH_PB_OUT := $(AUTH_SVC)/gen/pb
-VOICE_PB_OUT := $(VOICE_SVC)/gen/pb
-GEN_PB_OUT  := $(GEN_SVC)/gen/pb
 
 # Do not globally export per-service .env values here; Goose variables can
 # collide across services and cause migrations to run against the wrong DB.
@@ -19,36 +15,19 @@ help: ## Show this help
 
 proto: ## Generate gRPC Go and TS code from proto files
 	-@mkdir $(AUTH_PB_OUT) 2>nul || exit 0
-	-@mkdir $(VOICE_PB_OUT) 2>nul || exit 0
-	-@mkdir $(GEN_PB_OUT) 2>nul || exit 0
 	cd $(PROTO_DIR)/auth && npx @bufbuild/buf generate
-	cd $(PROTO_DIR)/voice && npx @bufbuild/buf generate
-	cd $(PROTO_DIR)/generation && npx @bufbuild/buf generate
 	@echo "✓ Proto generated"
 
 # ─── Build & Run ──────────────────────────────────────────────────────────────
 
 build: ## Build the service binaries
 	cd $(AUTH_SVC) && go build -o ../../bin/auth ./cmd/
-	cd $(VOICE_SVC) && go build -o ../../bin/voice ./cmd/
-	cd $(GEN_SVC) && go build -o ../../bin/generation ./cmd/
 
 run-auth: ## Start Auth service (requires ScyllaDB running - see scylla-up)
 	cd $(AUTH_SVC) && go run ./cmd/
 
-run-voice: ## Start Voice service
-	cd $(VOICE_SVC) && go run ./cmd/
-
-run-gen: ## Start Generation service
-	cd $(GEN_SVC) && go run ./cmd/
-
-seed-voices: ## Seed system voices into the voice database
-	cd $(VOICE_SVC) && go run ./scripts/seed-system-voices.go
-
 tidy: ## Tidy Go modules
 	cd $(AUTH_SVC) && go mod tidy
-	cd $(VOICE_SVC) && go mod tidy
-	cd $(GEN_SVC) && go mod tidy
 	go work sync
 
 # ─── ScyllaDB Management ──────────────────────────────────────────────────────

@@ -33,26 +33,6 @@ services:
     networks:
       - scylladb-network
 
-    image: dbeaver/cloudbeaver:latest
-    container_name: dbeaver-web
-    depends_on:
-      scylladb:
-        condition: service_healthy
-    ports:
-      - "8978:8978" # DBeaver Web UI
-    environment:
-      CB_SERVER_URL: "http://localhost:8978"
-    volumes:
-      - dbeaver-data:/opt/cloudbeaver/workspace
-    networks:
-      - scylladb-network
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8978/api/about" ]
-      interval: 15s
-      timeout: 10s
-      retries: 3
-      start_period: 20s
-
 volumes:
   scylladb-data:
     driver: local

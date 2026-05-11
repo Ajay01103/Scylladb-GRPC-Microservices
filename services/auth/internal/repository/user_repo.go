@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/gocql/gocql"
+	"github.com/google/uuid"
 )
 
 // User represents a user record
@@ -26,9 +26,6 @@ var ErrUserNotFound = errors.New("user not found")
 // ErrEmailTaken is returned when registering with an already-used email.
 var ErrEmailTaken = errors.New("email already in use")
 
-// ErrNameTaken is returned when registering with an already-used name.
-var ErrNameTaken = errors.New("name already in use")
-
 // UserRepo provides data access for users using ScyllaDB
 type UserRepo struct {
 	session *gocql.Session
@@ -42,43 +39,31 @@ func NewUserRepo(session *gocql.Session) *UserRepo {
 // CreateUser inserts a new user record. Detects unique-constraint violations.
 func (r *UserRepo) CreateUser(ctx context.Context, email, name, hashedPassword string) (User, error) {
 	userID := uuid.New().String()
-	now := time.Now()
+	now := time.Now().UTC()
 
-	// First, check if email is already taken
-	var existingEmail string
-	err := r.session.Query(
-		"SELECT email FROM users WHERE email = ? LIMIT 1",
-		email,
-	).WithContext(ctx).Scan(&existingEmail)
-	if err == nil {
-		// Email found, so it's already taken
+	var reservedEmail string
+	var existingUserID string
+	applied, err := r.session.Query(
+		`INSERT INTO users_by_email (email, user_id) VALUES (?, ?) IF NOT EXISTS`,
+		email, userID,
+	).WithContext(ctx).ScanCAS(&reservedEmail, &existingUserID)
+	if err != nil {
+		return User{}, fmt.Errorf("reserve email: %w", err)
+	}
+	if !applied {
 		return User{}, ErrEmailTaken
-	}
-	if err != gocql.ErrNotFound {
-		return User{}, fmt.Errorf("check email: %w", err)
-	}
-
-	// Check if name is already taken
-	var existingName string
-	err = r.session.Query(
-		"SELECT name FROM users WHERE name = ? LIMIT 1",
-		name,
-	).WithContext(ctx).Scan(&existingName)
-	if err == nil {
-		// Name found, so it's already taken
-		return User{}, ErrNameTaken
-	}
-	if err != gocql.ErrNotFound {
-		return User{}, fmt.Errorf("check name: %w", err)
 	}
 
 	// Insert the new user
-	err = r.session.Query(
+	if err := r.session.Query(
 		`INSERT INTO users (id, email, name, password, created_at, updated_at)
 		VALUES (?, ?, ?, ?, ?, ?)`,
 		userID, email, name, hashedPassword, now, now,
-	).WithContext(ctx).Exec()
-	if err != nil {
+	).WithContext(ctx).Exec(); err != nil {
+		_, _ = r.session.Query(
+			`DELETE FROM users_by_email WHERE email = ? IF user_id = ?`,
+			email, userID,
+		).WithContext(ctx).ScanCAS()
 		return User{}, fmt.Errorf("insert user: %w", err)
 	}
 
@@ -92,12 +77,14 @@ func (r *UserRepo) CreateUser(ctx context.Context, email, name, hashedPassword s
 	}, nil
 }
 
-// GetByEmail fetches a user by email
+// GetByEmail fetches a user by email using the materialized view for optimal performance
 func (r *UserRepo) GetByEmail(ctx context.Context, email string) (User, error) {
 	var user User
+	// Use materialized view users_by_email_mv for single-query lookup
+	// Instead of: 2 queries (users_by_email -> users)
 	err := r.session.Query(
 		`SELECT id, email, name, password, created_at, updated_at
-		FROM users WHERE email = ? LIMIT 1`,
+		FROM users_by_email_mv WHERE email = ? LIMIT 1`,
 		email,
 	).WithContext(ctx).Scan(
 		&user.ID, &user.Email, &user.Name, &user.Password,

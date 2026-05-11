@@ -31,11 +31,12 @@ func NewCluster(cfg ClusterConfig) *gocql.ClusterConfig {
 	cluster.ConnectTimeout = 10 * time.Second
 	cluster.SocketKeepalive = 30 * time.Second
 	cluster.MaxWaitSchemaAgreement = 30 * time.Second
-
-	// Set up retry policy
-	cluster.RetryPolicy = &gocql.SimpleRetryPolicy{
-		NumRetries: 3,
+	cluster.PoolConfig = gocql.PoolConfig{
+		HostSelectionPolicy: gocql.TokenAwareHostPolicy(gocql.RoundRobinHostPolicy()),
 	}
+
+	// Avoid retrying writes by default; reads opt into backoff retries locally.
+	cluster.RetryPolicy = &gocql.SimpleRetryPolicy{NumRetries: 0}
 
 	// Disable host verification for development
 	cluster.DisableInitialHostLookup = false
@@ -48,26 +49,12 @@ func NewSession(cluster *gocql.ClusterConfig) (*gocql.Session, error) {
 	return gocql.NewSession(*cluster)
 }
 
-// ParseConnString parses a ScyllaDB connection string
-// Format: scylla://user:pass@host1,host2:port/keyspace
-// Simplified format: host1,host2:port or just host1,host2 (uses default port 9042)
-func ParseConnString(connString string) (ClusterConfig, error) {
-	// For now, use default config with localhost
-	// In production, would parse the connection string more robustly
-	cfg := ClusterConfig{
-		Hosts:       []string{"localhost"},
-		Port:        9042,
-		Keyspace:    "auth_ks",
-		Username:    "cassandra",
-		Password:    "cassandra",
-		Consistency: gocql.Quorum,
-	}
-	return cfg, nil
-}
-
 // PingContext verifies the cluster connection
 func PingContext(ctx context.Context, session *gocql.Session) error {
-	return session.Query("SELECT cluster_name FROM system.local").WithContext(ctx).Scan(nil)
+	var clusterName string
+	query := session.Query("SELECT cluster_name FROM system.local").WithContext(ctx)
+	query.RetryPolicy(&gocql.ExponentialBackoffRetryPolicy{NumRetries: 3})
+	return query.Scan(&clusterName)
 }
 
 // Close gracefully closes a session

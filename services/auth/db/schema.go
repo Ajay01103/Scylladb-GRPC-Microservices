@@ -3,152 +3,291 @@ package db
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gocql/gocql"
 )
 
-// SchemaInitializer handles ScyllaDB schema setup
+const authKeyspace = "auth_ks"
+
+// SchemaInitializer handles ScyllaDB schema setup.
 type SchemaInitializer struct {
-	cluster *gocql.ClusterConfig
+	cluster           *gocql.ClusterConfig
+	datacenter        string
+	replicationFactor int
 }
 
-// NewSchemaInitializer creates a schema initializer
-func NewSchemaInitializer(cluster *gocql.ClusterConfig) *SchemaInitializer {
-	return &SchemaInitializer{cluster: cluster}
+func cloneClusterForBootstrap(cluster *gocql.ClusterConfig, keyspace string) gocql.ClusterConfig {
+	cloned := *cluster
+	cloned.Keyspace = keyspace
+	cloned.PoolConfig.HostSelectionPolicy = gocql.RoundRobinHostPolicy()
+	return cloned
 }
 
-// InitializeSchema creates keyspace and all required tables
+// NewSchemaInitializer creates a schema initializer.
+func NewSchemaInitializer(cluster *gocql.ClusterConfig, datacenter string, replicationFactor int) *SchemaInitializer {
+	return &SchemaInitializer{cluster: cluster, datacenter: datacenter, replicationFactor: replicationFactor}
+}
+
+// InitializeSchema creates the keyspace, tables, and indexes if missing.
 func (s *SchemaInitializer) InitializeSchema(ctx context.Context) error {
-	// Create a temporary cluster config without the keyspace to create the keyspace first
-	tempCluster := *s.cluster
-	tempCluster.Keyspace = ""
-	
-	// Connect with no keyspace first to create the keyspace
+	tempCluster := cloneClusterForBootstrap(s.cluster, "")
 	session, err := gocql.NewSession(tempCluster)
 	if err != nil {
 		return fmt.Errorf("create session for schema init: %w", err)
 	}
 	defer session.Close()
 
-	// 1. Create keyspace if not exists
-	keyspaceQuery := `
-		CREATE KEYSPACE IF NOT EXISTS auth_ks
-		WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}
-	`
-	if err := session.Query(keyspaceQuery).WithContext(ctx).Exec(); err != nil {
-		return fmt.Errorf("create keyspace: %w", err)
+	exists, err := keyspaceExists(ctx, session, authKeyspace)
+	if err != nil {
+		return fmt.Errorf("check keyspace: %w", err)
+	}
+	if !exists {
+		replicationFactor := s.replicationFactor
+		if replicationFactor < 1 {
+			replicationFactor = 1
+		}
+		datacenter := s.datacenter
+		if datacenter == "" {
+			datacenter = "datacenter1"
+		}
+		keyspaceQuery := fmt.Sprintf(
+			"CREATE KEYSPACE auth_ks WITH replication = {'class': 'NetworkTopologyStrategy', '%s': %d}",
+			datacenter,
+			replicationFactor,
+		)
+		if err := session.Query(keyspaceQuery).WithContext(ctx).Exec(); err != nil {
+			if replicationFactor > 1 && isInsufficientTokenOwnersError(err) {
+				fallbackQuery := fmt.Sprintf(
+					"CREATE KEYSPACE auth_ks WITH replication = {'class': 'NetworkTopologyStrategy', '%s': 1}",
+					datacenter,
+				)
+				if fallbackErr := session.Query(fallbackQuery).WithContext(ctx).Exec(); fallbackErr == nil {
+					goto createdKeyspace
+				}
+			}
+			return fmt.Errorf("create keyspace: %w", err)
+		}
 	}
 
-	// Now connect to the keyspace for table creation
-	tempCluster.Keyspace = "auth_ks"
-	session2, err := gocql.NewSession(tempCluster)
+createdKeyspace:
+
+	keyspaceCluster := cloneClusterForBootstrap(s.cluster, authKeyspace)
+	session2, err := gocql.NewSession(keyspaceCluster)
 	if err != nil {
 		return fmt.Errorf("create session for keyspace: %w", err)
 	}
 	defer session2.Close()
 
-	// 2. Create tables
-	tables := []string{
-		// Users table
-		`CREATE TABLE IF NOT EXISTS users (
-			id TEXT PRIMARY KEY,
-			email TEXT,
-			name TEXT,
-			password TEXT,
-			created_at TIMESTAMP,
-			updated_at TIMESTAMP
-		)`,
+	tables := []struct {
+		name  string
+		query string
+	}{
+		{
+			name: "users",
+			query: `
+				CREATE TABLE users (
+					id TEXT PRIMARY KEY,
+					email TEXT,
+					name TEXT,
+					password TEXT,
+					created_at TIMESTAMP,
+					updated_at TIMESTAMP
+				) WITH compaction = {'class': 'LeveledCompactionStrategy'}
+				  AND caching = {'keys': 'ALL', 'rows_per_partition': '1'}
+			`,
+		},
+		{
+			name: "user_sessions",
+			query: `
+				CREATE TABLE user_sessions (
+					user_id TEXT,
+					session_id TEXT,
+					gen BIGINT,
+					device_fp TEXT,
+					expires_at TIMESTAMP,
+					created_at TIMESTAMP,
+					updated_at TIMESTAMP,
+					PRIMARY KEY (user_id, session_id)
+				) WITH CLUSTERING ORDER BY (session_id ASC)
+				  AND default_time_to_live = 604800
+				  AND compaction = {'class': 'LeveledCompactionStrategy'}
+			`,
+		},
+		{
+			name: "user_revocations",
+			query: `
+				CREATE TABLE user_revocations (
+					user_id TEXT PRIMARY KEY,
+					global_ver INT,
+					created_at TIMESTAMP,
+					updated_at TIMESTAMP
+				) WITH default_time_to_live = 604800
+			`,
+		},
 
-		// Users indices
-		`CREATE INDEX IF NOT EXISTS users_email_idx ON users (email)`,
-		`CREATE INDEX IF NOT EXISTS users_name_idx ON users (name)`,
 
-		// Refresh token families table
-		`CREATE TABLE IF NOT EXISTS refresh_token_families (
-			family_id TEXT PRIMARY KEY,
-			user_id TEXT,
-			token_hash TEXT,
-			jkt TEXT,
-			expires_at TEXT,
-			refresh_jti TEXT,
-			signing_kid TEXT,
-			issued_at BIGINT,
-			created_at TIMESTAMP,
-			updated_at TIMESTAMP
-		) WITH default_time_to_live = 604800`,
 
-		`CREATE INDEX IF NOT EXISTS refresh_token_families_user_idx ON refresh_token_families (user_id)`,
-
-		// Refresh token blacklist table
-		`CREATE TABLE IF NOT EXISTS refresh_token_blacklist (
-			family_id TEXT,
-			token_hash TEXT,
-			revoked_at TIMESTAMP,
-			PRIMARY KEY (family_id, token_hash)
-		) WITH default_time_to_live = 604800`,
-
-		// Token rotation grace window table
-		`CREATE TABLE IF NOT EXISTS token_rotation_grace (
-			family_id TEXT,
-			old_token_hash TEXT,
-			new_family_id TEXT,
-			created_at TIMESTAMP,
-			PRIMARY KEY (family_id, old_token_hash)
-		) WITH default_time_to_live = 15`,
-
-		// User families mapping table
-		`CREATE TABLE IF NOT EXISTS user_families (
-			user_id TEXT,
-			family_id TEXT,
-			added_at TIMESTAMP,
-			PRIMARY KEY (user_id, family_id)
-		)`,
-
-		// Signing keys table
-		`CREATE TABLE IF NOT EXISTS signing_keys (
-			kid TEXT PRIMARY KEY,
-			private_key BLOB,
-			public_key BLOB,
-			algorithm TEXT,
-			status TEXT,
-			created_at TIMESTAMP,
-			expires_at TIMESTAMP
-		) WITH default_time_to_live = 1209600`,
-
-		`CREATE INDEX IF NOT EXISTS signing_keys_status_idx ON signing_keys (status)`,
-
-		// JWKS public keys cache table
-		`CREATE TABLE IF NOT EXISTS jwks_public_keys (
-			id TEXT PRIMARY KEY,
-			jwks_json TEXT,
-			version BIGINT,
-			created_at TIMESTAMP,
-			updated_at TIMESTAMP
-		) WITH default_time_to_live = 1209600`,
+		{
+			name: "signing_keys",
+			query: `
+				CREATE TABLE signing_keys (
+					kid TEXT PRIMARY KEY,
+					private_key BLOB,
+					public_key BLOB,
+					algorithm TEXT,
+					status TEXT,
+					created_at TIMESTAMP,
+					expires_at TIMESTAMP
+				) WITH compaction = {'class': 'LeveledCompactionStrategy'}
+				  AND default_time_to_live = 2592000
+			`,
+		},
+		{
+			name: "jwks_public_keys",
+			query: `
+				CREATE TABLE jwks_public_keys (
+					id TEXT PRIMARY KEY,
+					jwks_json TEXT,
+					version BIGINT,
+					created_at TIMESTAMP,
+					updated_at TIMESTAMP
+				) WITH default_time_to_live = 1209600
+			`,
+		},
 	}
 
-	for _, tableQuery := range tables {
-		if err := session2.Query(tableQuery).WithContext(ctx).Exec(); err != nil {
-			return fmt.Errorf("create table: %w", err)
+	for _, table := range tables {
+		exists, err := tableExists(ctx, session2, authKeyspace, table.name)
+		if err != nil {
+			return fmt.Errorf("check table %s: %w", table.name, err)
+		}
+		if exists {
+			continue
+		}
+		if err := session2.Query(table.query).WithContext(ctx).Exec(); err != nil {
+			return fmt.Errorf("create table %s: %w", table.name, err)
+		}
+	}
+
+	// Create materialized views for performance optimization
+	views := []struct {
+		name  string
+		query string
+	}{
+		{
+			name: "users_by_email_mv",
+			query: `
+				CREATE MATERIALIZED VIEW users_by_email_mv AS
+					SELECT id, email, name, password, created_at, updated_at
+					FROM users
+					WHERE email IS NOT NULL
+					PRIMARY KEY (email, id)
+			`,
+		},
+
+	}
+
+	for _, view := range views {
+		exists, err := materializedViewExists(ctx, session2, authKeyspace, view.name)
+		if err != nil {
+			return fmt.Errorf("check materialized view %s: %w", view.name, err)
+		}
+		if exists {
+			continue
+		}
+		if err := session2.Query(view.query).WithContext(ctx).Exec(); err != nil {
+			return fmt.Errorf("create materialized view %s: %w", view.name, err)
 		}
 	}
 
 	return nil
 }
 
-// WaitForReady waits for ScyllaDB to be ready by attempting to connect
+func keyspaceExists(ctx context.Context, session *gocql.Session, keyspace string) (bool, error) {
+	var name string
+	query := session.Query(`SELECT keyspace_name FROM system_schema.keyspaces WHERE keyspace_name = ? LIMIT 1`, keyspace)
+	query.RetryPolicy(&gocql.ExponentialBackoffRetryPolicy{NumRetries: 3})
+	err := query.
+		WithContext(ctx).
+		Scan(&name)
+	if err == gocql.ErrNotFound {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func isInsufficientTokenOwnersError(err error) bool {
+	if err == nil {
+		return false
+	}
+	message := strings.ToLower(err.Error())
+	return strings.Contains(message, "doesn't have enough token-owning nodes") || strings.Contains(message, "not enough token-owning nodes")
+}
+
+func tableExists(ctx context.Context, session *gocql.Session, keyspace, table string) (bool, error) {
+	var name string
+	query := session.Query(`SELECT table_name FROM system_schema.tables WHERE keyspace_name = ? AND table_name = ? LIMIT 1`, keyspace, table)
+	query.RetryPolicy(&gocql.ExponentialBackoffRetryPolicy{NumRetries: 3})
+	err := query.
+		WithContext(ctx).
+		Scan(&name)
+	if err == gocql.ErrNotFound {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func materializedViewExists(ctx context.Context, session *gocql.Session, keyspace, view string) (bool, error) {
+	var name string
+	query := session.Query(`SELECT view_name FROM system_schema.views WHERE keyspace_name = ? AND view_name = ? LIMIT 1`, keyspace, view)
+	query.RetryPolicy(&gocql.ExponentialBackoffRetryPolicy{NumRetries: 3})
+	err := query.
+		WithContext(ctx).
+		Scan(&name)
+	if err == gocql.ErrNotFound {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func indexExists(ctx context.Context, session *gocql.Session, keyspace, table, index string) (bool, error) {
+	var name string
+	query := session.Query(`SELECT index_name FROM system_schema.indexes WHERE keyspace_name = ? AND table_name = ? AND index_name = ? LIMIT 1`, keyspace, table, index)
+	query.RetryPolicy(&gocql.ExponentialBackoffRetryPolicy{NumRetries: 3})
+	err := query.
+		WithContext(ctx).
+		Scan(&name)
+	if err == gocql.ErrNotFound {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// WaitForReady waits for ScyllaDB to be ready by attempting to connect.
 func WaitForReady(ctx context.Context, cluster *gocql.ClusterConfig, maxRetries int) error {
-	// Create a temporary cluster config without the keyspace for the readiness check
-	tempCluster := *cluster
-	tempCluster.Keyspace = ""
-	
 	for i := 0; i < maxRetries; i++ {
+		tempCluster := cloneClusterForBootstrap(cluster, "")
 		session, err := gocql.NewSession(tempCluster)
 		if err == nil {
 			defer session.Close()
-			// Try to query system.local to verify connection
-			if err := session.Query("SELECT cluster_name FROM system.local").WithContext(ctx).Scan(nil); err == nil {
+			var clusterName string
+			query := session.Query("SELECT cluster_name FROM system.local").WithContext(ctx)
+			query.RetryPolicy(&gocql.ExponentialBackoffRetryPolicy{NumRetries: 3})
+			if err := query.Scan(&clusterName); err == nil {
 				return nil
 			}
 		}
@@ -156,7 +295,6 @@ func WaitForReady(ctx context.Context, cluster *gocql.ClusterConfig, maxRetries 
 		if i < maxRetries-1 {
 			select {
 			case <-time.After(2 * time.Second):
-				// Continue
 			case <-ctx.Done():
 				return ctx.Err()
 			}

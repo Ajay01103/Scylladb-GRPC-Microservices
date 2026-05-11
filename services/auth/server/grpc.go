@@ -30,7 +30,7 @@ func (s *AuthServer) Register(ctx context.Context, req *connect.Request[pb.Regis
 	res, err := s.svc.Register(ctx, req.Msg.GetEmail(), req.Msg.GetName(), req.Msg.GetPassword())
 	if err != nil {
 		switch err {
-		case service.ErrEmailAlreadyExists, service.ErrNameAlreadyExists:
+		case service.ErrEmailAlreadyExists:
 			return nil, connect.NewError(connect.CodeAlreadyExists, err)
 		default:
 			return nil, connect.NewError(connect.CodeInternal, err)
@@ -177,10 +177,19 @@ func (s *AuthServer) GetCurrentUser(ctx context.Context, req *connect.Request[pb
 		}
 	}
 
-	// 3. Return user info
+	// 3. Fetch full user details from database (session tokens don't carry email/name)
+	user, err := s.svc.GetUserByID(ctx, res.UserID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	if user == nil {
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("user not found"))
+	}
+
+	// 4. Return user info
 	return connect.NewResponse(&pb.GetCurrentUserResponse{
 		UserId: res.UserID.String(),
-		Email:  res.Email,
-		Name:   res.Name,
+		Email:  user.Email,
+		Name:   user.Name,
 	}), nil
 }

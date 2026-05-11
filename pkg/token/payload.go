@@ -1,6 +1,7 @@
 package token
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -251,4 +252,227 @@ func (p *RefreshPayload) Valid() error {
 		return ErrExpiredToken
 	}
 	return nil
+}
+
+// SessionAccessPayload is the access-token payload for the session/gen model.
+type SessionAccessPayload struct {
+	JTI       uuid.UUID `json:"jti"`
+	UserID    uuid.UUID `json:"sub"`
+	Roles     []string  `json:"roles"`
+	GlobalVer int       `json:"gv"`
+	TokenType TokenType `json:"token_type"`
+	IssuedAt  time.Time `json:"iat"`
+	ExpiredAt time.Time `json:"exp"`
+}
+
+// SessionAccessClaims is the JWT claim set for session-mode access tokens.
+type SessionAccessClaims struct {
+	TokenType TokenType `json:"token_type"`
+	Roles     []string `json:"roles"`
+	GlobalVer int      `json:"gv"`
+
+	jwt.RegisteredClaims
+}
+
+// SessionRefreshPayload is the refresh-token payload for the session/gen model.
+type SessionRefreshPayload struct {
+	JTI       uuid.UUID `json:"jti"`
+	UserID    uuid.UUID `json:"sub"`
+	SessionID uuid.UUID `json:"sid"`
+	Gen       int64     `json:"gen"`
+	GlobalVer int       `json:"gv"`
+	TokenType TokenType `json:"token_type"`
+	IssuedAt  time.Time `json:"iat"`
+	ExpiredAt time.Time `json:"exp"`
+}
+
+// SessionRefreshClaims is the JWT claim set for session-mode refresh tokens.
+type SessionRefreshClaims struct {
+	TokenType TokenType `json:"token_type"`
+	SessionID string `json:"sid"`
+	Gen       int64  `json:"gen"`
+	GlobalVer int    `json:"gv"`
+
+	jwt.RegisteredClaims
+}
+
+// Reset clears all fields before this claim object is reused from a pool.
+func (c *SessionAccessClaims) Reset() {
+	*c = SessionAccessClaims{}
+}
+
+// Reset clears all fields before this claim object is reused from a pool.
+func (c *SessionRefreshClaims) Reset() {
+	*c = SessionRefreshClaims{}
+}
+
+// NewSessionAccessPayload creates a session-mode access payload.
+func NewSessionAccessPayload(userID uuid.UUID, roles []string, globalVer int, duration time.Duration) (*SessionAccessPayload, error) {
+	return NewSessionAccessPayloadAt(userID, roles, globalVer, time.Now().UTC(), duration)
+}
+
+// NewSessionAccessPayloadAt creates a session-mode access payload at a provided time.
+func NewSessionAccessPayloadAt(userID uuid.UUID, roles []string, globalVer int, now time.Time, duration time.Duration) (*SessionAccessPayload, error) {
+	now = now.UTC()
+	return &SessionAccessPayload{
+		JTI:       uuid.New(),
+		UserID:    userID,
+		Roles:     append([]string(nil), roles...),
+		GlobalVer: globalVer,
+		TokenType: TokenTypeAccess,
+		IssuedAt:  now,
+		ExpiredAt: now.Add(duration),
+	}, nil
+}
+
+// FillClaims copies session-mode access payload into JWT claims.
+func (p *SessionAccessPayload) FillClaims(claims *SessionAccessClaims) {
+	claims.Roles = append([]string(nil), p.Roles...)
+	claims.GlobalVer = p.GlobalVer
+	claims.TokenType = p.TokenType
+	claims.RegisteredClaims = jwt.RegisteredClaims{
+		ID:        p.JTI.String(),
+		Subject:   p.UserID.String(),
+		IssuedAt:  jwt.NewNumericDate(p.IssuedAt),
+		ExpiresAt: jwt.NewNumericDate(p.ExpiredAt),
+	}
+}
+
+// Valid implements the jwt.Claims interface.
+func (p *SessionAccessPayload) Valid() error {
+	if time.Now().After(p.ExpiredAt) {
+		return ErrExpiredToken
+	}
+	return nil
+}
+
+// NewSessionRefreshPayload creates a session-mode refresh payload.
+func NewSessionRefreshPayload(userID, sessionID uuid.UUID, gen int64, globalVer int, duration time.Duration) (*SessionRefreshPayload, error) {
+	return NewSessionRefreshPayloadAt(userID, sessionID, gen, globalVer, time.Now().UTC(), duration)
+}
+
+// NewSessionRefreshPayloadAt creates a session-mode refresh payload at a provided time.
+func NewSessionRefreshPayloadAt(userID, sessionID uuid.UUID, gen int64, globalVer int, now time.Time, duration time.Duration) (*SessionRefreshPayload, error) {
+	now = now.UTC()
+	return &SessionRefreshPayload{
+		JTI:       uuid.New(),
+		UserID:    userID,
+		SessionID: sessionID,
+		Gen:       gen,
+		GlobalVer: globalVer,
+		TokenType: TokenTypeRefresh,
+		IssuedAt:  now,
+		ExpiredAt: now.Add(duration),
+	}, nil
+}
+
+// FillClaims copies session-mode refresh payload into JWT claims.
+func (p *SessionRefreshPayload) FillClaims(claims *SessionRefreshClaims) {
+	claims.SessionID = p.SessionID.String()
+	claims.Gen = p.Gen
+	claims.GlobalVer = p.GlobalVer
+	claims.TokenType = p.TokenType
+	claims.RegisteredClaims = jwt.RegisteredClaims{
+		ID:        p.JTI.String(),
+		Subject:   p.UserID.String(),
+		IssuedAt:  jwt.NewNumericDate(p.IssuedAt),
+		ExpiresAt: jwt.NewNumericDate(p.ExpiredAt),
+	}
+}
+
+// Valid implements the jwt.Claims interface.
+func (p *SessionRefreshPayload) Valid() error {
+	if time.Now().After(p.ExpiredAt) {
+		return ErrExpiredToken
+	}
+	return nil
+}
+
+func sessionAccessPayloadFromClaims(claims *SessionAccessClaims) (*SessionAccessPayload, error) {
+	if claims == nil || claims.ExpiresAt == nil || claims.IssuedAt == nil {
+		return nil, ErrInvalidToken
+	}
+	uid, err := uuid.Parse(claims.Subject)
+	if err != nil {
+		return nil, ErrInvalidToken
+	}
+	return &SessionAccessPayload{
+		JTI:       uuid.MustParse(claims.ID),
+		UserID:    uid,
+		Roles:     append([]string(nil), claims.Roles...),
+		GlobalVer: claims.GlobalVer,
+		TokenType: claims.TokenType,
+		IssuedAt:  claims.IssuedAt.Time,
+		ExpiredAt: claims.ExpiresAt.Time,
+	}, nil
+}
+
+func sessionRefreshPayloadFromClaims(claims *SessionRefreshClaims) (*SessionRefreshPayload, error) {
+	if claims == nil || claims.ExpiresAt == nil || claims.IssuedAt == nil {
+		return nil, ErrInvalidToken
+	}
+	uid, err := uuid.Parse(claims.Subject)
+	if err != nil {
+		return nil, ErrInvalidToken
+	}
+	sid, err := uuid.Parse(claims.SessionID)
+	if err != nil {
+		return nil, ErrInvalidToken
+	}
+	return &SessionRefreshPayload{
+		JTI:       uuid.MustParse(claims.ID),
+		UserID:    uid,
+		SessionID: sid,
+		Gen:       claims.Gen,
+		GlobalVer: claims.GlobalVer,
+		TokenType: claims.TokenType,
+		IssuedAt:  claims.IssuedAt.Time,
+		ExpiredAt: claims.ExpiresAt.Time,
+	}, nil
+}
+
+// encodeSessionRoles returns a JSON-compatible copy for MapClaims fallback.
+func encodeSessionRoles(roles []string) []string {
+	if len(roles) == 0 {
+		return nil
+	}
+	return append([]string(nil), roles...)
+}
+
+func decodeStringSliceClaim(raw any) ([]string, error) {
+	if raw == nil {
+		return nil, nil
+	}
+	if typed, ok := raw.([]string); ok {
+		return append([]string(nil), typed...), nil
+	}
+	items, ok := raw.([]any)
+	if !ok {
+		return nil, ErrInvalidToken
+	}
+	roles := make([]string, 0, len(items))
+	for _, item := range items {
+		role, ok := item.(string)
+		if !ok {
+			return nil, ErrInvalidToken
+		}
+		roles = append(roles, role)
+	}
+	return roles, nil
+}
+
+// JSON helper kept local so session-mode claims can use either typed claims or MapClaims.
+func marshalSessionRoles(roles []string) (any, error) {
+	if len(roles) == 0 {
+		return nil, nil
+	}
+	data, err := json.Marshal(roles)
+	if err != nil {
+		return nil, err
+	}
+	var decoded []string
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return nil, err
+	}
+	return decoded, nil
 }

@@ -10,6 +10,8 @@ import (
 type Config struct {
 	ScyllaHosts                      []string      `mapstructure:"SCYLLA_HOSTS"`
 	ScyllaPort                       int           `mapstructure:"SCYLLA_PORT"`
+	ScyllaDatacenter                 string        `mapstructure:"SCYLLA_DATACENTER"`
+	ScyllaReplicationFactor          int           `mapstructure:"SCYLLA_REPLICATION_FACTOR"`
 	ScyllaUsername                   string        `mapstructure:"SCYLLA_USERNAME"`
 	ScyllaPassword                   string        `mapstructure:"SCYLLA_PASSWORD"`
 	JWTSecret                        string        `mapstructure:"JWT_SECRET"`
@@ -33,6 +35,8 @@ func Load() (Config, error) {
 	viper.SetDefault("AUTH_GRPC_PORT", "50051")
 	viper.SetDefault("SCYLLA_HOSTS", "localhost")
 	viper.SetDefault("SCYLLA_PORT", 9042)
+	viper.SetDefault("SCYLLA_DATACENTER", "datacenter1")
+	viper.SetDefault("SCYLLA_REPLICATION_FACTOR", 1)
 	viper.SetDefault("SCYLLA_USERNAME", "cassandra")
 	viper.SetDefault("SCYLLA_PASSWORD", "cassandra")
 	viper.SetDefault("ACCESS_TOKEN_DURATION", "15m")

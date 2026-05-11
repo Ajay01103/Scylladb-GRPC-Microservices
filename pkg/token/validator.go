@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -43,7 +44,7 @@ func NewRemoteValidator(jwksUrl string) *RemoteValidator {
 		httpClient: &http.Client{Timeout: 5 * time.Second},
 	}
 	v.keys.Store(make(map[string]cachedJWK))
-	v.cacheTTL.Store(int64(1 * time.Hour))
+	v.cacheTTL.Store(int64(60 * time.Second))
 	return v
 }
 
@@ -164,11 +165,22 @@ func (v *RemoteValidator) parseTokenWithClaims(tokenStr string, claims jwt.Claim
 		return nil, errors.New("no public keys cached")
 	}
 
-	token, err := jwt.ParseWithClaims(tokenStr, claims,
-		func(token *jwt.Token) (interface{}, error) {
-			return keyForTokenHeader(publicKeys, token)
-		},
-	)
+	parse := func(keys map[string]cachedJWK) (*jwt.Token, error) {
+		return jwt.ParseWithClaims(tokenStr, claims,
+			func(token *jwt.Token) (interface{}, error) {
+				return keyForTokenHeader(keys, token)
+			},
+		)
+	}
+
+	token, err := parse(publicKeys)
+	if err != nil && strings.Contains(err.Error(), "unknown key id:") {
+		if refreshErr := v.refreshKeysSingleflight(); refreshErr == nil {
+			if refreshed := v.loadKeys(); len(refreshed) > 0 {
+				token, err = parse(refreshed)
+			}
+		}
+	}
 	if err != nil {
 		if errors.Is(err, jwt.ErrTokenExpired) {
 			return nil, ErrExpiredToken

@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package auth;
 
-option go_package = "github.com/Ajay01103/go-grpc-sqlc/auth/gen/pb;pb";
+option go_package = "github.com/Ajay01103/go-notion/auth/gen/pb;pb";
 
 // ─── Request / Response Messages ─────────────────────────────────────────────
 
@@ -17,13 +17,9 @@ message LoginRequest {
   string password = 2;
 }
 
-// RefreshTokenRequest: the client passes its current refresh token and DPoP proof.
+// RefreshTokenRequest: the client passes its current refresh token.
 message RefreshTokenRequest {
-  reserved 3;
-  reserved "dpop_key_thumbprint";
-
   string refresh_token = 1;
-  string dpop_proof = 2;
 }
 
 // LogoutRequest: the client passes its current refresh token so the server
@@ -86,7 +82,7 @@ service AuthService {
   rpc Login(LoginRequest) returns (AuthResponse);
 
   // Issue a new access token + rotate the refresh token.
-  // Validates the refresh token JWT, DPoP proof, and checks Redis (revocation check).
+  // Validates the refresh token JWT and checks revocation state.
   rpc RefreshToken(RefreshTokenRequest) returns (AuthResponse);
 
   // Invalidate the refresh token in Redis (logout)
@@ -101,4 +97,3 @@ service AuthService {
   // Return info about the currently logged in user based on the bearer token
   rpc GetCurrentUser(GetCurrentUserRequest) returns (GetCurrentUserResponse);
 }
-

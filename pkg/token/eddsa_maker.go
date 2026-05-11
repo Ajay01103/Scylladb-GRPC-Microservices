@@ -365,6 +365,114 @@ func (m *EDDSAMaker) VerifyRefreshToken(tokenStr string) (*RefreshPayload, error
 	return payload, nil
 }
 
+func (m *EDDSAMaker) CreateSessionRefreshToken(userID, sessionID string, gen int64, globalVer int, duration time.Duration) (string, *SessionRefreshPayload, error) {
+	uid, err := uuid.Parse(userID)
+	if err != nil {
+		return "", nil, fmt.Errorf("invalid user id: %w", err)
+	}
+	sid, err := uuid.Parse(sessionID)
+	if err != nil {
+		return "", nil, fmt.Errorf("invalid session id: %w", err)
+	}
+
+	payload, err := NewSessionRefreshPayload(uid, sid, gen, globalVer, duration)
+	if err != nil {
+		return "", nil, err
+	}
+
+	claims := &SessionRefreshClaims{}
+	payload.FillClaims(claims)
+	token := jwt.NewWithClaims(jwt.SigningMethodEdDSA, claims)
+	token.Header["kid"] = m.GetCurrentKeyID()
+	signed, err := token.SignedString(m.privateKey)
+	if err != nil {
+		return "", nil, err
+	}
+	return signed, payload, nil
+}
+
+func (m *EDDSAMaker) CreateSessionAccessToken(userID string, roles []string, globalVer int, duration time.Duration) (string, *SessionAccessPayload, error) {
+	uid, err := uuid.Parse(userID)
+	if err != nil {
+		return "", nil, fmt.Errorf("invalid user id: %w", err)
+	}
+
+	payload, err := NewSessionAccessPayload(uid, roles, globalVer, duration)
+	if err != nil {
+		return "", nil, err
+	}
+
+	claims := &SessionAccessClaims{}
+	payload.FillClaims(claims)
+	token := jwt.NewWithClaims(jwt.SigningMethodEdDSA, claims)
+	token.Header["kid"] = m.GetCurrentKeyID()
+	signed, err := token.SignedString(m.privateKey)
+	if err != nil {
+		return "", nil, err
+	}
+	return signed, payload, nil
+}
+
+func (m *EDDSAMaker) VerifySessionRefreshToken(tokenStr string) (*SessionRefreshPayload, error) {
+	claims := &SessionRefreshClaims{}
+	token, err := jwt.ParseWithClaims(tokenStr, claims,
+		func(token *jwt.Token) (interface{}, error) {
+			if token.Method.Alg() != jwt.SigningMethodEdDSA.Alg() {
+				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			}
+			kid, ok := token.Header["kid"].(string)
+			if !ok || kid == "" {
+				return nil, errors.New("missing kid in token header")
+			}
+			pubKey, exists := m.getValidPublicKey(kid)
+			if !exists {
+				return nil, fmt.Errorf("unknown key id: %s", kid)
+			}
+			return pubKey, nil
+		},
+	)
+	if err != nil {
+		if errors.Is(err, jwt.ErrTokenExpired) {
+			return nil, ErrExpiredToken
+		}
+		return nil, ErrInvalidToken
+	}
+	if !token.Valid || claims.TokenType != TokenTypeRefresh {
+		return nil, ErrInvalidToken
+	}
+	return sessionRefreshPayloadFromClaims(claims)
+}
+
+func (m *EDDSAMaker) VerifySessionAccessToken(tokenStr string) (*SessionAccessPayload, error) {
+	claims := &SessionAccessClaims{}
+	token, err := jwt.ParseWithClaims(tokenStr, claims,
+		func(token *jwt.Token) (interface{}, error) {
+			if token.Method.Alg() != jwt.SigningMethodEdDSA.Alg() {
+				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			}
+			kid, ok := token.Header["kid"].(string)
+			if !ok || kid == "" {
+				return nil, errors.New("missing kid in token header")
+			}
+			pubKey, exists := m.getValidPublicKey(kid)
+			if !exists {
+				return nil, fmt.Errorf("unknown key id: %s", kid)
+			}
+			return pubKey, nil
+		},
+	)
+	if err != nil {
+		if errors.Is(err, jwt.ErrTokenExpired) {
+			return nil, ErrExpiredToken
+		}
+		return nil, ErrInvalidToken
+	}
+	if !token.Valid || claims.TokenType != TokenTypeAccess {
+		return nil, ErrInvalidToken
+	}
+	return sessionAccessPayloadFromClaims(claims)
+}
+
 func (m *EDDSAMaker) RotateKey() (string, error) {
 	_, newPrivateKey, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
@@ -389,7 +497,7 @@ func (m *EDDSAMaker) RotateKey() (string, error) {
 	if m.keyStore != nil {
 		ctx := context.Background()
 		if pastKeyID != "" {
-			_ = m.keyStore.retireKey(ctx, pastKeyID)
+			_ = m.keyStore.retireKey(ctx, pastKeyID, rotatedKeyRetention)
 		}
 		if err := m.keyStore.storeKey(ctx, newKeyID, newPrivateKey, m.keyTTL); err != nil {
 			return "", err

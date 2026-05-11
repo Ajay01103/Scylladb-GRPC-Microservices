@@ -135,7 +135,7 @@ func (s *eddsaRedisKeyStore) storeKey(ctx context.Context, kid string, privateKe
 	return nil
 }
 
-func (s *eddsaRedisKeyStore) retireKey(ctx context.Context, kid string) error {
+func (s *eddsaRedisKeyStore) retireKey(ctx context.Context, kid string, ttl time.Duration) error {
 	meta, err := s.loadKeyMeta(ctx, kid)
 	if err != nil {
 		return err
@@ -151,7 +151,9 @@ func (s *eddsaRedisKeyStore) retireKey(ctx context.Context, kid string) error {
 	pipe.HSet(ctx, metaKey, map[string]interface{}{
 		"status":     string(KeyStatusRetired),
 		"rotated_at": now.Unix(),
+		"expires_at": now.Add(ttl).Unix(),
 	})
+	pipe.Expire(ctx, metaKey, ttl)
 	_, err = pipe.Exec(ctx)
 	if err != nil {
 		return fmt.Errorf("update retired key meta: %w", err)

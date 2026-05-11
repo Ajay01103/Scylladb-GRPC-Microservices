@@ -22,12 +22,18 @@ import (
 	"github.com/Ajay01103/go-notion/auth/internal/repository"
 	"github.com/Ajay01103/go-notion/auth/internal/scyllastore"
 	"github.com/Ajay01103/go-notion/auth/internal/service"
+	"github.com/Ajay01103/go-notion/auth/internal/tokencache"
 	"github.com/Ajay01103/go-notion/auth/server"
 	"github.com/Ajay01103/go-notion/pkg/interceptor"
 	pkglogger "github.com/Ajay01103/go-notion/pkg/logger"
 	"github.com/Ajay01103/go-notion/pkg/token"
 )
 
+// jwksCacheEntry stores cached JWKS bytes with an expiry timestamp.
+type jwksCacheEntry struct {
+	Data      []byte
+	ExpiresAt time.Time
+}
 // corsMiddleware allows Next.js or any other frontend to access Connect endpoints.
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -71,7 +77,7 @@ func run() error {
 		Keyspace:    "auth_ks",
 		Username:    cfg.ScyllaUsername,
 		Password:    cfg.ScyllaPassword,
-		Consistency: gocql.Quorum,
+		Consistency: gocql.LocalQuorum,
 	})
 
 	// Wait for ScyllaDB to be ready
@@ -85,7 +91,7 @@ func run() error {
 
 	// 3. Initialize schema
 	logger.Info("initializing scylladb schema")
-	initializer := db.NewSchemaInitializer(scyllaCluster)
+	initializer := db.NewSchemaInitializer(scyllaCluster, cfg.ScyllaDatacenter, cfg.ScyllaReplicationFactor)
 	ctx, cancel = context.WithTimeout(context.Background(), 30*time.Second)
 	if err := initializer.InitializeSchema(ctx); err != nil {
 		cancel()
@@ -104,7 +110,18 @@ func run() error {
 
 	// 5. Setup dependencies
 	userRepo := repository.NewUserRepo(session)
-	tokenStore := scyllastore.New(session)
+	
+	// Session-based stores (new model)
+	sessionStore := scyllastore.NewSessionStore(session)
+	revocationStore := scyllastore.NewSessionStore(session)
+	
+	// Shared auth cache for session state and revocation lookups
+	authCache, err := tokencache.NewRistrettoCache()
+	if err != nil {
+		logger.Error("cannot create token cache", zap.Error(err))
+		return fmt.Errorf("create token cache: %w", err)
+	}
+	
 	eddsaKeyRetention := cfg.EDDSASigningKeyRetentionDuration
 	if eddsaKeyRetention < cfg.RefreshTokenDuration {
 		logger.Warn(
@@ -122,7 +139,7 @@ func run() error {
 	}
 	var tokenMaker token.TokenMaker = eddsaMaker
 
-	authService := service.New(userRepo, tokenMaker, tokenStore, cfg, logger)
+	authService := service.New(userRepo, tokenMaker, sessionStore, revocationStore, authCache, cfg, logger)
 	authServer := server.New(authService)
 
 	loggingInterceptor := interceptor.NewLoggingInterceptor(logger)
@@ -130,14 +147,49 @@ func run() error {
 	// 6. Start ConnectRPC server (HTTP/2 with h2c)
 	mux := http.NewServeMux()
 
+	// JWKS cache (ristretto) for faster JWKS retrieval
+	jwksCache, err := tokencache.NewRistrettoCache()
+	if err != nil {
+		logger.Error("cannot create jwks cache", zap.Error(err))
+		return fmt.Errorf("create jwks cache: %w", err)
+	}
+
 	// JWKS endpoint for token validation by other services
 	mux.HandleFunc("GET /.well-known/jwks.json", func(w http.ResponseWriter, r *http.Request) {
+		// Try cache first
+		if v, ok := jwksCache.Get("jwks:current"); ok {
+			if entry, ok := v.(jwksCacheEntry); ok {
+				if time.Now().Before(entry.ExpiresAt) {
+					w.Header().Set("Content-Type", "application/json")
+					w.Header().Set("Cache-Control", "public, max-age=3600")
+					w.Write(entry.Data)
+					return
+				}
+			}
+		}
+
+		// Cache miss: try to load serialized JWKS from ScyllaDB table first
+		var jwksText string
+		if err := session.Query(`SELECT jwks_json FROM jwks_public_keys WHERE id = ?`, "current").WithContext(r.Context()).Scan(&jwksText); err == nil {
+			jwksBytes := []byte(jwksText)
+			jwksCache.Set("jwks:current", jwksCacheEntry{Data: jwksBytes, ExpiresAt: time.Now().Add(24 * time.Hour)}, 1)
+			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("Cache-Control", "public, max-age=3600")
+			w.Write(jwksBytes)
+			return
+		}
+
+		// If not found in Scylla, export from EDDSAMaker (in-memory keys loaded at startup)
 		jwksData, err := eddsaMaker.ExportPublicKeys()
 		if err != nil {
 			logger.Error("export jwks", zap.Error(err))
 			http.Error(w, "Failed to export JWKS", http.StatusInternalServerError)
 			return
 		}
+
+		// Store result in cache with 24h TTL (managed via ExpiresAt)
+		jwksCache.Set("jwks:current", jwksCacheEntry{Data: jwksData, ExpiresAt: time.Now().Add(24 * time.Hour)}, 1)
+
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Cache-Control", "public, max-age=3600")
 		w.Write(jwksData)

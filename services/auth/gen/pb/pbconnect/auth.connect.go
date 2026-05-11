@@ -60,7 +60,7 @@ type AuthServiceClient interface {
 	// Login an existing user, returns a fresh token pair
 	Login(context.Context, *connect.Request[pb.LoginRequest]) (*connect.Response[pb.AuthResponse], error)
 	// Issue a new access token + rotate the refresh token.
-	// Validates the refresh token JWT, DPoP proof, and checks Redis (revocation check).
+	// Validates the refresh token JWT and checks revocation state.
 	RefreshToken(context.Context, *connect.Request[pb.RefreshTokenRequest]) (*connect.Response[pb.AuthResponse], error)
 	// Invalidate the refresh token in Redis (logout)
 	Logout(context.Context, *connect.Request[pb.LogoutRequest]) (*connect.Response[pb.LogoutResponse], error)
@@ -181,7 +181,7 @@ type AuthServiceHandler interface {
 	// Login an existing user, returns a fresh token pair
 	Login(context.Context, *connect.Request[pb.LoginRequest]) (*connect.Response[pb.AuthResponse], error)
 	// Issue a new access token + rotate the refresh token.
-	// Validates the refresh token JWT, DPoP proof, and checks Redis (revocation check).
+	// Validates the refresh token JWT and checks revocation state.
 	RefreshToken(context.Context, *connect.Request[pb.RefreshTokenRequest]) (*connect.Response[pb.AuthResponse], error)
 	// Invalidate the refresh token in Redis (logout)
 	Logout(context.Context, *connect.Request[pb.LogoutRequest]) (*connect.Response[pb.LogoutResponse], error)
