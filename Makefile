@@ -1,12 +1,14 @@
-PROTO_DIR   := proto
-AUTH_SVC    := services/auth
+PROTO_DIR     := proto
+AUTH_SVC      := services/auth
+WORKSPACE_SVC := services/workspace
 
-AUTH_PB_OUT := $(AUTH_SVC)/gen/pb
+AUTH_PB_OUT      := $(AUTH_SVC)/gen/pb
+WORKSPACE_PB_OUT := $(WORKSPACE_SVC)/gen/pb
 
 # Do not globally export per-service .env values here; Goose variables can
 # collide across services and cause migrations to run against the wrong DB.
 
-.PHONY: help proto build run-auth run-voice run-gen seed-voices tidy scylla-up scylla-init-schema scylla-ui scylla-all scylla-shell dev-start docker-up docker-down docker-logs
+.PHONY: help proto build run-auth run-workspace run-voice run-gen seed-voices tidy scylla-up scylla-init-schema scylla-ui scylla-all scylla-shell dev-start docker-up docker-down docker-logs
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -15,19 +17,26 @@ help: ## Show this help
 
 proto: ## Generate gRPC Go and TS code from proto files
 	-@mkdir $(AUTH_PB_OUT) 2>nul || exit 0
+	-@mkdir $(WORKSPACE_PB_OUT) 2>nul || exit 0
 	cd $(PROTO_DIR)/auth && npx @bufbuild/buf generate
+	cd $(PROTO_DIR)/workspace && npx @bufbuild/buf generate
 	@echo "✓ Proto generated"
 
 # ─── Build & Run ──────────────────────────────────────────────────────────────
 
 build: ## Build the service binaries
 	cd $(AUTH_SVC) && go build -o ../../bin/auth ./cmd/
+	cd $(WORKSPACE_SVC) && go build -o ../../bin/workspace ./cmd/
 
 run-auth: ## Start Auth service (requires ScyllaDB running - see scylla-up)
 	cd $(AUTH_SVC) && go run ./cmd/
 
+run-workspace: ## Start Workspace service (requires ScyllaDB running - see scylla-up)
+	cd $(WORKSPACE_SVC) && go run ./cmd/
+
 tidy: ## Tidy Go modules
 	cd $(AUTH_SVC) && go mod tidy
+	cd $(WORKSPACE_SVC) && go mod tidy
 	go work sync
 
 # ─── ScyllaDB Management ──────────────────────────────────────────────────────
@@ -61,6 +70,11 @@ dev-start: scylla-up ## Start ScyllaDB and auth service for local development
 	@echo "Waiting 5 seconds for ScyllaDB health check..."
 	@timeout /t 5 /nobreak
 	$(MAKE) run-auth
+
+dev-start-workspace: scylla-up ## Start ScyllaDB and workspace service for local development
+	@echo "Waiting 5 seconds for ScyllaDB health check..."
+	@timeout /t 5 /nobreak
+	$(MAKE) run-workspace
 
 # ─── Docker ───────────────────────────────────────────────────────────────────
 

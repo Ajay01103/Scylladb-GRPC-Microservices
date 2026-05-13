@@ -1,27 +1,27 @@
-"use client";
+"use client"
 
-import * as React from "react";
-import { useState, useId, useEffect } from "react";
-import Link from "next/link";
-import { Label as LabelPrimitive, Slot } from "radix-ui";
-import { cva, type VariantProps } from "class-variance-authority";
-import { Eye, EyeOff } from "lucide-react";
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
-import { Button } from "@/components/ui/button";
+import * as React from "react"
+import { useState, useId, useEffect } from "react"
+import Link from "next/link"
+import { Label as LabelPrimitive, Slot } from "radix-ui"
+import { cva, type VariantProps } from "class-variance-authority"
+import { Eye, EyeOff } from "lucide-react"
+import { clsx, type ClassValue } from "clsx"
+import { twMerge } from "tailwind-merge"
+import { Button } from "@/components/ui/button"
 
 function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
+  return twMerge(clsx(inputs))
 }
 
 export interface TypewriterProps {
-  text: string | string[];
-  speed?: number;
-  cursor?: string;
-  loop?: boolean;
-  deleteSpeed?: number;
-  delay?: number;
-  className?: string;
+  text: string | string[]
+  speed?: number
+  cursor?: string
+  loop?: boolean
+  deleteSpeed?: number
+  delay?: number
+  className?: string
 }
 
 export function Typewriter({
@@ -33,76 +33,61 @@ export function Typewriter({
   delay = 1500,
   className,
 }: TypewriterProps) {
-  const [displayText, setDisplayText] = useState("");
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [textArrayIndex, setTextArrayIndex] = useState(0);
+  const [displayText, setDisplayText] = useState("")
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [textArrayIndex, setTextArrayIndex] = useState(0)
 
-  const textArray = Array.isArray(text) ? text : [text];
-  const currentText = textArray[textArrayIndex] || "";
+  const textArray = Array.isArray(text) ? text : [text]
+  const currentText = textArray[textArrayIndex] || ""
 
   useEffect(() => {
-    if (!currentText) return;
+    if (!currentText) return
 
     const timeout = setTimeout(
       () => {
         if (!isDeleting) {
           if (currentIndex < currentText.length) {
-            setDisplayText((prev) => prev + currentText[currentIndex]);
-            setCurrentIndex((prev) => prev + 1);
+            setDisplayText((prev) => prev + currentText[currentIndex])
+            setCurrentIndex((prev) => prev + 1)
           } else if (loop) {
-            setTimeout(() => setIsDeleting(true), delay);
+            setTimeout(() => setIsDeleting(true), delay)
           }
         } else {
           if (displayText.length > 0) {
-            setDisplayText((prev) => prev.slice(0, -1));
+            setDisplayText((prev) => prev.slice(0, -1))
           } else {
-            setIsDeleting(false);
-            setCurrentIndex(0);
-            setTextArrayIndex((prev) => (prev + 1) % textArray.length);
+            setIsDeleting(false)
+            setCurrentIndex(0)
+            setTextArrayIndex((prev) => (prev + 1) % textArray.length)
           }
         }
       },
       isDeleting ? deleteSpeed : speed,
-    );
+    )
 
-    return () => clearTimeout(timeout);
-  }, [
-    currentIndex,
-    isDeleting,
-    currentText,
-    loop,
-    speed,
-    deleteSpeed,
-    delay,
-    displayText,
-    text,
-  ]);
+    return () => clearTimeout(timeout)
+  }, [currentIndex, isDeleting, currentText, loop, speed, deleteSpeed, delay, displayText, text])
 
   return (
     <span className={className}>
       {displayText}
       <span className="animate-pulse">{cursor}</span>
     </span>
-  );
+  )
 }
 
 const labelVariants = cva(
   "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
-);
+)
 
 const Label = React.forwardRef<
   React.ElementRef<typeof LabelPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root> &
-    VariantProps<typeof labelVariants>
+  React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root> & VariantProps<typeof labelVariants>
 >(({ className, ...props }, ref) => (
-  <LabelPrimitive.Root
-    ref={ref}
-    className={cn(labelVariants(), className)}
-    {...props}
-  />
-));
-Label.displayName = LabelPrimitive.Root.displayName;
+  <LabelPrimitive.Root ref={ref} className={cn(labelVariants(), className)} {...props} />
+))
+Label.displayName = LabelPrimitive.Root.displayName
 
 // const buttonVariants = cva(
 //   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
@@ -209,13 +194,13 @@ Label.displayName = LabelPrimitive.Root.displayName;
 
 export type AuthHeroContent = {
   image: {
-    src: string;
-    alt: string;
-  };
+    src: string
+    alt: string
+  }
   quote: {
-    text: string;
-  };
-};
+    text: string
+  }
+}
 
 export const defaultLoginContent: AuthHeroContent = {
   image: {
@@ -225,7 +210,7 @@ export const defaultLoginContent: AuthHeroContent = {
   quote: {
     text: "Welcome Back! The journey continues.",
   },
-};
+}
 
 export const defaultRegisterContent: AuthHeroContent = {
   image: {
@@ -235,7 +220,7 @@ export const defaultRegisterContent: AuthHeroContent = {
   quote: {
     text: "Create an account. A new chapter awaits.",
   },
-};
+}
 
 export function GoogleIcon() {
   return (
@@ -262,7 +247,7 @@ export function GoogleIcon() {
         d="M130.55 50.479c24.514 0 41.05 10.589 50.479 19.438l36.844-35.974C195.245 12.91 165.798 0 130.55 0C79.49 0 35.393 29.301 13.925 71.947l42.211 32.783c10.59-31.477 39.891-54.251 74.414-54.251"
       />
     </svg>
-  );
+  )
 }
 
 export function SocialGoogleButton() {
@@ -276,27 +261,25 @@ export function SocialGoogleButton() {
       <GoogleIcon />
       <span>Continue with Google</span>
     </Button>
-  );
+  )
 }
 
 export function AuthDivider() {
   return (
     <div className="flex items-center gap-3 px-1">
       <span className="h-px flex-1 bg-border" />
-      <span className="whitespace-nowrap text-sm text-muted-foreground">
-        Or continue with
-      </span>
+      <span className="whitespace-nowrap text-sm text-muted-foreground">Or continue with</span>
       <span className="h-px flex-1 bg-border" />
     </div>
-  );
+  )
 }
 
 export function AuthHero({
   image,
   quote,
 }: {
-  image: AuthHeroContent["image"];
-  quote: AuthHeroContent["quote"];
+  image: AuthHeroContent["image"]
+  quote: AuthHeroContent["quote"]
 }) {
   return (
     <div className="relative hidden min-h-screen overflow-hidden bg-white lg:block">
@@ -317,7 +300,7 @@ export function AuthHero({
         </blockquote>
       </div>
     </div>
-  );
+  )
 }
 
 export function AuthShell({
@@ -327,11 +310,11 @@ export function AuthShell({
   onSubmit,
   children,
 }: {
-  title: string;
-  subtitle: string;
-  hero: AuthHeroContent;
-  onSubmit: React.FormEventHandler<HTMLFormElement>;
-  children: React.ReactNode;
+  title: string
+  subtitle: string
+  hero: AuthHeroContent
+  onSubmit: React.FormEventHandler<HTMLFormElement>
+  children: React.ReactNode
 }) {
   return (
     <section className="min-h-screen bg-background">
@@ -360,7 +343,7 @@ export function AuthShell({
         <AuthHero image={hero.image} quote={hero.quote} />
       </div>
     </section>
-  );
+  )
 }
 
 // export function AuthUI() {

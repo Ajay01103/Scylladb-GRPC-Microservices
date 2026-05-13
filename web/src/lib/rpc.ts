@@ -2,7 +2,7 @@ import { createClient, type Interceptor } from "@connectrpc/connect"
 import { createConnectTransport } from "@connectrpc/connect-web"
 import { tokenStore } from "@/lib/token-store"
 
-import { AuthService } from "../gen/pb/auth_pb"
+import { AuthService } from "../gen/pb/auth/auth_pb"
 
 const authBaseUrl = process.env.NEXT_PUBLIC_AUTH_RPC_URL ?? "http://localhost:50051"
 

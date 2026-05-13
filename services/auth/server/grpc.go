@@ -177,8 +177,8 @@ func (s *AuthServer) GetCurrentUser(ctx context.Context, req *connect.Request[pb
 		}
 	}
 
-	// 3. Fetch full user details from database (session tokens don't carry email/name)
-	user, err := s.svc.GetUserByID(ctx, res.UserID)
+	// 3. Fetch current user profile through the cache-backed service path
+	user, err := s.svc.GetCurrentUserProfile(ctx, res.UserID)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -188,7 +188,7 @@ func (s *AuthServer) GetCurrentUser(ctx context.Context, req *connect.Request[pb
 
 	// 4. Return user info
 	return connect.NewResponse(&pb.GetCurrentUserResponse{
-		UserId: res.UserID.String(),
+		UserId: user.UserID,
 		Email:  user.Email,
 		Name:   user.Name,
 	}), nil

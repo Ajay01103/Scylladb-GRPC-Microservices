@@ -1,0 +1,158 @@
+syntax = "proto3";
+
+package workspace;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+option go_package = "github.com/Ajay01103/go-notion/workspace/gen/pb;pb";
+
+// ─── Enums ────────────────────────────────────────────────
+
+enum WorkspaceRole {
+  WORKSPACE_ROLE_UNSPECIFIED = 0;
+  WORKSPACE_ROLE_OWNER       = 1;
+  WORKSPACE_ROLE_ADMIN       = 2;
+  WORKSPACE_ROLE_EDITOR      = 3;
+  WORKSPACE_ROLE_MEMBER      = 4;
+  WORKSPACE_ROLE_GUEST       = 5;
+}
+
+// ─── Messages ─────────────────────────────────────────────
+
+message Workspace {
+  string   id          = 1;
+  string   name        = 2;
+  string   slug        = 3;
+  string   description = 4;
+  string   icon_url    = 5;
+  string   owner_id    = 6;
+  bool     is_public   = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+
+  // populated in some responses — caller's role in this workspace
+  WorkspaceRole my_role = 10;
+}
+
+message WorkspaceMember {
+  string        user_id      = 1;
+  string        workspace_id = 2;
+  WorkspaceRole role         = 3;
+  string        invited_by   = 4;
+  google.protobuf.Timestamp joined_at = 5;
+}
+
+// ─── Workspace CRUD ───────────────────────────────────────
+
+message CreateWorkspaceRequest {
+  string name        = 1;  // required
+  string slug        = 2;  // required, validated: [a-z0-9-]
+  string description = 3;
+  string icon_url    = 4;
+  bool   is_public   = 5;
+}
+
+message GetWorkspaceRequest {
+  string workspace_id = 1;
+}
+
+message UpdateWorkspaceRequest {
+  string workspace_id = 1;
+  string name         = 2;
+  string description  = 3;
+  string icon_url     = 4;
+  bool   is_public    = 5;
+}
+
+message DeleteWorkspaceRequest {
+  string workspace_id = 1;
+}
+
+message ListMyWorkspacesRequest {
+  int32  page_size  = 1;
+  string page_token = 2;
+}
+
+message ListMyWorkspacesResponse {
+  repeated Workspace workspaces      = 1;
+  string             next_page_token = 2;
+}
+
+// ─── Members ──────────────────────────────────────────────
+
+message ListMembersRequest {
+  string workspace_id = 1;
+}
+
+message ListMembersResponse {
+  repeated WorkspaceMember members = 1;
+}
+
+message UpdateMemberRoleRequest {
+  string        workspace_id = 1;
+  string        user_id      = 2;
+  WorkspaceRole new_role     = 3;
+}
+
+message RemoveMemberRequest {
+  string workspace_id = 1;
+  string user_id      = 2;
+}
+
+// ─── Invitations ──────────────────────────────────────────
+
+message InviteMemberRequest {
+  string        workspace_id   = 1;
+  string        invited_email  = 2;
+  WorkspaceRole role           = 3;
+}
+
+message InviteMemberResponse {
+  string invitation_id = 1;
+  string token         = 2;   // only returned for internal/dev use
+}
+
+message AcceptInvitationRequest {
+  string token = 1;
+}
+
+message AcceptInvitationResponse {
+  Workspace workspace = 1;
+}
+
+// ─── Permission Check (used by other services) ────────────
+
+message CheckPermissionRequest {
+  string user_id      = 1;
+  string workspace_id = 2;
+  string permission   = 3;   // e.g. "workspace:edit", "members:invite"
+}
+
+message CheckPermissionResponse {
+  bool          allowed = 1;
+  WorkspaceRole role    = 2;
+}
+
+// ─── Service ──────────────────────────────────────────────
+
+service WorkspaceService {
+  // Workspace CRUD
+  rpc CreateWorkspace    (CreateWorkspaceRequest)    returns (Workspace);
+  rpc GetWorkspace       (GetWorkspaceRequest)       returns (Workspace);
+  rpc UpdateWorkspace    (UpdateWorkspaceRequest)    returns (Workspace);
+  rpc DeleteWorkspace    (DeleteWorkspaceRequest)    returns (google.protobuf.Empty);
+  rpc ListMyWorkspaces   (ListMyWorkspacesRequest)   returns (ListMyWorkspacesResponse);
+
+  // Members
+  rpc ListMembers        (ListMembersRequest)        returns (ListMembersResponse);
+  rpc UpdateMemberRole   (UpdateMemberRoleRequest)   returns (WorkspaceMember);
+  rpc RemoveMember       (RemoveMemberRequest)       returns (google.protobuf.Empty);
+
+  // Invitations
+  rpc InviteMember       (InviteMemberRequest)       returns (InviteMemberResponse);
+  rpc AcceptInvitation   (AcceptInvitationRequest)   returns (AcceptInvitationResponse);
+
+  // Internal — called by other services (pages, docs, etc.)
+  rpc CheckPermission    (CheckPermissionRequest)    returns (CheckPermissionResponse);
+}

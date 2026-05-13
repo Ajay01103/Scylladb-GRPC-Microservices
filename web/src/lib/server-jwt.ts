@@ -91,10 +91,7 @@ type JwkResolutionResult =
   | { key: JsonWebKey; alg: SupportedJwsAlgorithm }
   | { reason: "invalid-token" | "jwks-fetch-failed" }
 
-async function resolveRefreshTokenJwk(
-  jwksUrl: string,
-  kid: string,
-): Promise<JwkResolutionResult> {
+async function resolveRefreshTokenJwk(jwksUrl: string, kid: string): Promise<JwkResolutionResult> {
   const now = Date.now()
   pruneExpiredJwksEntries(now)
 

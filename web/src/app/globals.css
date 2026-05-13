@@ -10,41 +10,41 @@
   --color-primary-pressed: #4534b3;
   --color-primary-deep: #3a2a99;
   --color-on-primary: #ffffff;
-  
+
   --color-brand-navy: #0a1530;
   --color-brand-navy-deep: #070f24;
   --color-brand-navy-mid: #1a2a52;
-  
+
   --color-link-blue: #0075de;
   --color-link-blue-pressed: #005bab;
-  
+
   --color-brand-orange: #dd5b00;
   --color-brand-pink: #ff64c8;
   --color-brand-purple: #7b3ff2;
   --color-brand-teal: #2a9d99;
   --color-brand-green: #1aae39;
-  
+
   --color-semantic-success: #1aae39;
   --color-semantic-warning: #dd5b00;
   --color-semantic-error: #e03131;
-  
+
   /* Card Tints */
   --color-card-tint-peach: #ffe8d4;
   --color-card-tint-rose: #fde0ec;
   --color-card-tint-mint: #d9f3e1;
   --color-card-tint-lavender: #e6e0f5;
   --color-card-tint-sky: #dcecfa;
-  
+
   /* Canvas & Surface */
   --color-canvas: #ffffff;
   --color-surface: #f6f5f4;
   --color-surface-soft: #fafaf9;
-  
+
   /* Borders & Dividers */
   --color-hairline: #e5e3df;
   --color-hairline-soft: #ede9e4;
   --color-hairline-strong: #c8c4be;
-  
+
   /* Text Colors */
   --color-ink-deep: #000000;
   --color-ink: #1a1a1a;
@@ -55,7 +55,7 @@
   --color-muted: #bbb8b1;
   --color-on-dark: #ffffff;
   --color-on-dark-muted: #a4a097;
-  
+
   /* Legacy mappings for compatibility */
   --color-background: #ffffff;
   --color-foreground: #1a1a1a;
@@ -74,7 +74,7 @@
   --color-border: #e5e3df;
   --color-input: #f6f5f4;
   --color-ring: #5645d4;
-  
+
   /* Radius - Design System Values */
   --radius-xs: 4px;
   --radius-sm: 6px;
@@ -85,7 +85,7 @@
   --radius-xxxl: 24px;
   --radius-full: 9999px;
   --radius: 8px;
-  
+
   --radius-sm-calc: 6px;
   --radius-md-calc: 8px;
   --radius-lg-calc: 12px;
@@ -96,18 +96,18 @@
 
 :root {
   --radius: 8px;
-  
+
   /* Primary Colors */
   --primary: #5645d4;
   --primary-pressed: #4534b3;
   --primary-deep: #3a2a99;
   --on-primary: #ffffff;
-  
+
   /* Brand Colors */
   --brand-navy: #0a1530;
   --brand-navy-deep: #070f24;
   --brand-navy-mid: #1a2a52;
-  
+
   /* Canvas & Surface */
   --background: #ffffff;
   --foreground: #1a1a1a;
@@ -128,14 +128,14 @@
   --border: #e5e3df;
   --input: #f6f5f4;
   --ring: #5645d4;
-  
+
   /* Text Colors */
   --ink: #1a1a1a;
   --charcoal: #37352f;
   --slate: #5d5b54;
   --steel: #787671;
   --stone: #a4a097;
-  
+
   /* Sidebar (for future use) */
   --sidebar: #ffffff;
   --sidebar-foreground: #1a1a1a;
@@ -167,7 +167,7 @@
   --border: rgba(255, 255, 255, 0.1);
   --input: rgba(255, 255, 255, 0.15);
   --ring: #7b5eee;
-  
+
   --sidebar: #070f24;
   --sidebar-foreground: #ffffff;
   --sidebar-primary: #7b5eee;
@@ -182,49 +182,51 @@
   * {
     @apply border-border outline-ring/50;
   }
-  
+
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+    font-family:
+      -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans",
+      sans-serif;
   }
-  
+
   /* Typography - Design System */
   h1 {
     @apply text-5xl font-semibold tracking-tight text-ink sm:text-6xl;
   }
-  
+
   h2 {
     @apply text-4xl font-semibold tracking-tight text-ink sm:text-5xl;
   }
-  
+
   h3 {
     @apply text-3xl font-semibold tracking-tight text-ink;
   }
-  
+
   h4 {
     @apply text-2xl font-semibold tracking-tight text-ink;
   }
-  
+
   h5 {
     @apply text-xl font-semibold tracking-tight text-ink;
   }
-  
+
   h6 {
     @apply text-lg font-semibold tracking-tight text-ink;
   }
-  
+
   p {
     @apply text-base text-slate leading-relaxed;
   }
-  
+
   label {
     @apply text-sm font-medium text-ink;
   }
-  
+
   small {
     @apply text-sm text-slate;
   }
-  
+
   code {
     @apply rounded bg-surface-soft px-1.5 py-0.5 font-mono text-sm text-charcoal;
   }

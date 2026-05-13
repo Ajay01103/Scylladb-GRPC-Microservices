@@ -5,16 +5,11 @@ import { cn } from "@/lib/utils"
 const cardVariants = cva("rounded-lg text-ink", {
   variants: {
     variant: {
-      default:
-        "bg-canvas border border-hairline shadow-sm",
-      outlined:
-        "bg-canvas border border-hairline",
-      soft:
-        "bg-surface-soft border border-hairline-soft",
-      filled:
-        "bg-surface border border-transparent",
-      elevated:
-        "bg-canvas border border-hairline-soft shadow-md shadow-charcoal/5",
+      default: "bg-canvas border border-hairline shadow-sm",
+      outlined: "bg-canvas border border-hairline",
+      soft: "bg-surface-soft border border-hairline-soft",
+      filled: "bg-surface border border-transparent",
+      elevated: "bg-canvas border border-hairline-soft shadow-md shadow-charcoal/5",
     },
   },
   defaultVariants: {

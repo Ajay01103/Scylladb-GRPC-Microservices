@@ -49,47 +49,30 @@ export function UserButton() {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button
-          variant="ghost"
-          className="h-10 w-full justify-start gap-3 rounded-xl px-2">
+        <Button variant="ghost" className="h-10 w-full justify-start gap-3 rounded-xl px-2">
           <Avatar className="size-8">
-            <AvatarImage
-              src={avatarUri}
-              alt={displayName}
-            />
+            <AvatarImage src={avatarUri} alt={displayName} />
             <AvatarFallback>{isLoading ? "..." : initialsText}</AvatarFallback>
           </Avatar>
 
           <div className="min-w-0 flex-1 text-left">
-            <p className="truncate text-sm font-medium">
-              {isLoading ? "Loading..." : displayName}
-            </p>
-            <p className="truncate text-xs text-muted-foreground">
-              {user?.email ?? "No email"}
-            </p>
+            <p className="truncate text-sm font-medium">{isLoading ? "Loading..." : displayName}</p>
+            <p className="truncate text-xs text-muted-foreground">{user?.email ?? "No email"}</p>
           </div>
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent
-        side="right"
-        align="end"
-        className="w-72 rounded-xl p-2">
+      <PopoverContent side="right" align="end" className="w-72 rounded-xl p-2">
         <div className="rounded-lg border p-3">
           <div className="flex items-center gap-3">
             <Avatar className="size-10">
-              <AvatarImage
-                src={avatarUri}
-                alt={displayName}
-              />
+              <AvatarImage src={avatarUri} alt={displayName} />
               <AvatarFallback>{initialsText}</AvatarFallback>
             </Avatar>
 
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold">{displayName}</p>
-              <p className="truncate text-xs text-muted-foreground">
-                {user?.email ?? "No email"}
-              </p>
+              <p className="truncate text-xs text-muted-foreground">{user?.email ?? "No email"}</p>
             </div>
           </div>
 
@@ -109,7 +92,8 @@ export function UserButton() {
           variant="ghost"
           className="mt-2 w-full justify-start text-destructive hover:text-destructive"
           onClick={handleLogout}
-          disabled={logoutMutation.isPending}>
+          disabled={logoutMutation.isPending}
+        >
           <LogOut className="size-4" />
           {logoutMutation.isPending ? "Logging out..." : "Logout"}
         </Button>

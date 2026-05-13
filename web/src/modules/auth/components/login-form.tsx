@@ -49,8 +49,7 @@ export function LoginForm() {
         router.replace("/")
         router.refresh()
       } catch (error) {
-        submitErrorRef.current =
-          error instanceof Error ? error.message : "Failed to sign in"
+        submitErrorRef.current = error instanceof Error ? error.message : "Failed to sign in"
         throw error
       }
     },
@@ -67,7 +66,8 @@ export function LoginForm() {
         event.preventDefault()
         event.stopPropagation()
         void form.handleSubmit()
-      }}>
+      }}
+    >
       <form.Field
         name="email"
         validators={{
@@ -83,12 +83,11 @@ export function LoginForm() {
               ? undefined
               : getFirstErrorMessage(result.error.issues[0]?.message)
           },
-        }}>
+        }}
+      >
         {(field) => (
           <div className="space-y-2">
-            <Label
-              htmlFor="login-email"
-              className="text-sm font-semibold">
+            <Label htmlFor="login-email" className="text-sm font-semibold">
               Email
             </Label>
             <Input
@@ -102,9 +101,7 @@ export function LoginForm() {
               autoComplete="email"
             />
             {field.state.meta.errors.length > 0 ? (
-              <p className="text-xs text-destructive">
-                {String(field.state.meta.errors[0])}
-              </p>
+              <p className="text-xs text-destructive">{String(field.state.meta.errors[0])}</p>
             ) : null}
           </div>
         )}
@@ -125,12 +122,11 @@ export function LoginForm() {
               ? undefined
               : getFirstErrorMessage(result.error.issues[0]?.message)
           },
-        }}>
+        }}
+      >
         {(field) => (
           <div className="space-y-2">
-            <Label
-              htmlFor="login-password"
-              className="text-sm font-semibold">
+            <Label htmlFor="login-password" className="text-sm font-semibold">
               Password
             </Label>
             <Input
@@ -144,9 +140,7 @@ export function LoginForm() {
               autoComplete="current-password"
             />
             {field.state.meta.errors.length > 0 ? (
-              <p className="text-xs text-destructive">
-                {String(field.state.meta.errors[0])}
-              </p>
+              <p className="text-xs text-destructive">{String(field.state.meta.errors[0])}</p>
             ) : null}
           </div>
         )}
@@ -157,7 +151,8 @@ export function LoginForm() {
           type="submit"
           variant="outline"
           disabled={isSubmitting}
-          className="h-11 w-full border-border text-foreground shadow-sm hover:bg-accent/40 disabled:opacity-70 sm:h-12">
+          className="h-11 w-full border-border text-foreground shadow-sm hover:bg-accent/40 disabled:opacity-70 sm:h-12"
+        >
           {isSubmitting ? "Signing in..." : "Sign In"}
         </Button>
 
@@ -167,9 +162,7 @@ export function LoginForm() {
 
         <p className="text-center text-sm">
           Don't have an account?{" "}
-          <Link
-            href="/register"
-            className="font-semibold text-foreground">
+          <Link href="/register" className="font-semibold text-foreground">
             Sign up
           </Link>
         </p>

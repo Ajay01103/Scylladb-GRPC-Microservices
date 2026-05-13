@@ -69,46 +69,61 @@ func run() error {
 		return fmt.Errorf("load config: %w", err)
 	}
 
-	// 2. Connect to ScyllaDB
-	logger.Info("connecting to scylladb", zap.Strings("hosts", cfg.ScyllaHosts), zap.Int("port", cfg.ScyllaPort))
-	scyllaCluster := db.NewCluster(db.ClusterConfig{
+	// 2. Build a keyspace-less cluster config for bootstrap
+	// The keyspace doesn't exist yet, so we can't include it in the cluster config
+	baseCluster := db.NewCluster(db.ClusterConfig{
 		Hosts:       cfg.ScyllaHosts,
 		Port:        cfg.ScyllaPort,
-		Keyspace:    "auth_ks",
+		// No Keyspace here — it doesn't exist yet
 		Username:    cfg.ScyllaUsername,
 		Password:    cfg.ScyllaPassword,
 		Consistency: gocql.LocalQuorum,
 	})
 
-	// Wait for ScyllaDB to be ready
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	if err := db.WaitForReady(ctx, scyllaCluster, 10); err != nil {
+	// 3. Wait for ScyllaDB to be reachable (60s timeout, 15 retries @ 2s = 30s max wait)
+	logger.Info("waiting for scylladb to be ready", zap.Strings("hosts", cfg.ScyllaHosts))
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	if err := db.WaitForReady(ctx, baseCluster, 15); err != nil {
 		cancel()
 		logger.Error("scylladb not ready", zap.Error(err))
 		return fmt.Errorf("wait for scylladb: %w", err)
 	}
 	cancel()
 
-	// 3. Initialize schema
-	logger.Info("initializing scylladb schema")
-	initializer := db.NewSchemaInitializer(scyllaCluster, cfg.ScyllaDatacenter, cfg.ScyllaReplicationFactor)
+	// 4. Bootstrap keyspace (create if it doesn't exist)
+	logger.Info("bootstrapping scylladb keyspace")
 	ctx, cancel = context.WithTimeout(context.Background(), 30*time.Second)
-	if err := initializer.InitializeSchema(ctx); err != nil {
+	if err := db.BootstrapKeyspace(ctx, baseCluster, cfg.ScyllaDatacenter, cfg.ScyllaReplicationFactor); err != nil {
 		cancel()
-		logger.Error("cannot initialize schema", zap.Error(err))
-		return fmt.Errorf("initialize schema: %w", err)
+		logger.Error("cannot bootstrap keyspace", zap.Error(err))
+		return fmt.Errorf("bootstrap keyspace: %w", err)
 	}
 	cancel()
 
-	// 4. Create main session with keyspace
-	session, err := db.NewSession(scyllaCluster)
+	// 5. NOW create the main session, keyspace is guaranteed to exist
+	baseCluster.Keyspace = "auth_ks"
+	session, err := db.NewSession(baseCluster)
 	if err != nil {
 		logger.Error("cannot create scylladb session", zap.Error(err))
 		return fmt.Errorf("create session: %w", err)
 	}
 	defer session.Close()
 
-	// 5. Setup dependencies
+	// 6. Run migrations (execute all idempotent .cql files)
+	ctx, cancel = context.WithTimeout(context.Background(), 30*time.Second)
+	hasMigrations, err := db.RunMigrations(ctx, session)
+	cancel()
+	if err != nil {
+		logger.Error("cannot run migrations", zap.Error(err))
+		return fmt.Errorf("run migrations: %w", err)
+	}
+	if hasMigrations {
+		logger.Info("database migrations applied successfully")
+	} else {
+		logger.Debug("database schema is up-to-date")
+	}
+
+	// 7. Setup dependencies
 	userRepo := repository.NewUserRepo(session)
 	
 	// Session-based stores (new model)
@@ -144,7 +159,7 @@ func run() error {
 
 	loggingInterceptor := interceptor.NewLoggingInterceptor(logger)
 
-	// 6. Start ConnectRPC server (HTTP/2 with h2c)
+	// 8. Start ConnectRPC server (HTTP/2 with h2c)
 	mux := http.NewServeMux()
 
 	// JWKS cache (ristretto) for faster JWKS retrieval

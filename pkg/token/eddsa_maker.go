@@ -366,6 +366,10 @@ func (m *EDDSAMaker) VerifyRefreshToken(tokenStr string) (*RefreshPayload, error
 }
 
 func (m *EDDSAMaker) CreateSessionRefreshToken(userID, sessionID string, gen int64, globalVer int, duration time.Duration) (string, *SessionRefreshPayload, error) {
+	if err := m.ensureCurrentSigningKey(); err != nil {
+		return "", nil, err
+	}
+
 	uid, err := uuid.Parse(userID)
 	if err != nil {
 		return "", nil, fmt.Errorf("invalid user id: %w", err)
@@ -380,11 +384,18 @@ func (m *EDDSAMaker) CreateSessionRefreshToken(userID, sessionID string, gen int
 		return "", nil, err
 	}
 
+	m.mu.RLock()
+	currentKid := m.currentKeyID
+	privateKey := m.privateKey
+	m.mu.RUnlock()
+
+	payload.KeyID = currentKid
+
 	claims := &SessionRefreshClaims{}
 	payload.FillClaims(claims)
 	token := jwt.NewWithClaims(jwt.SigningMethodEdDSA, claims)
-	token.Header["kid"] = m.GetCurrentKeyID()
-	signed, err := token.SignedString(m.privateKey)
+	token.Header["kid"] = currentKid
+	signed, err := token.SignedString(privateKey)
 	if err != nil {
 		return "", nil, err
 	}
@@ -392,6 +403,10 @@ func (m *EDDSAMaker) CreateSessionRefreshToken(userID, sessionID string, gen int
 }
 
 func (m *EDDSAMaker) CreateSessionAccessToken(userID string, roles []string, globalVer int, duration time.Duration) (string, *SessionAccessPayload, error) {
+	if err := m.ensureCurrentSigningKey(); err != nil {
+		return "", nil, err
+	}
+
 	uid, err := uuid.Parse(userID)
 	if err != nil {
 		return "", nil, fmt.Errorf("invalid user id: %w", err)
@@ -402,11 +417,18 @@ func (m *EDDSAMaker) CreateSessionAccessToken(userID string, roles []string, glo
 		return "", nil, err
 	}
 
+	m.mu.RLock()
+	currentKid := m.currentKeyID
+	privateKey := m.privateKey
+	m.mu.RUnlock()
+
+	payload.KeyID = currentKid
+
 	claims := &SessionAccessClaims{}
 	payload.FillClaims(claims)
 	token := jwt.NewWithClaims(jwt.SigningMethodEdDSA, claims)
-	token.Header["kid"] = m.GetCurrentKeyID()
-	signed, err := token.SignedString(m.privateKey)
+	token.Header["kid"] = currentKid
+	signed, err := token.SignedString(privateKey)
 	if err != nil {
 		return "", nil, err
 	}
@@ -440,7 +462,12 @@ func (m *EDDSAMaker) VerifySessionRefreshToken(tokenStr string) (*SessionRefresh
 	if !token.Valid || claims.TokenType != TokenTypeRefresh {
 		return nil, ErrInvalidToken
 	}
-	return sessionRefreshPayloadFromClaims(claims)
+	payload, err := sessionRefreshPayloadFromClaims(claims)
+	if err != nil {
+		return nil, err
+	}
+	payload.KeyID, _ = token.Header["kid"].(string)
+	return payload, nil
 }
 
 func (m *EDDSAMaker) VerifySessionAccessToken(tokenStr string) (*SessionAccessPayload, error) {
@@ -470,7 +497,12 @@ func (m *EDDSAMaker) VerifySessionAccessToken(tokenStr string) (*SessionAccessPa
 	if !token.Valid || claims.TokenType != TokenTypeAccess {
 		return nil, ErrInvalidToken
 	}
-	return sessionAccessPayloadFromClaims(claims)
+	payload, err := sessionAccessPayloadFromClaims(claims)
+	if err != nil {
+		return nil, err
+	}
+	payload.KeyID, _ = token.Header["kid"].(string)
+	return payload, nil
 }
 
 func (m *EDDSAMaker) RotateKey() (string, error) {

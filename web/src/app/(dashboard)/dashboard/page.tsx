@@ -1,11 +1,5 @@
-import { UserButton } from "@/components/user-button"
-
 const DashboardPage = () => {
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      <UserButton />
-    </div>
-  )
+  return <div className="min-h-screen flex items-center justify-center"></div>
 }
 
 export default DashboardPage

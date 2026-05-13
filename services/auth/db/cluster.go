@@ -46,7 +46,20 @@ func NewCluster(cfg ClusterConfig) *gocql.ClusterConfig {
 
 // NewSession creates a new ScyllaDB session
 func NewSession(cluster *gocql.ClusterConfig) (*gocql.Session, error) {
-	return gocql.NewSession(*cluster)
+	// Clone cluster with fresh host selection policy
+	// gocql does not allow sharing token-aware policy instances between sessions
+	cloned := *cluster
+	cloned.PoolConfig.HostSelectionPolicy = gocql.TokenAwareHostPolicy(gocql.RoundRobinHostPolicy())
+	return gocql.NewSession(cloned)
+}
+
+// cloneClusterForSession creates a copy with a fresh host selection policy.
+// gocql does not allow sharing token-aware policy instances between sessions.
+func cloneClusterForSession(cluster *gocql.ClusterConfig, keyspace string) gocql.ClusterConfig {
+	cloned := *cluster
+	cloned.Keyspace = keyspace
+	cloned.PoolConfig.HostSelectionPolicy = gocql.TokenAwareHostPolicy(gocql.RoundRobinHostPolicy())
+	return cloned
 }
 
 // PingContext verifies the cluster connection

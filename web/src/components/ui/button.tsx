@@ -15,8 +15,7 @@ const buttonVariants = cva(
           "border-hairline bg-canvas text-ink hover:bg-surface-soft active:bg-surface disabled:border-hairline-soft disabled:text-muted",
         secondary:
           "bg-secondary text-ink hover:bg-slate hover:text-ink active:bg-charcoal disabled:bg-surface-soft",
-        ghost:
-          "text-ink hover:bg-surface-soft active:bg-surface disabled:text-muted",
+        ghost: "text-ink hover:bg-surface-soft active:bg-surface disabled:text-muted",
         destructive:
           "bg-semantic-error text-white hover:bg-semantic-error/80 active:bg-semantic-error/70",
         link: "text-link-blue underline-offset-4 hover:text-link-blue-pressed hover:underline active:text-link-blue-pressed",

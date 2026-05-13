@@ -20,13 +20,13 @@ import (
 
 // AuthService holds all dependencies needed by the auth business logic.
 type AuthService struct {
-	userRepo       *repository.UserRepo
-	tokenMaker     token.TokenMaker
-	sessionStore   *scyllastore.SessionStore
+	userRepo        *repository.UserRepo
+	tokenMaker      token.TokenMaker
+	sessionStore    *scyllastore.SessionStore
 	revocationStore *scyllastore.SessionStore
-	cache          *ristretto.Cache
-	cfg            config.Config
-	logger         *zap.Logger
+	cache           *ristretto.Cache
+	cfg             config.Config
+	logger          *zap.Logger
 }
 
 // New creates an AuthService with its dependencies wired.
@@ -220,16 +220,6 @@ func (s *AuthService) RefreshToken(ctx context.Context, refreshTokenStr string) 
 		tokencache.SessionStateTTL,
 	)
 
-	// Get user for token claims (optional for session-mode tokens)
-	userID, err := uuid.Parse(uid)
-	if err != nil {
-		return nil, fmt.Errorf("parse user id: %w", err)
-	}
-	_, err = s.userRepo.GetByID(ctx, userID)
-	if err != nil {
-		return nil, fmt.Errorf("get user: %w", err)
-	}
-
 	// Mint new token pair
 	newRefreshStr, _, err := s.tokenMaker.CreateSessionRefreshToken(
 		uid, sid, newGen, globalVer, s.cfg.RefreshTokenDuration,
@@ -301,6 +291,33 @@ type ValidateResult struct {
 	Name   string
 }
 
+func (s *AuthService) GetCurrentUserProfile(ctx context.Context, userID uuid.UUID) (*tokencache.CurrentUserEntry, error) {
+	if cached, ok := s.cache.Get(tokencache.CurrentUserKey(userID.String())); ok {
+		if entry, ok := cached.(tokencache.CurrentUserEntry); ok {
+			return &entry, nil
+		}
+	}
+
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	entry := tokencache.CurrentUserEntry{
+		UserID: user.ID,
+		Email:  user.Email,
+		Name:   user.Name,
+	}
+	s.cache.SetWithTTL(
+		tokencache.CurrentUserKey(userID.String()),
+		entry,
+		tokencache.CurrentUserCost,
+		tokencache.CurrentUserTTL,
+	)
+
+	return &entry, nil
+}
+
 func (s *AuthService) ValidateToken(ctx context.Context, accessTokenStr string) (*ValidateResult, error) {
 	// Pure crypto — no DB call, no cache required for AT signature validation
 	payload, err := s.tokenMaker.VerifySessionAccessToken(accessTokenStr)
@@ -324,8 +341,8 @@ func (s *AuthService) ValidateToken(ctx context.Context, accessTokenStr string) 
 
 	return &ValidateResult{
 		UserID: payload.UserID,
-		Email:  "",        // session tokens don't carry email
-		Name:   "",        // session tokens don't carry name
+		Email:  "", // session tokens don't carry email
+		Name:   "", // session tokens don't carry name
 	}, nil
 }
 

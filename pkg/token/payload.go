@@ -1,7 +1,6 @@
 package token
 
 import (
-	"encoding/json"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -263,6 +262,7 @@ type SessionAccessPayload struct {
 	TokenType TokenType `json:"token_type"`
 	IssuedAt  time.Time `json:"iat"`
 	ExpiredAt time.Time `json:"exp"`
+	KeyID     string    `json:"kid,omitempty"`
 }
 
 // SessionAccessClaims is the JWT claim set for session-mode access tokens.
@@ -284,6 +284,7 @@ type SessionRefreshPayload struct {
 	TokenType TokenType `json:"token_type"`
 	IssuedAt  time.Time `json:"iat"`
 	ExpiredAt time.Time `json:"exp"`
+	KeyID     string    `json:"kid,omitempty"`
 }
 
 // SessionRefreshClaims is the JWT claim set for session-mode refresh tokens.
@@ -437,42 +438,4 @@ func encodeSessionRoles(roles []string) []string {
 		return nil
 	}
 	return append([]string(nil), roles...)
-}
-
-func decodeStringSliceClaim(raw any) ([]string, error) {
-	if raw == nil {
-		return nil, nil
-	}
-	if typed, ok := raw.([]string); ok {
-		return append([]string(nil), typed...), nil
-	}
-	items, ok := raw.([]any)
-	if !ok {
-		return nil, ErrInvalidToken
-	}
-	roles := make([]string, 0, len(items))
-	for _, item := range items {
-		role, ok := item.(string)
-		if !ok {
-			return nil, ErrInvalidToken
-		}
-		roles = append(roles, role)
-	}
-	return roles, nil
-}
-
-// JSON helper kept local so session-mode claims can use either typed claims or MapClaims.
-func marshalSessionRoles(roles []string) (any, error) {
-	if len(roles) == 0 {
-		return nil, nil
-	}
-	data, err := json.Marshal(roles)
-	if err != nil {
-		return nil, err
-	}
-	var decoded []string
-	if err := json.Unmarshal(data, &decoded); err != nil {
-		return nil, err
-	}
-	return decoded, nil
 }
