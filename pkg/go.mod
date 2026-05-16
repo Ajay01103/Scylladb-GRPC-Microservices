@@ -7,6 +7,8 @@ require (
 	github.com/gocql/gocql v1.6.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
+	github.com/lestrrat-go/httprc v1.0.6
+	github.com/lestrrat-go/jwx/v2 v2.1.6
 	github.com/redis/go-redis/v9 v9.18.0
 	go.uber.org/zap v1.27.1
 	golang.org/x/sync v0.20.0

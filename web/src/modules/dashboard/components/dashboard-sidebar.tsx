@@ -2,6 +2,17 @@
 
 import AnimatedTabs from "@/components/ui/animated-tabs"
 import {
+  Combobox,
+  ComboboxContent,
+  ComboboxCreateNew,
+  ComboboxEmpty,
+  ComboboxGroup,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxTrigger,
+} from "@/components/ui/combobox"
+import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
@@ -15,21 +26,22 @@ import {
   SidebarRail,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
-import { Skeleton } from "@/components/ui/skeleton"
 import { UserButton } from "@/components/user-button"
 import {
+  buildWorkspaceSlug,
+  useCreateWorkspace,
+  useMyWorkspaces,
+} from "@/modules/workspace/api/use-workspaces"
+import { useWorkspaceUrlState } from "@/modules/workspace/api/use-workspace-url-state"
+import {
   type LucideIcon,
-  Home,
-  LayoutGrid,
-  AudioLines,
-  Volume2,
   Settings,
   Headphones,
 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useParams, usePathname, useRouter } from "next/navigation"
+import { useEffect, useMemo, useState, type KeyboardEvent } from "react"
 
 interface MenuItem {
   title: string
@@ -88,8 +100,61 @@ const NavSection = ({ label, items, pathname }: NavSectionProps) => {
 
 export const DashboardSidebar = () => {
   const pathname = usePathname()
-  const [voiceDialogOpen, setVoiceDialogOpen] = useState(false)
+  const router = useRouter()
+  const params = useParams<{ id?: string | string[] }>()
+  const routeWorkspaceId = Array.isArray(params?.id) ? params.id[0] : (params?.id ?? "")
   const [activeTab, setActiveTab] = useState("white-board")
+  const [workspaceSearch, setWorkspaceSearch] = useState("")
+  const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false)
+  const { setWorkspaceQuery, workspaceQuery } = useWorkspaceUrlState(routeWorkspaceId)
+
+  const workspacesQuery = useMyWorkspaces()
+  const createWorkspaceMutation = useCreateWorkspace()
+  const workspaces = workspacesQuery.data ?? []
+  const sortedWorkspaces = useMemo(
+    () =>
+      [...workspaces].sort((left, right) => {
+        const leftCreatedAt = left.createdAt ? Number(left.createdAt.seconds ?? 0) : Number.MAX_SAFE_INTEGER
+        const rightCreatedAt = right.createdAt ? Number(right.createdAt.seconds ?? 0) : Number.MAX_SAFE_INTEGER
+
+        if (leftCreatedAt !== rightCreatedAt) {
+          return leftCreatedAt - rightCreatedAt
+        }
+
+        return left.name.localeCompare(right.name)
+      }),
+    [workspaces],
+  )
+  const workspaceOptions = useMemo(
+    () =>
+      sortedWorkspaces.map((workspace) => ({
+        value: workspace.id,
+        label: workspace.name,
+        keywords: [workspace.name, workspace.slug],
+      })),
+    [sortedWorkspaces],
+  )
+  const defaultWorkspaceId = workspaceOptions[0]?.value ?? ""
+  const selectedWorkspaceId = routeWorkspaceId || workspaceQuery
+  const effectiveSelectedWorkspaceId =
+    workspaceOptions.some((workspace) => workspace.value === selectedWorkspaceId)
+      ? selectedWorkspaceId
+      : defaultWorkspaceId
+  const selectedWorkspaceLabel =
+    workspaceOptions.find((workspace) => workspace.value === effectiveSelectedWorkspaceId)
+      ?.label ?? ""
+
+  const filteredWorkspaces = useMemo(() => {
+    const normalizedSearch = workspaceSearch.trim().toLowerCase()
+
+    if (!normalizedSearch) {
+      return workspaceOptions
+    }
+
+    return workspaceOptions.filter((workspace) =>
+      workspace.label.toLowerCase().includes(normalizedSearch),
+    )
+  }, [workspaceOptions, workspaceSearch])
 
   const tabs = [
     { id: "white-board", label: "White Board" },
@@ -138,6 +203,71 @@ export const DashboardSidebar = () => {
     }
   }, [pathname])
 
+  useEffect(() => {
+    if (routeWorkspaceId && routeWorkspaceId !== workspaceQuery) {
+      void setWorkspaceQuery(routeWorkspaceId)
+    }
+  }, [routeWorkspaceId, setWorkspaceQuery, workspaceQuery])
+
+  useEffect(() => {
+    if (!defaultWorkspaceId || routeWorkspaceId || workspaceQuery) {
+      return
+    }
+
+    void setWorkspaceQuery(defaultWorkspaceId)
+  }, [defaultWorkspaceId, routeWorkspaceId, setWorkspaceQuery, workspaceQuery])
+
+  useEffect(() => {
+    if (!workspaceMenuOpen) {
+      setWorkspaceSearch("")
+    }
+  }, [workspaceMenuOpen])
+
+  const handleWorkspaceChange = (workspaceId: string) => {
+    if (!workspaceId) {
+      return
+    }
+
+    void setWorkspaceQuery(workspaceId)
+    setWorkspaceSearch("")
+    setWorkspaceMenuOpen(false)
+    router.push(`/workspace/${workspaceId}?workspace=${encodeURIComponent(workspaceId)}`)
+  }
+
+  const handleCreateWorkspace = async (workspaceName: string) => {
+    const trimmedName = workspaceName.trim()
+
+    if (!trimmedName) {
+      return
+    }
+
+    const createdWorkspace = await createWorkspaceMutation.mutateAsync({
+      name: trimmedName,
+      slug: buildWorkspaceSlug(trimmedName),
+      description: "",
+      iconUrl: "",
+      isPublic: false,
+    })
+
+    handleWorkspaceChange(createdWorkspace.id)
+  }
+
+  const handleWorkspaceSearchKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== "Enter") {
+      return
+    }
+
+    const trimmedSearch = workspaceSearch.trim()
+
+    if (!trimmedSearch || filteredWorkspaces.length > 0) {
+      return
+    }
+
+    event.preventDefault()
+    event.stopPropagation()
+    void handleCreateWorkspace(trimmedSearch)
+  }
+
   return (
     <>
       <Sidebar collapsible="icon">
@@ -154,6 +284,47 @@ export const DashboardSidebar = () => {
               Resonance
             </span>
             <SidebarTrigger className="ml-auto group-data-[collapsible=icon]:hidden" />
+          </div>
+          <div className="group-data-[collapsible=icon]:hidden space-y-2 px-1">
+            <SidebarGroupLabel className="px-1 text-[13px] uppercase text-muted-foreground">
+              Workspace
+            </SidebarGroupLabel>
+            <Combobox
+              data={workspaceOptions}
+              type="workspace"
+              onOpenChange={setWorkspaceMenuOpen}
+              onValueChange={handleWorkspaceChange}
+              open={workspaceMenuOpen}
+              value={effectiveSelectedWorkspaceId}>
+              <ComboboxTrigger className="h-10 w-full justify-between rounded-xl border-border/60 bg-background px-3 text-sm shadow-sm" />
+              <ComboboxContent className="p-0">
+                <ComboboxInput
+                  onKeyDown={handleWorkspaceSearchKeyDown}
+                  onValueChange={setWorkspaceSearch}
+                  placeholder="Search workspaces..."
+                />
+                <ComboboxEmpty>
+                  <ComboboxCreateNew onCreateNew={handleCreateWorkspace} />
+                </ComboboxEmpty>
+                <ComboboxList>
+                  <ComboboxGroup>
+                    {filteredWorkspaces.map((workspace) => (
+                      <ComboboxItem
+                        key={workspace.value}
+                        keywords={workspace.keywords}
+                        value={workspace.value}>
+                        {workspace.label}
+                      </ComboboxItem>
+                    ))}
+                  </ComboboxGroup>
+                </ComboboxList>
+              </ComboboxContent>
+            </Combobox>
+            {selectedWorkspaceLabel ? (
+              <p className="px-1 text-xs text-muted-foreground">
+                Selected: {selectedWorkspaceLabel}
+              </p>
+            ) : null}
           </div>
           <div className="flex items-center justify-start group-data-[collapsible=icon]:hidden">
             <div className="ml-1">

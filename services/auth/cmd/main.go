@@ -28,12 +28,6 @@ import (
 	pkglogger "github.com/Ajay01103/go-notion/pkg/logger"
 	"github.com/Ajay01103/go-notion/pkg/token"
 )
-
-// jwksCacheEntry stores cached JWKS bytes with an expiry timestamp.
-type jwksCacheEntry struct {
-	Data      []byte
-	ExpiresAt time.Time
-}
 // corsMiddleware allows Next.js or any other frontend to access Connect endpoints.
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -69,49 +63,27 @@ func run() error {
 		return fmt.Errorf("load config: %w", err)
 	}
 
-	// 2. Build a keyspace-less cluster config for bootstrap
-	// The keyspace doesn't exist yet, so we can't include it in the cluster config
-	baseCluster := db.NewCluster(db.ClusterConfig{
-		Hosts:       cfg.ScyllaHosts,
-		Port:        cfg.ScyllaPort,
-		// No Keyspace here — it doesn't exist yet
-		Username:    cfg.ScyllaUsername,
-		Password:    cfg.ScyllaPassword,
-		Consistency: gocql.LocalQuorum,
-	})
-
-	// 3. Wait for ScyllaDB to be reachable (60s timeout, 15 retries @ 2s = 30s max wait)
-	logger.Info("waiting for scylladb to be ready", zap.Strings("hosts", cfg.ScyllaHosts))
+	// 2. Connect performs readiness checks, keyspace bootstrap, and session creation.
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-	if err := db.WaitForReady(ctx, baseCluster, 15); err != nil {
-		cancel()
-		logger.Error("scylladb not ready", zap.Error(err))
-		return fmt.Errorf("wait for scylladb: %w", err)
-	}
+	session, err := db.Connect(ctx, db.Config{
+		Hosts:             cfg.ScyllaHosts,
+		Port:              cfg.ScyllaPort,
+		Username:          cfg.ScyllaUsername,
+		Password:          cfg.ScyllaPassword,
+		Consistency:       gocql.LocalQuorum,
+		Datacenter:        cfg.ScyllaDatacenter,
+		ReplicationFactor: cfg.ScyllaReplicationFactor,
+	})
 	cancel()
-
-	// 4. Bootstrap keyspace (create if it doesn't exist)
-	logger.Info("bootstrapping scylladb keyspace")
-	ctx, cancel = context.WithTimeout(context.Background(), 30*time.Second)
-	if err := db.BootstrapKeyspace(ctx, baseCluster, cfg.ScyllaDatacenter, cfg.ScyllaReplicationFactor); err != nil {
-		cancel()
-		logger.Error("cannot bootstrap keyspace", zap.Error(err))
-		return fmt.Errorf("bootstrap keyspace: %w", err)
-	}
-	cancel()
-
-	// 5. NOW create the main session, keyspace is guaranteed to exist
-	baseCluster.Keyspace = "auth_ks"
-	session, err := db.NewSession(baseCluster)
 	if err != nil {
-		logger.Error("cannot create scylladb session", zap.Error(err))
-		return fmt.Errorf("create session: %w", err)
+		logger.Error("cannot connect to scylladb", zap.Error(err))
+		return fmt.Errorf("connect to scylladb: %w", err)
 	}
 	defer session.Close()
 
-	// 6. Run migrations (execute all idempotent .cql files)
+	// 3. Run migrations.
 	ctx, cancel = context.WithTimeout(context.Background(), 30*time.Second)
-	hasMigrations, err := db.RunMigrations(ctx, session)
+	hasMigrations, err := db.Migrate(ctx, session)
 	cancel()
 	if err != nil {
 		logger.Error("cannot run migrations", zap.Error(err))
@@ -123,12 +95,12 @@ func run() error {
 		logger.Debug("database schema is up-to-date")
 	}
 
-	// 7. Setup dependencies
+	// 4. Setup dependencies
 	userRepo := repository.NewUserRepo(session)
 	
 	// Session-based stores (new model)
 	sessionStore := scyllastore.NewSessionStore(session)
-	revocationStore := scyllastore.NewSessionStore(session)
+	revocationStore := scyllastore.NewRevocationStore(session)
 	
 	// Shared auth cache for session state and revocation lookups
 	authCache, err := tokencache.NewRistrettoCache()
@@ -159,35 +131,15 @@ func run() error {
 
 	loggingInterceptor := interceptor.NewLoggingInterceptor(logger)
 
-	// 8. Start ConnectRPC server (HTTP/2 with h2c)
+	// 5. Start ConnectRPC server (HTTP/2 with h2c)
 	mux := http.NewServeMux()
-
-	// JWKS cache (ristretto) for faster JWKS retrieval
-	jwksCache, err := tokencache.NewRistrettoCache()
-	if err != nil {
-		logger.Error("cannot create jwks cache", zap.Error(err))
-		return fmt.Errorf("create jwks cache: %w", err)
-	}
 
 	// JWKS endpoint for token validation by other services
 	mux.HandleFunc("GET /.well-known/jwks.json", func(w http.ResponseWriter, r *http.Request) {
-		// Try cache first
-		if v, ok := jwksCache.Get("jwks:current"); ok {
-			if entry, ok := v.(jwksCacheEntry); ok {
-				if time.Now().Before(entry.ExpiresAt) {
-					w.Header().Set("Content-Type", "application/json")
-					w.Header().Set("Cache-Control", "public, max-age=3600")
-					w.Write(entry.Data)
-					return
-				}
-			}
-		}
-
 		// Cache miss: try to load serialized JWKS from ScyllaDB table first
 		var jwksText string
 		if err := session.Query(`SELECT jwks_json FROM jwks_public_keys WHERE id = ?`, "current").WithContext(r.Context()).Scan(&jwksText); err == nil {
 			jwksBytes := []byte(jwksText)
-			jwksCache.Set("jwks:current", jwksCacheEntry{Data: jwksBytes, ExpiresAt: time.Now().Add(24 * time.Hour)}, 1)
 			w.Header().Set("Content-Type", "application/json")
 			w.Header().Set("Cache-Control", "public, max-age=3600")
 			w.Write(jwksBytes)
@@ -201,9 +153,6 @@ func run() error {
 			http.Error(w, "Failed to export JWKS", http.StatusInternalServerError)
 			return
 		}
-
-		// Store result in cache with 24h TTL (managed via ExpiresAt)
-		jwksCache.Set("jwks:current", jwksCacheEntry{Data: jwksData, ExpiresAt: time.Now().Add(24 * time.Hour)}, 1)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Cache-Control", "public, max-age=3600")

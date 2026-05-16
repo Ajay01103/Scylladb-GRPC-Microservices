@@ -195,6 +195,38 @@ func (v *RemoteValidator) parseTokenWithClaims(tokenStr string, claims jwt.Claim
 
 // validateAccessTokenWithCache validates an access token using cached keys.
 func (v *RemoteValidator) validateAccessTokenWithCache(tokenStr string) (*AccessPayload, error) {
+	if payload, err := v.validateSessionAccessTokenWithCache(tokenStr); err == nil {
+		return payload, nil
+	} else if !errors.Is(err, ErrInvalidToken) {
+		return nil, err
+	}
+
+	return v.validateLegacyAccessTokenWithCache(tokenStr)
+}
+
+func (v *RemoteValidator) validateSessionAccessTokenWithCache(tokenStr string) (*AccessPayload, error) {
+	claims := &SessionAccessClaims{}
+	token, err := v.parseTokenWithClaims(tokenStr, claims)
+	if err != nil {
+		return nil, err
+	}
+
+	payload, err := sessionAccessPayloadFromClaims(claims)
+	if err != nil {
+		return nil, err
+	}
+
+	return &AccessPayload{
+		JTI:       payload.JTI,
+		UserID:    payload.UserID,
+		TokenType: TokenTypeAccess,
+		IssuedAt:   payload.IssuedAt,
+		ExpiredAt:  payload.ExpiredAt,
+		KeyID:     token.Header["kid"].(string),
+	}, nil
+}
+
+func (v *RemoteValidator) validateLegacyAccessTokenWithCache(tokenStr string) (*AccessPayload, error) {
 	claims := &AccessTokenClaims{}
 	token, err := v.parseTokenWithClaims(tokenStr, claims)
 	if err != nil {

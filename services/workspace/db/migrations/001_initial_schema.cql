@@ -9,8 +9,13 @@ CREATE TABLE IF NOT EXISTS workspaces (
     owner_id     TEXT,
     is_public    BOOLEAN,
     created_at   TIMESTAMP,
-    updated_at   TIMESTAMP,
-    deleted_at   TIMESTAMP
+    updated_at   TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS workspace_names (
+    name         TEXT PRIMARY KEY,
+    workspace_id TEXT,
+    created_at   TIMESTAMP
 );
 
 -- Slug index: workspace_slug_to_id for slug-based lookups

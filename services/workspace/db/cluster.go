@@ -2,26 +2,105 @@ package db
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/gocql/gocql"
 )
 
-// ClusterConfig holds ScyllaDB cluster configuration
-type ClusterConfig struct {
-	Hosts       []string
-	Port        int
-	Keyspace    string
-	Username    string
-	Password    string
-	Consistency gocql.Consistency
+const Keyspace = "workspace_ks"
+
+type Config struct {
+	Hosts             []string
+	Port              int
+	Username          string
+	Password          string
+	Consistency       gocql.Consistency
+	Datacenter        string
+	ReplicationFactor int
 }
 
-// NewCluster creates a new ScyllaDB cluster configuration
-func NewCluster(cfg ClusterConfig) *gocql.ClusterConfig {
+func Connect(ctx context.Context, cfg Config) (*gocql.Session, error) {
+	if err := waitForReady(ctx, cfg); err != nil {
+		return nil, fmt.Errorf("wait for scylladb: %w", err)
+	}
+
+	if err := bootstrapKeyspace(ctx, cfg); err != nil {
+		return nil, fmt.Errorf("bootstrap keyspace: %w", err)
+	}
+
+	return newSession(cfg, Keyspace)
+}
+
+func waitForReady(ctx context.Context, cfg Config) error {
+	const retryInterval = 2 * time.Second
+
+	for {
+		session, err := newSession(cfg, "")
+		if err == nil {
+			pingErr := session.Query("SELECT cluster_name FROM system.local").
+				WithContext(ctx).
+				RetryPolicy(&gocql.ExponentialBackoffRetryPolicy{NumRetries: 2}).
+				Exec()
+			session.Close()
+			if pingErr == nil {
+				return nil
+			}
+		}
+
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("scylladb not ready: %w", ctx.Err())
+		case <-time.After(retryInterval):
+		}
+	}
+}
+
+func bootstrapKeyspace(ctx context.Context, cfg Config) error {
+	session, err := newSession(cfg, "")
+	if err != nil {
+		return fmt.Errorf("open bootstrap session: %w", err)
+	}
+	defer session.Close()
+
+	var name string
+	err = session.Query(
+		`SELECT keyspace_name FROM system_schema.keyspaces WHERE keyspace_name = ? LIMIT 1`,
+		Keyspace,
+	).WithContext(ctx).Scan(&name)
+	if err == nil {
+		return nil
+	}
+	if err != gocql.ErrNotFound {
+		return fmt.Errorf("check keyspace: %w", err)
+	}
+
+	rf := cfg.ReplicationFactor
+	if rf < 1 {
+		return fmt.Errorf("invalid replication factor %d; must be >= 1", rf)
+	}
+	dc := cfg.Datacenter
+	if dc == "" {
+		dc = "datacenter1"
+	}
+
+	q := fmt.Sprintf(
+		`CREATE KEYSPACE %s WITH replication = {'class': 'NetworkTopologyStrategy', '%s': %d}`,
+		Keyspace,
+		dc,
+		rf,
+	)
+	if err := session.Query(q).WithContext(ctx).Exec(); err != nil {
+		return fmt.Errorf("create keyspace: %w", err)
+	}
+
+	return nil
+}
+
+func newSession(cfg Config, keyspace string) (*gocql.Session, error) {
 	cluster := gocql.NewCluster(cfg.Hosts...)
 	cluster.Port = cfg.Port
-	cluster.Keyspace = cfg.Keyspace
+	cluster.Keyspace = keyspace
 	cluster.Authenticator = gocql.PasswordAuthenticator{
 		Username: cfg.Username,
 		Password: cfg.Password,
@@ -31,69 +110,10 @@ func NewCluster(cfg ClusterConfig) *gocql.ClusterConfig {
 	cluster.ConnectTimeout = 10 * time.Second
 	cluster.SocketKeepalive = 30 * time.Second
 	cluster.MaxWaitSchemaAgreement = 30 * time.Second
-	cluster.PoolConfig = gocql.PoolConfig{
-		HostSelectionPolicy: gocql.TokenAwareHostPolicy(gocql.RoundRobinHostPolicy()),
-	}
-
-	// Avoid retrying writes by default; reads opt into backoff retries locally.
+	cluster.PoolConfig.HostSelectionPolicy = gocql.TokenAwareHostPolicy(
+		gocql.RoundRobinHostPolicy(),
+	)
 	cluster.RetryPolicy = &gocql.SimpleRetryPolicy{NumRetries: 0}
 
-	// Disable host verification for development
-	cluster.DisableInitialHostLookup = false
-
-	return cluster
-}
-
-// NewSession creates a new ScyllaDB session
-func NewSession(cluster *gocql.ClusterConfig) (*gocql.Session, error) {
-	// Clone cluster with fresh host selection policy
-	// gocql does not allow sharing token-aware policy instances between sessions
-	cloned := *cluster
-	cloned.PoolConfig.HostSelectionPolicy = gocql.TokenAwareHostPolicy(gocql.RoundRobinHostPolicy())
-	return gocql.NewSession(cloned)
-}
-
-// cloneClusterForSession creates a copy with a fresh host selection policy.
-// gocql does not allow sharing token-aware policy instances between sessions.
-func cloneClusterForSession(cluster *gocql.ClusterConfig, keyspace string) gocql.ClusterConfig {
-	cloned := *cluster
-	cloned.Keyspace = keyspace
-	cloned.PoolConfig.HostSelectionPolicy = gocql.TokenAwareHostPolicy(gocql.RoundRobinHostPolicy())
-	return cloned
-}
-
-// PingContext verifies the cluster connection
-func PingContext(ctx context.Context, session *gocql.Session) error {
-	var clusterName string
-	query := session.Query("SELECT cluster_name FROM system.local").WithContext(ctx)
-	query.RetryPolicy(&gocql.ExponentialBackoffRetryPolicy{NumRetries: 3})
-	return query.Scan(&clusterName)
-}
-
-// Close gracefully closes a session
-func Close(session *gocql.Session) error {
-	if session != nil {
-		session.Close()
-	}
-	return nil
-}
-
-// WaitForReady polls the cluster until it's ready or context expires
-func WaitForReady(ctx context.Context, cluster *gocql.ClusterConfig, retries int) error {
-	for i := 0; i < retries; i++ {
-		session, err := NewSession(cluster)
-		if err == nil {
-			if pingErr := PingContext(ctx, session); pingErr == nil {
-				session.Close()
-				return nil
-			}
-			session.Close()
-		}
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(2 * time.Second):
-		}
-	}
-	return ctx.Err()
+	return gocql.NewSession(*cluster)
 }

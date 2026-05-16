@@ -24,7 +24,7 @@ func Load() (*Config, error) {
 	viper.SetDefault("SCYLLA_PASSWORD", "cassandra")
 	viper.SetDefault("SCYLLA_DATACENTER", "datacenter1")
 	viper.SetDefault("SCYLLA_REPLICATION_FACTOR", 1)
-	viper.SetDefault("JWKS_ENDPOINT", "http://localhost:9090/.well-known/jwks.json")
+	viper.SetDefault("JWKS_ENDPOINT", "http://localhost:50051/.well-known/jwks.json")
 	viper.SetDefault("AUTH_SERVICE_URL", "http://localhost:9090")
 
 	viper.AutomaticEnv()

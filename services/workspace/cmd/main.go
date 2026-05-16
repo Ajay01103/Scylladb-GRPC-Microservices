@@ -17,8 +17,8 @@ import (
 	"golang.org/x/net/http2/h2c"
 
 	"github.com/Ajay01103/go-notion/pkg/interceptor"
+	"github.com/Ajay01103/go-notion/pkg/jwks"
 	pkglogger "github.com/Ajay01103/go-notion/pkg/logger"
-	"github.com/Ajay01103/go-notion/pkg/token"
 	"github.com/Ajay01103/go-notion/workspace/config"
 	"github.com/Ajay01103/go-notion/workspace/db"
 	"github.com/Ajay01103/go-notion/workspace/gen/pb/pbconnect"
@@ -61,47 +61,27 @@ func run() error {
 		return fmt.Errorf("load config: %w", err)
 	}
 
-	// 2. Build a keyspace-less cluster config for bootstrap
-	baseCluster := db.NewCluster(db.ClusterConfig{
-		Hosts:       cfg.ScyllaHosts,
-		Port:        cfg.ScyllaPort,
-		Username:    cfg.ScyllaUsername,
-		Password:    cfg.ScyllaPassword,
-		Consistency: gocql.LocalQuorum,
-	})
-
-	// 3. Wait for ScyllaDB to be reachable
-	logger.Info("waiting for scylladb to be ready", zap.Strings("hosts", cfg.ScyllaHosts))
+	// 2. Connect performs readiness checks, keyspace bootstrap, and session creation.
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-	if err := db.WaitForReady(ctx, baseCluster, 15); err != nil {
-		cancel()
-		logger.Error("scylladb not ready", zap.Error(err))
-		return fmt.Errorf("wait for scylladb: %w", err)
-	}
+	session, err := db.Connect(ctx, db.Config{
+		Hosts:             cfg.ScyllaHosts,
+		Port:              cfg.ScyllaPort,
+		Username:          cfg.ScyllaUsername,
+		Password:          cfg.ScyllaPassword,
+		Consistency:       gocql.LocalQuorum,
+		Datacenter:        cfg.ScyllaDatacenter,
+		ReplicationFactor: cfg.ScyllaReplicationFactor,
+	})
 	cancel()
-
-	// 4. Bootstrap keyspace
-	logger.Info("bootstrapping scylladb keyspace")
-	ctx, cancel = context.WithTimeout(context.Background(), 30*time.Second)
-	if err := db.BootstrapKeyspace(ctx, baseCluster, cfg.ScyllaDatacenter, cfg.ScyllaReplicationFactor); err != nil {
-		cancel()
-		logger.Error("cannot bootstrap keyspace", zap.Error(err))
-		return fmt.Errorf("bootstrap keyspace: %w", err)
-	}
-	cancel()
-
-	// 5. Create session with keyspace
-	baseCluster.Keyspace = "workspace_ks"
-	session, err := db.NewSession(baseCluster)
 	if err != nil {
-		logger.Error("cannot create scylladb session", zap.Error(err))
-		return fmt.Errorf("create session: %w", err)
+		logger.Error("cannot connect to scylladb", zap.Error(err))
+		return fmt.Errorf("connect to scylladb: %w", err)
 	}
 	defer session.Close()
 
-	// 6. Run migrations
+	// 3. Run migrations
 	ctx, cancel = context.WithTimeout(context.Background(), 30*time.Second)
-	hasMigrations, err := db.RunMigrations(ctx, session)
+	hasMigrations, err := db.Migrate(ctx, session)
 	cancel()
 	if err != nil {
 		logger.Error("cannot run migrations", zap.Error(err))
@@ -113,9 +93,25 @@ func run() error {
 		logger.Debug("database schema is up-to-date")
 	}
 
-	// 7. Setup dependencies
-	// Create remote validator for JWT verification via JWKS
-	jwksValidator := token.NewRemoteValidator(cfg.JWKSEndpoint)
+	// schema sync removed: DB schema is expected to be managed externally / reset as needed
+
+	// 4. Setup dependencies
+	jwksStore := jwks.NewScyllaStore(session)
+	jwksCtx, jwksCancel := context.WithCancel(context.Background())
+	defer jwksCancel()
+	jwksCache, err := jwks.New(jwksCtx,
+		jwks.WithJWKSURL(cfg.JWKSEndpoint),
+		jwks.WithFetchTimeout(10*time.Second),
+		jwks.WithRefreshInterval(15*time.Minute),
+		jwks.WithMinRefreshInterval(5*time.Minute),
+		jwks.WithScyllaDB(jwksStore, "workspace"),
+	)
+	if err != nil {
+		logger.Error("cannot create jwks cache", zap.Error(err))
+		return fmt.Errorf("create jwks cache: %w", err)
+	}
+
+	jwksVerifier := jwks.NewVerifier(jwksCache, "")
 
 	// Create workspace service
 	workspaceSvc := service.New(session, logger)
@@ -125,9 +121,9 @@ func run() error {
 
 	// Create interceptors
 	loggingInterceptor := interceptor.NewLoggingInterceptor(logger)
-	authInterceptor := interceptor.NewAuthInterceptor(jwksValidator)
+	authInterceptor := interceptor.NewAuthInterceptor(jwksVerifier)
 
-	// 8. Start Connect RPC server
+	// 5. Start Connect RPC server
 	mux := http.NewServeMux()
 
 	path, handler := pbconnect.NewWorkspaceServiceHandler(

@@ -33,6 +33,10 @@ func NewSessionStore(session *gocql.Session) *SessionStore {
 	return &SessionStore{session: session}
 }
 
+func NewRevocationStore(session *gocql.Session) *SessionStore {
+	return &SessionStore{session: session}
+}
+
 func (s *SessionStore) GetSession(ctx context.Context, userID, sessionID string) (*SessionRecord, error) {
 	var (
 		storedUserID string

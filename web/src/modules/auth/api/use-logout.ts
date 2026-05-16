@@ -1,9 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useAuth } from "@/lib/auth-context"
+import { tokenStore } from "@/lib/token-store"
 import { logoutAction } from "@/actions/auth"
 
 export function useLogout() {
-  const { setAccessToken } = useAuth()
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -12,8 +11,8 @@ export function useLogout() {
       // in Redis), then deletes the cookie — all in one server round-trip.
       await logoutAction()
 
-      // Clear in-memory access token and invalidate user query
-      setAccessToken(null)
+      // Clear in-memory access token (and notify other tabs) and invalidate user query
+      tokenStore.reset()
       queryClient.removeQueries({ queryKey: ["currentUser"] })
     },
   })

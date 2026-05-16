@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"connectrpc.com/connect"
-	"github.com/Ajay01103/go-notion/pkg/token"
+	"github.com/Ajay01103/go-notion/pkg/jwks"
 	"github.com/google/uuid"
 )
 
@@ -16,10 +16,14 @@ type contextKey string
 
 const ContextKeyUserID contextKey = "user_id"
 
+type TokenVerifier interface {
+	Verify(context.Context, string) (*jwks.Claims, error)
+}
+
 // NewAuthInterceptor creates a unary interceptor for JWT authentication.
-// It validates bearer tokens via the provided RemoteValidator and injects the user ID into context.
+// It validates bearer tokens via the provided verifier and injects the user ID into context.
 // Unauthenticated requests are rejected before the handler is invoked.
-func NewAuthInterceptor(validator *token.RemoteValidator) connect.UnaryInterceptorFunc {
+func NewAuthInterceptor(validator TokenVerifier) connect.UnaryInterceptorFunc {
 	return func(next connect.UnaryFunc) connect.UnaryFunc {
 		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
 			// Extract bearer token from Authorization header
@@ -38,21 +42,17 @@ func NewAuthInterceptor(validator *token.RemoteValidator) connect.UnaryIntercept
 				return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("authorization token is empty"))
 			}
 
-			// Validate the access token via RemoteValidator (JWKS-based)
-			payload, err := validator.VerifyAccessToken(tokenStr)
+			// Validate the access token via the shared jwks verifier.
+			claims, err := validator.Verify(ctx, tokenStr)
 			if err != nil {
-				switch err {
-				case token.ErrExpiredToken:
-					return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("access token expired"))
-				case token.ErrInvalidToken:
-					return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("access token is invalid"))
-				default:
-					return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("token validation failed: %w", err))
-				}
+				return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("token validation failed: %w", err))
+			}
+			if claims == nil || claims.Subject == "" {
+				return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("token subject is missing"))
 			}
 
 			// Inject the authenticated user ID into the request context
-			newCtx := context.WithValue(ctx, ContextKeyUserID, payload.UserID.String())
+			newCtx := context.WithValue(ctx, ContextKeyUserID, claims.Subject)
 
 			// Call the next handler with the enriched context
 			return next(newCtx, req)

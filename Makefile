@@ -8,7 +8,7 @@ WORKSPACE_PB_OUT := $(WORKSPACE_SVC)/gen/pb
 # Do not globally export per-service .env values here; Goose variables can
 # collide across services and cause migrations to run against the wrong DB.
 
-.PHONY: help proto build run-auth run-workspace run-voice run-gen seed-voices tidy scylla-up scylla-init-schema scylla-ui scylla-all scylla-shell dev-start docker-up docker-down docker-logs
+.PHONY: help proto build run-auth run-workspace run-voice run-gen seed-voices tidy scylla-up scylla-init-schema scylla-ui scylla-all scylla-shell rustfs-up rustfs-shell rustfs-logs dev-start docker-up docker-down docker-logs
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -65,6 +65,19 @@ scylla-all: scylla-up scylla-ui ## Start ScyllaDB + DBeaver Web UI
 
 scylla-shell: ## Open interactive CQL shell to ScyllaDB
 	podman exec -it scylladb-dev cqlsh -u cassandra -p cassandra
+
+rustfs-up: ## Start local RustFS S3 + initialize uploads bucket
+	podman compose up -d rustfs rustfs-init
+	@echo "✓ RustFS starting..."
+	@echo "  S3 API: http://localhost:9000"
+	@echo "  Console: http://localhost:9001"
+	@echo "  Credentials: rustfsadmin / rustfsadmin"
+
+rustfs-shell: ## Open an interactive shell in the RustFS container
+	podman exec -it rustfs-dev /bin/sh
+
+rustfs-logs: ## Tail logs for RustFS and bucket init container
+	podman compose logs -f rustfs rustfs-init
 
 dev-start: scylla-up ## Start ScyllaDB and auth service for local development
 	@echo "Waiting 5 seconds for ScyllaDB health check..."
