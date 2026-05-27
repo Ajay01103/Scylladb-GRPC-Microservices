@@ -64,6 +64,9 @@ const (
 	// WorkspaceServiceAcceptInvitationProcedure is the fully-qualified name of the WorkspaceService's
 	// AcceptInvitation RPC.
 	WorkspaceServiceAcceptInvitationProcedure = "/workspace.WorkspaceService/AcceptInvitation"
+	// WorkspaceServiceRejectInvitationProcedure is the fully-qualified name of the WorkspaceService's
+	// RejectInvitation RPC.
+	WorkspaceServiceRejectInvitationProcedure = "/workspace.WorkspaceService/RejectInvitation"
 	// WorkspaceServiceCheckPermissionProcedure is the fully-qualified name of the WorkspaceService's
 	// CheckPermission RPC.
 	WorkspaceServiceCheckPermissionProcedure = "/workspace.WorkspaceService/CheckPermission"
@@ -84,6 +87,7 @@ type WorkspaceServiceClient interface {
 	// Invitations
 	InviteMember(context.Context, *connect.Request[pb.InviteMemberRequest]) (*connect.Response[pb.InviteMemberResponse], error)
 	AcceptInvitation(context.Context, *connect.Request[pb.AcceptInvitationRequest]) (*connect.Response[pb.AcceptInvitationResponse], error)
+	RejectInvitation(context.Context, *connect.Request[pb.RejectInvitationRequest]) (*connect.Response[emptypb.Empty], error)
 	// Internal — called by other services (pages, docs, etc.)
 	CheckPermission(context.Context, *connect.Request[pb.CheckPermissionRequest]) (*connect.Response[pb.CheckPermissionResponse], error)
 }
@@ -159,6 +163,12 @@ func NewWorkspaceServiceClient(httpClient connect.HTTPClient, baseURL string, op
 			connect.WithSchema(workspaceServiceMethods.ByName("AcceptInvitation")),
 			connect.WithClientOptions(opts...),
 		),
+		rejectInvitation: connect.NewClient[pb.RejectInvitationRequest, emptypb.Empty](
+			httpClient,
+			baseURL+WorkspaceServiceRejectInvitationProcedure,
+			connect.WithSchema(workspaceServiceMethods.ByName("RejectInvitation")),
+			connect.WithClientOptions(opts...),
+		),
 		checkPermission: connect.NewClient[pb.CheckPermissionRequest, pb.CheckPermissionResponse](
 			httpClient,
 			baseURL+WorkspaceServiceCheckPermissionProcedure,
@@ -180,6 +190,7 @@ type workspaceServiceClient struct {
 	removeMember     *connect.Client[pb.RemoveMemberRequest, emptypb.Empty]
 	inviteMember     *connect.Client[pb.InviteMemberRequest, pb.InviteMemberResponse]
 	acceptInvitation *connect.Client[pb.AcceptInvitationRequest, pb.AcceptInvitationResponse]
+	rejectInvitation *connect.Client[pb.RejectInvitationRequest, emptypb.Empty]
 	checkPermission  *connect.Client[pb.CheckPermissionRequest, pb.CheckPermissionResponse]
 }
 
@@ -233,6 +244,11 @@ func (c *workspaceServiceClient) AcceptInvitation(ctx context.Context, req *conn
 	return c.acceptInvitation.CallUnary(ctx, req)
 }
 
+// RejectInvitation calls workspace.WorkspaceService.RejectInvitation.
+func (c *workspaceServiceClient) RejectInvitation(ctx context.Context, req *connect.Request[pb.RejectInvitationRequest]) (*connect.Response[emptypb.Empty], error) {
+	return c.rejectInvitation.CallUnary(ctx, req)
+}
+
 // CheckPermission calls workspace.WorkspaceService.CheckPermission.
 func (c *workspaceServiceClient) CheckPermission(ctx context.Context, req *connect.Request[pb.CheckPermissionRequest]) (*connect.Response[pb.CheckPermissionResponse], error) {
 	return c.checkPermission.CallUnary(ctx, req)
@@ -253,6 +269,7 @@ type WorkspaceServiceHandler interface {
 	// Invitations
 	InviteMember(context.Context, *connect.Request[pb.InviteMemberRequest]) (*connect.Response[pb.InviteMemberResponse], error)
 	AcceptInvitation(context.Context, *connect.Request[pb.AcceptInvitationRequest]) (*connect.Response[pb.AcceptInvitationResponse], error)
+	RejectInvitation(context.Context, *connect.Request[pb.RejectInvitationRequest]) (*connect.Response[emptypb.Empty], error)
 	// Internal — called by other services (pages, docs, etc.)
 	CheckPermission(context.Context, *connect.Request[pb.CheckPermissionRequest]) (*connect.Response[pb.CheckPermissionResponse], error)
 }
@@ -324,6 +341,12 @@ func NewWorkspaceServiceHandler(svc WorkspaceServiceHandler, opts ...connect.Han
 		connect.WithSchema(workspaceServiceMethods.ByName("AcceptInvitation")),
 		connect.WithHandlerOptions(opts...),
 	)
+	workspaceServiceRejectInvitationHandler := connect.NewUnaryHandler(
+		WorkspaceServiceRejectInvitationProcedure,
+		svc.RejectInvitation,
+		connect.WithSchema(workspaceServiceMethods.ByName("RejectInvitation")),
+		connect.WithHandlerOptions(opts...),
+	)
 	workspaceServiceCheckPermissionHandler := connect.NewUnaryHandler(
 		WorkspaceServiceCheckPermissionProcedure,
 		svc.CheckPermission,
@@ -352,6 +375,8 @@ func NewWorkspaceServiceHandler(svc WorkspaceServiceHandler, opts ...connect.Han
 			workspaceServiceInviteMemberHandler.ServeHTTP(w, r)
 		case WorkspaceServiceAcceptInvitationProcedure:
 			workspaceServiceAcceptInvitationHandler.ServeHTTP(w, r)
+		case WorkspaceServiceRejectInvitationProcedure:
+			workspaceServiceRejectInvitationHandler.ServeHTTP(w, r)
 		case WorkspaceServiceCheckPermissionProcedure:
 			workspaceServiceCheckPermissionHandler.ServeHTTP(w, r)
 		default:
@@ -401,6 +426,10 @@ func (UnimplementedWorkspaceServiceHandler) InviteMember(context.Context, *conne
 
 func (UnimplementedWorkspaceServiceHandler) AcceptInvitation(context.Context, *connect.Request[pb.AcceptInvitationRequest]) (*connect.Response[pb.AcceptInvitationResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("workspace.WorkspaceService.AcceptInvitation is not implemented"))
+}
+
+func (UnimplementedWorkspaceServiceHandler) RejectInvitation(context.Context, *connect.Request[pb.RejectInvitationRequest]) (*connect.Response[emptypb.Empty], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("workspace.WorkspaceService.RejectInvitation is not implemented"))
 }
 
 func (UnimplementedWorkspaceServiceHandler) CheckPermission(context.Context, *connect.Request[pb.CheckPermissionRequest]) (*connect.Response[pb.CheckPermissionResponse], error) {

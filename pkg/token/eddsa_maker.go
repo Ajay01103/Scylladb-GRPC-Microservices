@@ -197,7 +197,7 @@ func NewEDDSAMakerFromPrivateKey(privateKey ed25519.PrivateKey) (*EDDSAMaker, er
 	return m, nil
 }
 
-func (m *EDDSAMaker) CreateRefreshToken(userID, email, name, familyID string, duration time.Duration) (string, *RefreshPayload, error) {
+func (m *EDDSAMaker) CreateRefreshToken(userID, email, name, sessionID string, gen int64, globalVer int, duration time.Duration) (string, *RefreshPayload, error) {
 	if err := m.ensureCurrentSigningKey(); err != nil {
 		return "", nil, err
 	}
@@ -206,13 +206,13 @@ func (m *EDDSAMaker) CreateRefreshToken(userID, email, name, familyID string, du
 	if err != nil {
 		return "", nil, fmt.Errorf("invalid user id: %w", err)
 	}
-	fid, err := uuid.Parse(familyID)
+	sid, err := uuid.Parse(sessionID)
 	if err != nil {
-		return "", nil, fmt.Errorf("invalid family id: %w", err)
+		return "", nil, fmt.Errorf("invalid session id: %w", err)
 	}
 
 	now := time.Now().UTC()
-	payload, err := NewRefreshPayloadAt(uid, email, name, fid, now, duration)
+	payload, err := NewRefreshPayloadAt(uid, email, name, sid, gen, globalVer, now, duration)
 	if err != nil {
 		return "", nil, err
 	}
@@ -241,7 +241,7 @@ func (m *EDDSAMaker) CreateRefreshToken(userID, email, name, familyID string, du
 	return signed, payload, nil
 }
 
-func (m *EDDSAMaker) CreateAccessToken(userID, email, name, familyID, refreshJTI string, duration time.Duration) (string, *AccessPayload, error) {
+func (m *EDDSAMaker) CreateAccessToken(userID, email, name, sessionID string, gen int64, globalVer int, duration time.Duration) (string, *AccessPayload, error) {
 	if err := m.ensureCurrentSigningKey(); err != nil {
 		return "", nil, err
 	}
@@ -250,17 +250,13 @@ func (m *EDDSAMaker) CreateAccessToken(userID, email, name, familyID, refreshJTI
 	if err != nil {
 		return "", nil, fmt.Errorf("invalid user id: %w", err)
 	}
-	fid, err := uuid.Parse(familyID)
+	sid, err := uuid.Parse(sessionID)
 	if err != nil {
-		return "", nil, fmt.Errorf("invalid family id: %w", err)
-	}
-	rjti, err := uuid.Parse(refreshJTI)
-	if err != nil {
-		return "", nil, fmt.Errorf("invalid refresh jti: %w", err)
+		return "", nil, fmt.Errorf("invalid session id: %w", err)
 	}
 
 	now := time.Now().UTC()
-	payload, err := NewAccessPayloadAt(uid, email, name, fid, rjti, now, duration)
+	payload, err := NewAccessPayloadAt(uid, email, name, sid, gen, globalVer, now, duration)
 	if err != nil {
 		return "", nil, err
 	}
@@ -365,74 +361,12 @@ func (m *EDDSAMaker) VerifyRefreshToken(tokenStr string) (*RefreshPayload, error
 	return payload, nil
 }
 
-func (m *EDDSAMaker) CreateSessionRefreshToken(userID, sessionID string, gen int64, globalVer int, duration time.Duration) (string, *SessionRefreshPayload, error) {
-	if err := m.ensureCurrentSigningKey(); err != nil {
-		return "", nil, err
-	}
-
-	uid, err := uuid.Parse(userID)
-	if err != nil {
-		return "", nil, fmt.Errorf("invalid user id: %w", err)
-	}
-	sid, err := uuid.Parse(sessionID)
-	if err != nil {
-		return "", nil, fmt.Errorf("invalid session id: %w", err)
-	}
-
-	payload, err := NewSessionRefreshPayload(uid, sid, gen, globalVer, duration)
-	if err != nil {
-		return "", nil, err
-	}
-
-	m.mu.RLock()
-	currentKid := m.currentKeyID
-	privateKey := m.privateKey
-	m.mu.RUnlock()
-
-	payload.KeyID = currentKid
-
-	claims := &SessionRefreshClaims{}
-	payload.FillClaims(claims)
-	token := jwt.NewWithClaims(jwt.SigningMethodEdDSA, claims)
-	token.Header["kid"] = currentKid
-	signed, err := token.SignedString(privateKey)
-	if err != nil {
-		return "", nil, err
-	}
-	return signed, payload, nil
+func (m *EDDSAMaker) CreateSessionRefreshToken(userID, email, name, sessionID string, gen int64, globalVer int, duration time.Duration) (string, *SessionRefreshPayload, error) {
+	return m.CreateRefreshToken(userID, email, name, sessionID, gen, globalVer, duration)
 }
 
-func (m *EDDSAMaker) CreateSessionAccessToken(userID string, roles []string, globalVer int, duration time.Duration) (string, *SessionAccessPayload, error) {
-	if err := m.ensureCurrentSigningKey(); err != nil {
-		return "", nil, err
-	}
-
-	uid, err := uuid.Parse(userID)
-	if err != nil {
-		return "", nil, fmt.Errorf("invalid user id: %w", err)
-	}
-
-	payload, err := NewSessionAccessPayload(uid, roles, globalVer, duration)
-	if err != nil {
-		return "", nil, err
-	}
-
-	m.mu.RLock()
-	currentKid := m.currentKeyID
-	privateKey := m.privateKey
-	m.mu.RUnlock()
-
-	payload.KeyID = currentKid
-
-	claims := &SessionAccessClaims{}
-	payload.FillClaims(claims)
-	token := jwt.NewWithClaims(jwt.SigningMethodEdDSA, claims)
-	token.Header["kid"] = currentKid
-	signed, err := token.SignedString(privateKey)
-	if err != nil {
-		return "", nil, err
-	}
-	return signed, payload, nil
+func (m *EDDSAMaker) CreateSessionAccessToken(userID, email, name, sessionID string, gen int64, globalVer int, duration time.Duration) (string, *SessionAccessPayload, error) {
+	return m.CreateAccessToken(userID, email, name, sessionID, gen, globalVer, duration)
 }
 
 func (m *EDDSAMaker) VerifySessionRefreshToken(tokenStr string) (*SessionRefreshPayload, error) {

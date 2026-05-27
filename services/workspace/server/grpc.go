@@ -129,8 +129,16 @@ func (s *WorkspaceServer) ListMyWorkspaces(ctx context.Context, req *connect.Req
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
+	trimmedWorkspaces := make([]*pb.Workspace, 0, len(workspaces))
+	for _, workspace := range workspaces {
+		trimmedWorkspaces = append(trimmedWorkspaces, &pb.Workspace{
+			Id:   workspace.GetId(),
+			Name: workspace.GetName(),
+		})
+	}
+
 	return connect.NewResponse(&pb.ListMyWorkspacesResponse{
-		Workspaces: workspaces,
+		Workspaces: trimmedWorkspaces,
 	}), nil
 }
 
@@ -220,8 +228,8 @@ func (s *WorkspaceServer) RemoveMember(ctx context.Context, req *connect.Request
 
 // InviteMember creates an invitation for a new member
 func (s *WorkspaceServer) InviteMember(ctx context.Context, req *connect.Request[pb.InviteMemberRequest]) (*connect.Response[pb.InviteMemberResponse], error) {
-	if req.Msg.GetWorkspaceId() == "" || req.Msg.GetInvitedEmail() == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("workspace_id and invited_email are required"))
+	if req.Msg.GetWorkspaceId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("workspace_id is required"))
 	}
 
 	workspaceID, err := uuid.Parse(req.Msg.GetWorkspaceId())
@@ -264,6 +272,24 @@ func (s *WorkspaceServer) AcceptInvitation(ctx context.Context, req *connect.Req
 	return connect.NewResponse(&pb.AcceptInvitationResponse{
 		Workspace: ws,
 	}), nil
+}
+
+// RejectInvitation rejects an invitation and invalidates the token.
+func (s *WorkspaceServer) RejectInvitation(ctx context.Context, req *connect.Request[pb.RejectInvitationRequest]) (*connect.Response[emptypb.Empty], error) {
+	if req.Msg.GetToken() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("token is required"))
+	}
+
+	userID, err := interceptor.UserIDFromContext(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, err)
+	}
+
+	if err := s.svc.RejectInvitation(ctx, req.Msg.GetToken(), userID); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	return connect.NewResponse(&emptypb.Empty{}), nil
 }
 
 // CheckPermission checks if a user has a specific permission (internal RPC)

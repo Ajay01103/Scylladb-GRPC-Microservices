@@ -46,7 +46,7 @@ export function LoginForm() {
         const response = await authBrowserRpcClient.login(parsed.data)
         await setAuthCookies(response.refreshToken)
         setAccessToken(response.accessToken)
-        router.replace("/")
+        router.replace("/workspace")
         router.refresh()
       } catch (error) {
         submitErrorRef.current = error instanceof Error ? error.message : "Failed to sign in"

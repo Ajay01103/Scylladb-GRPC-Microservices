@@ -39,32 +39,34 @@ func NewJWTMaker(secretKey string) (*JWTMaker, error) {
 // ─── Refresh Token ────────────────────────────────────────────────────────────
 
 // CreateRefreshToken mints a new refresh token.
-// The payload's JTI must be stored in Redis by the caller before responding.
 func (m *JWTMaker) CreateRefreshToken(
-	userID, email, name, familyID string,
+	userID, email, name, sessionID string,
+	gen int64,
+	globalVer int,
 	duration time.Duration,
 ) (string, *RefreshPayload, error) {
 	uid, err := uuid.Parse(userID)
 	if err != nil {
 		return "", nil, fmt.Errorf("invalid user id: %w", err)
 	}
-	fid, err := uuid.Parse(familyID)
+	sid, err := uuid.Parse(sessionID)
 	if err != nil {
-		return "", nil, fmt.Errorf("invalid family id: %w", err)
+		return "", nil, fmt.Errorf("invalid session id: %w", err)
 	}
 
-	payload, err := NewRefreshPayload(uid, email, name, fid, duration)
+	payload, err := NewRefreshPayload(uid, email, name, sid, gen, globalVer, duration)
 	if err != nil {
 		return "", nil, err
 	}
 
 	claims := jwt.MapClaims{
-		"jti":        payload.JTI.String(),
 		"sub":        payload.UserID.String(),
 		"email":      payload.Email,
 		"name":       payload.Name,
 		"token_type": string(payload.TokenType),
-		"family_id":  payload.FamilyID.String(),
+		"sid":        payload.SessionID.String(),
+		"gen":        payload.Gen,
+		"gv":         payload.GlobalVer,
 		"iat":        payload.IssuedAt.Unix(),
 		"exp":        payload.ExpiredAt.Unix(),
 	}
@@ -78,39 +80,37 @@ func (m *JWTMaker) CreateRefreshToken(
 
 // ─── Access Token ─────────────────────────────────────────────────────────────
 
-// CreateAccessToken mints a new access token paired with the given refresh token JTI.
+// CreateAccessToken mints a new access token anchored to session id and generation.
 func (m *JWTMaker) CreateAccessToken(
-	userID, email, name, familyID, refreshJTI string,
+	userID, email, name, sessionID string,
+	gen int64,
+	globalVer int,
 	duration time.Duration,
 ) (string, *AccessPayload, error) {
 	uid, err := uuid.Parse(userID)
 	if err != nil {
 		return "", nil, fmt.Errorf("invalid user id: %w", err)
 	}
-	fid, err := uuid.Parse(familyID)
+	sid, err := uuid.Parse(sessionID)
 	if err != nil {
-		return "", nil, fmt.Errorf("invalid family id: %w", err)
-	}
-	rjti, err := uuid.Parse(refreshJTI)
-	if err != nil {
-		return "", nil, fmt.Errorf("invalid refresh jti: %w", err)
+		return "", nil, fmt.Errorf("invalid session id: %w", err)
 	}
 
-	payload, err := NewAccessPayload(uid, email, name, fid, rjti, duration)
+	payload, err := NewAccessPayload(uid, email, name, sid, gen, globalVer, duration)
 	if err != nil {
 		return "", nil, err
 	}
 
 	claims := jwt.MapClaims{
-		"jti":         payload.JTI.String(),
-		"sub":         payload.UserID.String(),
-		"email":       payload.Email,
-		"name":        payload.Name,
-		"token_type":  string(payload.TokenType),
-		"family_id":   payload.FamilyID.String(),
-		"refresh_jti": payload.RefreshJTI.String(),
-		"iat":         payload.IssuedAt.Unix(),
-		"exp":         payload.ExpiredAt.Unix(),
+		"sub":        payload.UserID.String(),
+		"email":      payload.Email,
+		"name":       payload.Name,
+		"token_type": string(payload.TokenType),
+		"sid":        payload.SessionID.String(),
+		"gen":        payload.Gen,
+		"gv":         payload.GlobalVer,
+		"iat":        payload.IssuedAt.Unix(),
+		"exp":        payload.ExpiredAt.Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	signed, err := token.SignedString(m.secretKeyBytes)
@@ -163,74 +163,21 @@ func (m *JWTMaker) VerifyRefreshToken(tokenStr string) (*RefreshPayload, error) 
 // ─── Session Token ───────────────────────────────────────────────────────────
 
 func (m *JWTMaker) CreateSessionRefreshToken(
-	userID, sessionID string,
+	userID, email, name, sessionID string,
 	gen int64,
 	globalVer int,
 	duration time.Duration,
 ) (string, *SessionRefreshPayload, error) {
-	uid, err := uuid.Parse(userID)
-	if err != nil {
-		return "", nil, fmt.Errorf("invalid user id: %w", err)
-	}
-	sid, err := uuid.Parse(sessionID)
-	if err != nil {
-		return "", nil, fmt.Errorf("invalid session id: %w", err)
-	}
-
-	payload, err := NewSessionRefreshPayload(uid, sid, gen, globalVer, duration)
-	if err != nil {
-		return "", nil, err
-	}
-
-	claims := jwt.MapClaims{
-		"jti":        payload.JTI.String(),
-		"sub":        payload.UserID.String(),
-		"sid":        payload.SessionID.String(),
-		"gen":        payload.Gen,
-		"gv":         payload.GlobalVer,
-		"iat":        payload.IssuedAt.Unix(),
-		"exp":        payload.ExpiredAt.Unix(),
-		"token_type": string(TokenTypeRefresh),
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signed, err := token.SignedString(m.secretKeyBytes)
-	if err != nil {
-		return "", nil, err
-	}
-	return signed, payload, nil
+	return m.CreateRefreshToken(userID, email, name, sessionID, gen, globalVer, duration)
 }
 
 func (m *JWTMaker) CreateSessionAccessToken(
-	userID string,
-	roles []string,
+	userID, email, name, sessionID string,
+	gen int64,
 	globalVer int,
 	duration time.Duration,
 ) (string, *SessionAccessPayload, error) {
-	uid, err := uuid.Parse(userID)
-	if err != nil {
-		return "", nil, fmt.Errorf("invalid user id: %w", err)
-	}
-
-	payload, err := NewSessionAccessPayload(uid, roles, globalVer, duration)
-	if err != nil {
-		return "", nil, err
-	}
-
-	claims := jwt.MapClaims{
-		"jti":        payload.JTI.String(),
-		"sub":        payload.UserID.String(),
-		"roles":      encodeSessionRoles(payload.Roles),
-		"gv":         payload.GlobalVer,
-		"iat":        payload.IssuedAt.Unix(),
-		"exp":        payload.ExpiredAt.Unix(),
-		"token_type": string(TokenTypeAccess),
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signed, err := token.SignedString(m.secretKeyBytes)
-	if err != nil {
-		return "", nil, err
-	}
-	return signed, payload, nil
+	return m.CreateAccessToken(userID, email, name, sessionID, gen, globalVer, duration)
 }
 
 func (m *JWTMaker) VerifySessionRefreshToken(tokenStr string) (*SessionRefreshPayload, error) {
@@ -315,21 +262,21 @@ func optionalStringClaim(claims jwt.MapClaims, key string) string {
 }
 
 func accessPayloadFromClaims(claims jwt.MapClaims) (*AccessPayload, error) {
-	jti, err := uuidFromClaims(claims, "jti")
-	if err != nil {
-		return nil, err
-	}
 	sub, err := uuidFromClaims(claims, "sub")
 	if err != nil {
 		return nil, err
 	}
-	rjti, err := uuidFromClaims(claims, "refresh_jti")
+	sid, err := uuidFromClaims(claims, "sid")
 	if err != nil {
 		return nil, err
 	}
-	familyID, err := uuidFromClaims(claims, "family_id")
-	if err != nil {
-		return nil, err
+	genRaw, ok := claims["gen"].(float64)
+	if !ok {
+		return nil, ErrInvalidToken
+	}
+	gv := 0
+	if gvRaw, ok := claims["gv"].(float64); ok {
+		gv = int(gvRaw)
 	}
 	exp, err := timeFromClaims(claims, "exp")
 	if err != nil {
@@ -341,30 +288,34 @@ func accessPayloadFromClaims(claims jwt.MapClaims) (*AccessPayload, error) {
 	}
 
 	return &AccessPayload{
-		JTI:        jti,
-		UserID:     sub,
-		Email:      optionalStringClaim(claims, "email"),
-		Name:       optionalStringClaim(claims, "name"),
-		TokenType:  TokenTypeAccess,
-		FamilyID:   familyID,
-		RefreshJTI: rjti,
-		IssuedAt:   iat,
-		ExpiredAt:  exp,
+		UserID:    sub,
+		Email:     optionalStringClaim(claims, "email"),
+		Name:      optionalStringClaim(claims, "name"),
+		TokenType: TokenTypeAccess,
+		SessionID: sid,
+		Gen:       int64(genRaw),
+		GlobalVer: gv,
+		IssuedAt:  iat,
+		ExpiredAt: exp,
 	}, nil
 }
 
 func refreshPayloadFromClaims(claims jwt.MapClaims) (*RefreshPayload, error) {
-	jti, err := uuidFromClaims(claims, "jti")
-	if err != nil {
-		return nil, err
-	}
 	sub, err := uuidFromClaims(claims, "sub")
 	if err != nil {
 		return nil, err
 	}
-	familyID, err := uuidFromClaims(claims, "family_id")
+	sid, err := uuidFromClaims(claims, "sid")
 	if err != nil {
 		return nil, err
+	}
+	genRaw, ok := claims["gen"].(float64)
+	if !ok {
+		return nil, ErrInvalidToken
+	}
+	gv := 0
+	if gvRaw, ok := claims["gv"].(float64); ok {
+		gv = int(gvRaw)
 	}
 	exp, err := timeFromClaims(claims, "exp")
 	if err != nil {
@@ -376,12 +327,13 @@ func refreshPayloadFromClaims(claims jwt.MapClaims) (*RefreshPayload, error) {
 	}
 
 	return &RefreshPayload{
-		JTI:       jti,
 		UserID:    sub,
 		Email:     optionalStringClaim(claims, "email"),
 		Name:      optionalStringClaim(claims, "name"),
 		TokenType: TokenTypeRefresh,
-		FamilyID:  familyID,
+		SessionID: sid,
+		Gen:       int64(genRaw),
+		GlobalVer: gv,
 		IssuedAt:  iat,
 		ExpiredAt: exp,
 	}, nil

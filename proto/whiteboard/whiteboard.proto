@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package whiteboard;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/Ajay01103/go-notion/whiteboard/gen/pb;pb";
+
+message Board {
+  string id = 1;
+  string workspace_id = 2;
+  string title = 3;
+  string created_by = 4;
+  bool is_private = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message CreateBoardRequest {
+  string workspace_id = 1;
+  string title = 2;
+  bool is_private = 3;
+}
+
+message GetBoardRequest {
+  string board_id = 1;
+}
+
+message ListWorkspaceBoardsRequest {
+  string workspace_id = 1;
+}
+
+message ListWorkspaceBoardsResponse {
+  repeated Board boards = 1;
+}
+
+message AppendBoardOpRequest {
+  string board_id = 1;
+  string op_type = 2;
+  bytes records = 3;
+}
+
+service WhiteboardService {
+  rpc CreateBoard(CreateBoardRequest) returns (Board);
+  rpc GetBoard(GetBoardRequest) returns (Board);
+  rpc ListWorkspaceBoards(ListWorkspaceBoardsRequest) returns (ListWorkspaceBoardsResponse);
+  rpc AppendBoardOp(AppendBoardOpRequest) returns (google.protobuf.Empty);
+}

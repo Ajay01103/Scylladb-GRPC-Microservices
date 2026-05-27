@@ -13,13 +13,11 @@ var (
 
 // TokenMaker is the interface for creating and verifying JWT tokens.
 type TokenMaker interface {
-	// CreateRefreshToken mints a refresh token. The returned RefreshPayload
-	// contains the JTI that must be stored in Redis by the caller.
-	CreateRefreshToken(userID, email, name, familyID string, duration time.Duration) (string, *RefreshPayload, error)
+	// CreateRefreshToken mints a refresh token anchored to a session row and generation.
+	CreateRefreshToken(userID, email, name, sessionID string, gen int64, globalVer int, duration time.Duration) (string, *RefreshPayload, error)
 
-	// CreateAccessToken mints an access token paired with a refresh token.
-	// refreshJTI must be the JTI of the already-created refresh token.
-	CreateAccessToken(userID, email, name, familyID, refreshJTI string, duration time.Duration) (string, *AccessPayload, error)
+	// CreateAccessToken mints an access token anchored to the same session row and generation.
+	CreateAccessToken(userID, email, name, sessionID string, gen int64, globalVer int, duration time.Duration) (string, *AccessPayload, error)
 
 	// VerifyAccessToken parses and validates an access token string.
 	VerifyAccessToken(token string) (*AccessPayload, error)
@@ -28,10 +26,10 @@ type TokenMaker interface {
 	VerifyRefreshToken(token string) (*RefreshPayload, error)
 
 	// CreateSessionRefreshToken mints a session-mode refresh token.
-	CreateSessionRefreshToken(userID, sessionID string, gen int64, globalVer int, duration time.Duration) (string, *SessionRefreshPayload, error)
+	CreateSessionRefreshToken(userID, email, name, sessionID string, gen int64, globalVer int, duration time.Duration) (string, *SessionRefreshPayload, error)
 
 	// CreateSessionAccessToken mints a session-mode access token.
-	CreateSessionAccessToken(userID string, roles []string, globalVer int, duration time.Duration) (string, *SessionAccessPayload, error)
+	CreateSessionAccessToken(userID, email, name, sessionID string, gen int64, globalVer int, duration time.Duration) (string, *SessionAccessPayload, error)
 
 	// VerifySessionRefreshToken parses and validates a session-mode refresh token.
 	VerifySessionRefreshToken(token string) (*SessionRefreshPayload, error)

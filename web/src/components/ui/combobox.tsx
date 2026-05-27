@@ -103,12 +103,9 @@ export const Combobox = ({
         setWidth,
         inputValue,
         setInputValue,
-      }}>
-      <Popover
-        {...props}
-        onOpenChange={onOpenChange}
-        open={open}
-      />
+      }}
+    >
+      <Popover {...props} onOpenChange={onOpenChange} open={open} />
     </ComboboxContext.Provider>
   )
 }
@@ -142,19 +139,11 @@ export const ComboboxTrigger = ({ children, ...props }: ComboboxTriggerProps) =>
 
   return (
     <PopoverTrigger asChild>
-      <Button
-        variant="outline"
-        {...props}
-        ref={ref}>
+      <Button variant="outline" {...props} ref={ref}>
         {children ?? (
           <span className="flex w-full items-center justify-between gap-2">
-            {value
-              ? data.find((item) => item.value === value)?.label
-              : `Select ${type}...`}
-            <ChevronsUpDownIcon
-              className="shrink-0 text-muted-foreground"
-              size={16}
-            />
+            {value ? data.find((item) => item.value === value)?.label : `Select ${type}...`}
+            <ChevronsUpDownIcon className="shrink-0 text-muted-foreground" size={16} />
           </span>
         )}
       </Button>
@@ -166,18 +155,11 @@ export type ComboboxContentProps = ComponentProps<typeof Command> & {
   popoverOptions?: ComponentProps<typeof PopoverContent>
 }
 
-export const ComboboxContent = ({
-  className,
-  popoverOptions,
-  ...props
-}: ComboboxContentProps) => {
+export const ComboboxContent = ({ className, popoverOptions, ...props }: ComboboxContentProps) => {
   const { width } = useContext(ComboboxContext)
 
   return (
-    <PopoverContent
-      className={cn("p-0", className)}
-      style={{ width }}
-      {...popoverOptions}>
+    <PopoverContent className={cn("p-0", className)} style={{ width }} {...popoverOptions}>
       <Command {...props} />
     </PopoverContent>
   )
@@ -252,9 +234,7 @@ export const ComboboxItem = (props: ComboboxItemProps) => {
 
 export type ComboboxSeparatorProps = ComponentProps<typeof CommandSeparator>
 
-export const ComboboxSeparator = (props: ComboboxSeparatorProps) => (
-  <CommandSeparator {...props} />
-)
+export const ComboboxSeparator = (props: ComboboxSeparatorProps) => <CommandSeparator {...props} />
 
 export type ComboboxCreateNewProps = {
   onCreateNew: (value: string) => void
@@ -262,11 +242,7 @@ export type ComboboxCreateNewProps = {
   className?: string
 }
 
-export const ComboboxCreateNew = ({
-  onCreateNew,
-  children,
-  className,
-}: ComboboxCreateNewProps) => {
+export const ComboboxCreateNew = ({ onCreateNew, children, className }: ComboboxCreateNewProps) => {
   const { inputValue, type, onValueChange, onOpenChange } = useContext(ComboboxContext)
 
   if (!inputValue.trim()) {
@@ -286,7 +262,8 @@ export const ComboboxCreateNew = ({
         className,
       )}
       onClick={handleCreateNew}
-      type="button">
+      type="button"
+    >
       {children ? (
         children(inputValue)
       ) : (

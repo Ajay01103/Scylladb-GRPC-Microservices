@@ -1,7 +1,7 @@
 import { jwtVerify, type JWTPayload, importJWK, decodeProtectedHeader } from "jose"
 
 type JsonWebKey = Parameters<typeof importJWK>[0]
-type SupportedJwsAlgorithm = "EdDSA" | "RS256"
+type SupportedJwsAlgorithm = "EdDSA"
 
 type CachedJwkEntry = {
   key: JsonWebKey
@@ -71,11 +71,15 @@ export async function validateRefreshToken(
 
       const { payload } = await jwtVerify(token, publicKey, {
         algorithms: [algorithm],
-        requiredClaims: ["exp", "iat", "sub", "token_type"],
+        requiredClaims: ["exp", "iat", "sub", "token_type", "sid", "gen"],
       })
 
       if (payload.token_type !== "refresh") {
         return { valid: false, reason: "invalid-token-type" }
+      }
+
+      if (typeof payload.sid !== "string" || typeof payload.gen !== "number") {
+        return { valid: false, reason: "invalid-token" }
       }
 
       return { valid: true, payload }
@@ -160,16 +164,12 @@ function pruneExpiredJwksEntries(now: number) {
 }
 
 function isSupportedAlgorithm(algorithm: string): algorithm is SupportedJwsAlgorithm {
-  return algorithm === "EdDSA" || algorithm === "RS256"
+  return algorithm === "EdDSA"
 }
 
 function normalizeJwkAlgorithm(key: any): SupportedJwsAlgorithm | null {
   if (key?.alg === "EdDSA" || (key?.kty === "OKP" && key?.crv === "Ed25519")) {
     return "EdDSA"
-  }
-
-  if (key?.alg === "RS256" || key?.kty === "RSA") {
-    return "RS256"
   }
 
   return null

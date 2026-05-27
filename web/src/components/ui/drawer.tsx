@@ -63,17 +63,13 @@ const StaggerChild = ({
   shouldReduceMotion: boolean | null
 }) => (
   <motion.div
-    animate={
-      shouldReduceMotion ? { opacity: 1 } : { opacity: 1, transform: "translateY(0px)" }
-    }
+    animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, transform: "translateY(0px)" }}
     exit={
       shouldReduceMotion
         ? { opacity: 0, transition: { duration: 0 } }
         : { opacity: 0, transition: { duration: 0.1 } }
     }
-    initial={
-      shouldReduceMotion ? { opacity: 1 } : { opacity: 0, transform: "translateY(6px)" }
-    }
+    initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, transform: "translateY(6px)" }}
     transition={
       shouldReduceMotion
         ? { duration: 0 }
@@ -83,7 +79,8 @@ const StaggerChild = ({
             bounce: 0,
             delay: STAGGER_BASE_DELAY + index * STAGGER_CHILD_DELAY,
           }
-    }>
+    }
+  >
     {children}
   </motion.div>
 )
@@ -92,11 +89,7 @@ const StaggerChild = ({
 /*  Animated handle bar with glow pulse                                */
 /* ------------------------------------------------------------------ */
 
-const AnimatedHandle = ({
-  shouldReduceMotion,
-}: {
-  shouldReduceMotion: boolean | null
-}) => (
+const AnimatedHandle = ({ shouldReduceMotion }: { shouldReduceMotion: boolean | null }) => (
   <motion.div
     animate={
       shouldReduceMotion
@@ -161,7 +154,8 @@ export default function Drawer({
         }
         onOpenChange?.(next)
       }}
-      open={vaulOpen}>
+      open={vaulOpen}
+    >
       {trigger && <DrawerTrigger asChild>{trigger}</DrawerTrigger>}
 
       {/*
@@ -176,7 +170,8 @@ export default function Drawer({
           // Hide the default handle for bottom drawers — we render our own animated one
           side === "bottom" && "[&>[class*='h-2'][class*='rounded-full']]:hidden",
           className,
-        )}>
+        )}
+      >
         {/* Animated handle for bottom drawers */}
         {side === "bottom" && <AnimatedHandle shouldReduceMotion={shouldReduceMotion} />}
 
@@ -192,12 +187,11 @@ export default function Drawer({
               initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0 }}
               transition={{
                 duration: shouldReduceMotion ? 0 : BACKDROP_DURATION,
-              }}>
+              }}
+            >
               {/* Staggered header */}
               {(title || description) && (
-                <StaggerChild
-                  index={0}
-                  shouldReduceMotion={shouldReduceMotion}>
+                <StaggerChild index={0} shouldReduceMotion={shouldReduceMotion}>
                   <DrawerHeader>
                     {title && <DrawerTitle>{title}</DrawerTitle>}
                     {description && <DrawerDescription>{description}</DrawerDescription>}
@@ -209,7 +203,8 @@ export default function Drawer({
               {children && (
                 <StaggerChild
                   index={title || description ? 1 : 0}
-                  shouldReduceMotion={shouldReduceMotion}>
+                  shouldReduceMotion={shouldReduceMotion}
+                >
                   <div className="px-4">{children}</div>
                 </StaggerChild>
               )}
@@ -218,7 +213,8 @@ export default function Drawer({
               {footer && (
                 <StaggerChild
                   index={(title || description ? 1 : 0) + (children ? 1 : 0)}
-                  shouldReduceMotion={shouldReduceMotion}>
+                  shouldReduceMotion={shouldReduceMotion}
+                >
                   <DrawerFooter>{footer}</DrawerFooter>
                 </StaggerChild>
               )}

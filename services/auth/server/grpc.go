@@ -138,7 +138,7 @@ func (s *AuthServer) ValidateToken(ctx context.Context, req *connect.Request[pb.
 	res, err := s.svc.ValidateToken(ctx, req.Msg.GetAccessToken())
 	if err != nil {
 		switch err {
-		case service.ErrTokenExpired, service.ErrInvalidToken:
+		case service.ErrTokenExpired, service.ErrInvalidToken, service.ErrTokenRevoked, service.ErrSessionNotFound:
 			return nil, connect.NewError(connect.CodeUnauthenticated, err)
 		default:
 			return nil, connect.NewError(connect.CodeInternal, err)
@@ -170,7 +170,7 @@ func (s *AuthServer) GetCurrentUser(ctx context.Context, req *connect.Request[pb
 	res, err := s.svc.ValidateToken(ctx, tokenStr)
 	if err != nil {
 		switch err {
-		case service.ErrTokenExpired, service.ErrInvalidToken:
+		case service.ErrTokenExpired, service.ErrInvalidToken, service.ErrTokenRevoked, service.ErrSessionNotFound:
 			return nil, connect.NewError(connect.CodeUnauthenticated, err)
 		default:
 			return nil, connect.NewError(connect.CodeInternal, err)

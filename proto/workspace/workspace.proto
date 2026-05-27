@@ -41,6 +41,10 @@ message WorkspaceMember {
   WorkspaceRole role         = 3;
   string        invited_by   = 4;
   google.protobuf.Timestamp joined_at = 5;
+  string        user_name = 6;
+  string        user_email = 7;
+  string        invited_by_name = 8;
+  string        invited_by_email = 9;
 }
 
 // ─── Workspace CRUD ───────────────────────────────────────
@@ -121,6 +125,10 @@ message AcceptInvitationResponse {
   Workspace workspace = 1;
 }
 
+message RejectInvitationRequest {
+  string token = 1;
+}
+
 // ─── Permission Check (used by other services) ────────────
 
 message CheckPermissionRequest {
@@ -152,6 +160,7 @@ service WorkspaceService {
   // Invitations
   rpc InviteMember       (InviteMemberRequest)       returns (InviteMemberResponse);
   rpc AcceptInvitation   (AcceptInvitationRequest)   returns (AcceptInvitationResponse);
+  rpc RejectInvitation   (RejectInvitationRequest)   returns (google.protobuf.Empty);
 
   // Internal — called by other services (pages, docs, etc.)
   rpc CheckPermission    (CheckPermissionRequest)    returns (CheckPermissionResponse);

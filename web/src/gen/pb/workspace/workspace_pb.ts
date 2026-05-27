@@ -2,17 +2,19 @@
 // @generated from file workspace.proto (package workspace, syntax proto3)
 /* eslint-disable */
 
-import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
-import type { EmptySchema, Timestamp } from "@bufbuild/protobuf/wkt";
-import { file_google_protobuf_empty, file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
-import type { Message } from "@bufbuild/protobuf";
+import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2"
+import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2"
+import type { EmptySchema, Timestamp } from "@bufbuild/protobuf/wkt"
+import { file_google_protobuf_empty, file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt"
+import type { Message } from "@bufbuild/protobuf"
 
 /**
  * Describes the file workspace.proto.
  */
-export const file_workspace: GenFile = /*@__PURE__*/
-  fileDesc("Cg93b3Jrc3BhY2UucHJvdG8SCXdvcmtzcGFjZSKKAgoJV29ya3NwYWNlEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSDAoEc2x1ZxgDIAEoCRITCgtkZXNjcmlwdGlvbhgEIAEoCRIQCghpY29uX3VybBgFIAEoCRIQCghvd25lcl9pZBgGIAEoCRIRCglpc19wdWJsaWMYByABKAgSLgoKY3JlYXRlZF9hdBgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKdXBkYXRlZF9hdBgJIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASKQoHbXlfcm9sZRgKIAEoDjIYLndvcmtzcGFjZS5Xb3Jrc3BhY2VSb2xlIqMBCg9Xb3Jrc3BhY2VNZW1iZXISDwoHdXNlcl9pZBgBIAEoCRIUCgx3b3Jrc3BhY2VfaWQYAiABKAkSJgoEcm9sZRgDIAEoDjIYLndvcmtzcGFjZS5Xb3Jrc3BhY2VSb2xlEhIKCmludml0ZWRfYnkYBCABKAkSLQoJam9pbmVkX2F0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJuChZDcmVhdGVXb3Jrc3BhY2VSZXF1ZXN0EgwKBG5hbWUYASABKAkSDAoEc2x1ZxgCIAEoCRITCgtkZXNjcmlwdGlvbhgDIAEoCRIQCghpY29uX3VybBgEIAEoCRIRCglpc19wdWJsaWMYBSABKAgiKwoTR2V0V29ya3NwYWNlUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkidgoWVXBkYXRlV29ya3NwYWNlUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkSDAoEbmFtZRgCIAEoCRITCgtkZXNjcmlwdGlvbhgDIAEoCRIQCghpY29uX3VybBgEIAEoCRIRCglpc19wdWJsaWMYBSABKAgiLgoWRGVsZXRlV29ya3NwYWNlUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkiQAoXTGlzdE15V29ya3NwYWNlc1JlcXVlc3QSEQoJcGFnZV9zaXplGAEgASgFEhIKCnBhZ2VfdG9rZW4YAiABKAkiXQoYTGlzdE15V29ya3NwYWNlc1Jlc3BvbnNlEigKCndvcmtzcGFjZXMYASADKAsyFC53b3Jrc3BhY2UuV29ya3NwYWNlEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSIqChJMaXN0TWVtYmVyc1JlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJIkIKE0xpc3RNZW1iZXJzUmVzcG9uc2USKwoHbWVtYmVycxgBIAMoCzIaLndvcmtzcGFjZS5Xb3Jrc3BhY2VNZW1iZXIibAoXVXBkYXRlTWVtYmVyUm9sZVJlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJEg8KB3VzZXJfaWQYAiABKAkSKgoIbmV3X3JvbGUYAyABKA4yGC53b3Jrc3BhY2UuV29ya3NwYWNlUm9sZSI8ChNSZW1vdmVNZW1iZXJSZXF1ZXN0EhQKDHdvcmtzcGFjZV9pZBgBIAEoCRIPCgd1c2VyX2lkGAIgASgJImoKE0ludml0ZU1lbWJlclJlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJEhUKDWludml0ZWRfZW1haWwYAiABKAkSJgoEcm9sZRgDIAEoDjIYLndvcmtzcGFjZS5Xb3Jrc3BhY2VSb2xlIjwKFEludml0ZU1lbWJlclJlc3BvbnNlEhUKDWludml0YXRpb25faWQYASABKAkSDQoFdG9rZW4YAiABKAkiKAoXQWNjZXB0SW52aXRhdGlvblJlcXVlc3QSDQoFdG9rZW4YASABKAkiQwoYQWNjZXB0SW52aXRhdGlvblJlc3BvbnNlEicKCXdvcmtzcGFjZRgBIAEoCzIULndvcmtzcGFjZS5Xb3Jrc3BhY2UiUwoWQ2hlY2tQZXJtaXNzaW9uUmVxdWVzdBIPCgd1c2VyX2lkGAEgASgJEhQKDHdvcmtzcGFjZV9pZBgCIAEoCRISCgpwZXJtaXNzaW9uGAMgASgJIlIKF0NoZWNrUGVybWlzc2lvblJlc3BvbnNlEg8KB2FsbG93ZWQYASABKAgSJgoEcm9sZRgCIAEoDjIYLndvcmtzcGFjZS5Xb3Jrc3BhY2VSb2xlKrMBCg1Xb3Jrc3BhY2VSb2xlEh4KGldPUktTUEFDRV9ST0xFX1VOU1BFQ0lGSUVEEAASGAoUV09SS1NQQUNFX1JPTEVfT1dORVIQARIYChRXT1JLU1BBQ0VfUk9MRV9BRE1JThACEhkKFVdPUktTUEFDRV9ST0xFX0VESVRPUhADEhkKFVdPUktTUEFDRV9ST0xFX01FTUJFUhAEEhgKFFdPUktTUEFDRV9ST0xFX0dVRVNUEAUyjQcKEFdvcmtzcGFjZVNlcnZpY2USSgoPQ3JlYXRlV29ya3NwYWNlEiEud29ya3NwYWNlLkNyZWF0ZVdvcmtzcGFjZVJlcXVlc3QaFC53b3Jrc3BhY2UuV29ya3NwYWNlEkQKDEdldFdvcmtzcGFjZRIeLndvcmtzcGFjZS5HZXRXb3Jrc3BhY2VSZXF1ZXN0GhQud29ya3NwYWNlLldvcmtzcGFjZRJKCg9VcGRhdGVXb3Jrc3BhY2USIS53b3Jrc3BhY2UuVXBkYXRlV29ya3NwYWNlUmVxdWVzdBoULndvcmtzcGFjZS5Xb3Jrc3BhY2USTAoPRGVsZXRlV29ya3NwYWNlEiEud29ya3NwYWNlLkRlbGV0ZVdvcmtzcGFjZVJlcXVlc3QaFi5nb29nbGUucHJvdG9idWYuRW1wdHkSWwoQTGlzdE15V29ya3NwYWNlcxIiLndvcmtzcGFjZS5MaXN0TXlXb3Jrc3BhY2VzUmVxdWVzdBojLndvcmtzcGFjZS5MaXN0TXlXb3Jrc3BhY2VzUmVzcG9uc2USTAoLTGlzdE1lbWJlcnMSHS53b3Jrc3BhY2UuTGlzdE1lbWJlcnNSZXF1ZXN0Gh4ud29ya3NwYWNlLkxpc3RNZW1iZXJzUmVzcG9uc2USUgoQVXBkYXRlTWVtYmVyUm9sZRIiLndvcmtzcGFjZS5VcGRhdGVNZW1iZXJSb2xlUmVxdWVzdBoaLndvcmtzcGFjZS5Xb3Jrc3BhY2VNZW1iZXISRgoMUmVtb3ZlTWVtYmVyEh4ud29ya3NwYWNlLlJlbW92ZU1lbWJlclJlcXVlc3QaFi5nb29nbGUucHJvdG9idWYuRW1wdHkSTwoMSW52aXRlTWVtYmVyEh4ud29ya3NwYWNlLkludml0ZU1lbWJlclJlcXVlc3QaHy53b3Jrc3BhY2UuSW52aXRlTWVtYmVyUmVzcG9uc2USWwoQQWNjZXB0SW52aXRhdGlvbhIiLndvcmtzcGFjZS5BY2NlcHRJbnZpdGF0aW9uUmVxdWVzdBojLndvcmtzcGFjZS5BY2NlcHRJbnZpdGF0aW9uUmVzcG9uc2USWAoPQ2hlY2tQZXJtaXNzaW9uEiEud29ya3NwYWNlLkNoZWNrUGVybWlzc2lvblJlcXVlc3QaIi53b3Jrc3BhY2UuQ2hlY2tQZXJtaXNzaW9uUmVzcG9uc2VCNFoyZ2l0aHViLmNvbS9BamF5MDExMDMvZ28tbm90aW9uL3dvcmtzcGFjZS9nZW4vcGI7cGJiBnByb3RvMw", [file_google_protobuf_timestamp, file_google_protobuf_empty]);
+export const file_workspace: GenFile /*@__PURE__*/ = fileDesc(
+  "Cg93b3Jrc3BhY2UucHJvdG8SCXdvcmtzcGFjZSKKAgoJV29ya3NwYWNlEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSDAoEc2x1ZxgDIAEoCRITCgtkZXNjcmlwdGlvbhgEIAEoCRIQCghpY29uX3VybBgFIAEoCRIQCghvd25lcl9pZBgGIAEoCRIRCglpc19wdWJsaWMYByABKAgSLgoKY3JlYXRlZF9hdBgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKdXBkYXRlZF9hdBgJIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASKQoHbXlfcm9sZRgKIAEoDjIYLndvcmtzcGFjZS5Xb3Jrc3BhY2VSb2xlIv0BCg9Xb3Jrc3BhY2VNZW1iZXISDwoHdXNlcl9pZBgBIAEoCRIUCgx3b3Jrc3BhY2VfaWQYAiABKAkSJgoEcm9sZRgDIAEoDjIYLndvcmtzcGFjZS5Xb3Jrc3BhY2VSb2xlEhIKCmludml0ZWRfYnkYBCABKAkSLQoJam9pbmVkX2F0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIRCgl1c2VyX25hbWUYBiABKAkSEgoKdXNlcl9lbWFpbBgHIAEoCRIXCg9pbnZpdGVkX2J5X25hbWUYCCABKAkSGAoQaW52aXRlZF9ieV9lbWFpbBgJIAEoCSJuChZDcmVhdGVXb3Jrc3BhY2VSZXF1ZXN0EgwKBG5hbWUYASABKAkSDAoEc2x1ZxgCIAEoCRITCgtkZXNjcmlwdGlvbhgDIAEoCRIQCghpY29uX3VybBgEIAEoCRIRCglpc19wdWJsaWMYBSABKAgiKwoTR2V0V29ya3NwYWNlUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkidgoWVXBkYXRlV29ya3NwYWNlUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkSDAoEbmFtZRgCIAEoCRITCgtkZXNjcmlwdGlvbhgDIAEoCRIQCghpY29uX3VybBgEIAEoCRIRCglpc19wdWJsaWMYBSABKAgiLgoWRGVsZXRlV29ya3NwYWNlUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkiQAoXTGlzdE15V29ya3NwYWNlc1JlcXVlc3QSEQoJcGFnZV9zaXplGAEgASgFEhIKCnBhZ2VfdG9rZW4YAiABKAkiXQoYTGlzdE15V29ya3NwYWNlc1Jlc3BvbnNlEigKCndvcmtzcGFjZXMYASADKAsyFC53b3Jrc3BhY2UuV29ya3NwYWNlEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSIqChJMaXN0TWVtYmVyc1JlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJIkIKE0xpc3RNZW1iZXJzUmVzcG9uc2USKwoHbWVtYmVycxgBIAMoCzIaLndvcmtzcGFjZS5Xb3Jrc3BhY2VNZW1iZXIibAoXVXBkYXRlTWVtYmVyUm9sZVJlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJEg8KB3VzZXJfaWQYAiABKAkSKgoIbmV3X3JvbGUYAyABKA4yGC53b3Jrc3BhY2UuV29ya3NwYWNlUm9sZSI8ChNSZW1vdmVNZW1iZXJSZXF1ZXN0EhQKDHdvcmtzcGFjZV9pZBgBIAEoCRIPCgd1c2VyX2lkGAIgASgJImoKE0ludml0ZU1lbWJlclJlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJEhUKDWludml0ZWRfZW1haWwYAiABKAkSJgoEcm9sZRgDIAEoDjIYLndvcmtzcGFjZS5Xb3Jrc3BhY2VSb2xlIjwKFEludml0ZU1lbWJlclJlc3BvbnNlEhUKDWludml0YXRpb25faWQYASABKAkSDQoFdG9rZW4YAiABKAkiKAoXQWNjZXB0SW52aXRhdGlvblJlcXVlc3QSDQoFdG9rZW4YASABKAkiQwoYQWNjZXB0SW52aXRhdGlvblJlc3BvbnNlEicKCXdvcmtzcGFjZRgBIAEoCzIULndvcmtzcGFjZS5Xb3Jrc3BhY2UiKAoXUmVqZWN0SW52aXRhdGlvblJlcXVlc3QSDQoFdG9rZW4YASABKAkiUwoWQ2hlY2tQZXJtaXNzaW9uUmVxdWVzdBIPCgd1c2VyX2lkGAEgASgJEhQKDHdvcmtzcGFjZV9pZBgCIAEoCRISCgpwZXJtaXNzaW9uGAMgASgJIlIKF0NoZWNrUGVybWlzc2lvblJlc3BvbnNlEg8KB2FsbG93ZWQYASABKAgSJgoEcm9sZRgCIAEoDjIYLndvcmtzcGFjZS5Xb3Jrc3BhY2VSb2xlKrMBCg1Xb3Jrc3BhY2VSb2xlEh4KGldPUktTUEFDRV9ST0xFX1VOU1BFQ0lGSUVEEAASGAoUV09SS1NQQUNFX1JPTEVfT1dORVIQARIYChRXT1JLU1BBQ0VfUk9MRV9BRE1JThACEhkKFVdPUktTUEFDRV9ST0xFX0VESVRPUhADEhkKFVdPUktTUEFDRV9ST0xFX01FTUJFUhAEEhgKFFdPUktTUEFDRV9ST0xFX0dVRVNUEAUy3QcKEFdvcmtzcGFjZVNlcnZpY2USSgoPQ3JlYXRlV29ya3NwYWNlEiEud29ya3NwYWNlLkNyZWF0ZVdvcmtzcGFjZVJlcXVlc3QaFC53b3Jrc3BhY2UuV29ya3NwYWNlEkQKDEdldFdvcmtzcGFjZRIeLndvcmtzcGFjZS5HZXRXb3Jrc3BhY2VSZXF1ZXN0GhQud29ya3NwYWNlLldvcmtzcGFjZRJKCg9VcGRhdGVXb3Jrc3BhY2USIS53b3Jrc3BhY2UuVXBkYXRlV29ya3NwYWNlUmVxdWVzdBoULndvcmtzcGFjZS5Xb3Jrc3BhY2USTAoPRGVsZXRlV29ya3NwYWNlEiEud29ya3NwYWNlLkRlbGV0ZVdvcmtzcGFjZVJlcXVlc3QaFi5nb29nbGUucHJvdG9idWYuRW1wdHkSWwoQTGlzdE15V29ya3NwYWNlcxIiLndvcmtzcGFjZS5MaXN0TXlXb3Jrc3BhY2VzUmVxdWVzdBojLndvcmtzcGFjZS5MaXN0TXlXb3Jrc3BhY2VzUmVzcG9uc2USTAoLTGlzdE1lbWJlcnMSHS53b3Jrc3BhY2UuTGlzdE1lbWJlcnNSZXF1ZXN0Gh4ud29ya3NwYWNlLkxpc3RNZW1iZXJzUmVzcG9uc2USUgoQVXBkYXRlTWVtYmVyUm9sZRIiLndvcmtzcGFjZS5VcGRhdGVNZW1iZXJSb2xlUmVxdWVzdBoaLndvcmtzcGFjZS5Xb3Jrc3BhY2VNZW1iZXISRgoMUmVtb3ZlTWVtYmVyEh4ud29ya3NwYWNlLlJlbW92ZU1lbWJlclJlcXVlc3QaFi5nb29nbGUucHJvdG9idWYuRW1wdHkSTwoMSW52aXRlTWVtYmVyEh4ud29ya3NwYWNlLkludml0ZU1lbWJlclJlcXVlc3QaHy53b3Jrc3BhY2UuSW52aXRlTWVtYmVyUmVzcG9uc2USWwoQQWNjZXB0SW52aXRhdGlvbhIiLndvcmtzcGFjZS5BY2NlcHRJbnZpdGF0aW9uUmVxdWVzdBojLndvcmtzcGFjZS5BY2NlcHRJbnZpdGF0aW9uUmVzcG9uc2USTgoQUmVqZWN0SW52aXRhdGlvbhIiLndvcmtzcGFjZS5SZWplY3RJbnZpdGF0aW9uUmVxdWVzdBoWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRJYCg9DaGVja1Blcm1pc3Npb24SIS53b3Jrc3BhY2UuQ2hlY2tQZXJtaXNzaW9uUmVxdWVzdBoiLndvcmtzcGFjZS5DaGVja1Blcm1pc3Npb25SZXNwb25zZUI0WjJnaXRodWIuY29tL0FqYXkwMTEwMy9nby1ub3Rpb24vd29ya3NwYWNlL2dlbi9wYjtwYmIGcHJvdG8z",
+  [file_google_protobuf_timestamp, file_google_protobuf_empty],
+)
 
 /**
  * @generated from message workspace.Workspace
@@ -21,62 +23,61 @@ export type Workspace = Message<"workspace.Workspace"> & {
   /**
    * @generated from field: string id = 1;
    */
-  id: string;
+  id: string
 
   /**
    * @generated from field: string name = 2;
    */
-  name: string;
+  name: string
 
   /**
    * @generated from field: string slug = 3;
    */
-  slug: string;
+  slug: string
 
   /**
    * @generated from field: string description = 4;
    */
-  description: string;
+  description: string
 
   /**
    * @generated from field: string icon_url = 5;
    */
-  iconUrl: string;
+  iconUrl: string
 
   /**
    * @generated from field: string owner_id = 6;
    */
-  ownerId: string;
+  ownerId: string
 
   /**
    * @generated from field: bool is_public = 7;
    */
-  isPublic: boolean;
+  isPublic: boolean
 
   /**
    * @generated from field: google.protobuf.Timestamp created_at = 8;
    */
-  createdAt?: Timestamp | undefined;
+  createdAt?: Timestamp | undefined
 
   /**
    * @generated from field: google.protobuf.Timestamp updated_at = 9;
    */
-  updatedAt?: Timestamp | undefined;
+  updatedAt?: Timestamp | undefined
 
   /**
    * populated in some responses — caller's role in this workspace
    *
    * @generated from field: workspace.WorkspaceRole my_role = 10;
    */
-  myRole: WorkspaceRole;
-};
+  myRole: WorkspaceRole
+}
 
 /**
  * Describes the message workspace.Workspace.
  * Use `create(WorkspaceSchema)` to create a new message.
  */
-export const WorkspaceSchema: GenMessage<Workspace> = /*@__PURE__*/
-  messageDesc(file_workspace, 0);
+export const WorkspaceSchema: GenMessage<Workspace> /*@__PURE__*/ = messageDesc(file_workspace, 0)
 
 /**
  * @generated from message workspace.WorkspaceMember
@@ -85,35 +86,57 @@ export type WorkspaceMember = Message<"workspace.WorkspaceMember"> & {
   /**
    * @generated from field: string user_id = 1;
    */
-  userId: string;
+  userId: string
 
   /**
    * @generated from field: string workspace_id = 2;
    */
-  workspaceId: string;
+  workspaceId: string
 
   /**
    * @generated from field: workspace.WorkspaceRole role = 3;
    */
-  role: WorkspaceRole;
+  role: WorkspaceRole
 
   /**
    * @generated from field: string invited_by = 4;
    */
-  invitedBy: string;
+  invitedBy: string
 
   /**
    * @generated from field: google.protobuf.Timestamp joined_at = 5;
    */
-  joinedAt?: Timestamp | undefined;
-};
+  joinedAt?: Timestamp | undefined
+
+  /**
+   * @generated from field: string user_name = 6;
+   */
+  userName: string
+
+  /**
+   * @generated from field: string user_email = 7;
+   */
+  userEmail: string
+
+  /**
+   * @generated from field: string invited_by_name = 8;
+   */
+  invitedByName: string
+
+  /**
+   * @generated from field: string invited_by_email = 9;
+   */
+  invitedByEmail: string
+}
 
 /**
  * Describes the message workspace.WorkspaceMember.
  * Use `create(WorkspaceMemberSchema)` to create a new message.
  */
-export const WorkspaceMemberSchema: GenMessage<WorkspaceMember> = /*@__PURE__*/
-  messageDesc(file_workspace, 1);
+export const WorkspaceMemberSchema: GenMessage<WorkspaceMember> /*@__PURE__*/ = messageDesc(
+  file_workspace,
+  1,
+)
 
 /**
  * @generated from message workspace.CreateWorkspaceRequest
@@ -124,37 +147,37 @@ export type CreateWorkspaceRequest = Message<"workspace.CreateWorkspaceRequest">
    *
    * @generated from field: string name = 1;
    */
-  name: string;
+  name: string
 
   /**
    * required, validated: [a-z0-9-]
    *
    * @generated from field: string slug = 2;
    */
-  slug: string;
+  slug: string
 
   /**
    * @generated from field: string description = 3;
    */
-  description: string;
+  description: string
 
   /**
    * @generated from field: string icon_url = 4;
    */
-  iconUrl: string;
+  iconUrl: string
 
   /**
    * @generated from field: bool is_public = 5;
    */
-  isPublic: boolean;
-};
+  isPublic: boolean
+}
 
 /**
  * Describes the message workspace.CreateWorkspaceRequest.
  * Use `create(CreateWorkspaceRequestSchema)` to create a new message.
  */
-export const CreateWorkspaceRequestSchema: GenMessage<CreateWorkspaceRequest> = /*@__PURE__*/
-  messageDesc(file_workspace, 2);
+export const CreateWorkspaceRequestSchema: GenMessage<CreateWorkspaceRequest> /*@__PURE__*/ =
+  messageDesc(file_workspace, 2)
 
 /**
  * @generated from message workspace.GetWorkspaceRequest
@@ -163,15 +186,17 @@ export type GetWorkspaceRequest = Message<"workspace.GetWorkspaceRequest"> & {
   /**
    * @generated from field: string workspace_id = 1;
    */
-  workspaceId: string;
-};
+  workspaceId: string
+}
 
 /**
  * Describes the message workspace.GetWorkspaceRequest.
  * Use `create(GetWorkspaceRequestSchema)` to create a new message.
  */
-export const GetWorkspaceRequestSchema: GenMessage<GetWorkspaceRequest> = /*@__PURE__*/
-  messageDesc(file_workspace, 3);
+export const GetWorkspaceRequestSchema: GenMessage<GetWorkspaceRequest> /*@__PURE__*/ = messageDesc(
+  file_workspace,
+  3,
+)
 
 /**
  * @generated from message workspace.UpdateWorkspaceRequest
@@ -180,35 +205,35 @@ export type UpdateWorkspaceRequest = Message<"workspace.UpdateWorkspaceRequest">
   /**
    * @generated from field: string workspace_id = 1;
    */
-  workspaceId: string;
+  workspaceId: string
 
   /**
    * @generated from field: string name = 2;
    */
-  name: string;
+  name: string
 
   /**
    * @generated from field: string description = 3;
    */
-  description: string;
+  description: string
 
   /**
    * @generated from field: string icon_url = 4;
    */
-  iconUrl: string;
+  iconUrl: string
 
   /**
    * @generated from field: bool is_public = 5;
    */
-  isPublic: boolean;
-};
+  isPublic: boolean
+}
 
 /**
  * Describes the message workspace.UpdateWorkspaceRequest.
  * Use `create(UpdateWorkspaceRequestSchema)` to create a new message.
  */
-export const UpdateWorkspaceRequestSchema: GenMessage<UpdateWorkspaceRequest> = /*@__PURE__*/
-  messageDesc(file_workspace, 4);
+export const UpdateWorkspaceRequestSchema: GenMessage<UpdateWorkspaceRequest> /*@__PURE__*/ =
+  messageDesc(file_workspace, 4)
 
 /**
  * @generated from message workspace.DeleteWorkspaceRequest
@@ -217,15 +242,15 @@ export type DeleteWorkspaceRequest = Message<"workspace.DeleteWorkspaceRequest">
   /**
    * @generated from field: string workspace_id = 1;
    */
-  workspaceId: string;
-};
+  workspaceId: string
+}
 
 /**
  * Describes the message workspace.DeleteWorkspaceRequest.
  * Use `create(DeleteWorkspaceRequestSchema)` to create a new message.
  */
-export const DeleteWorkspaceRequestSchema: GenMessage<DeleteWorkspaceRequest> = /*@__PURE__*/
-  messageDesc(file_workspace, 5);
+export const DeleteWorkspaceRequestSchema: GenMessage<DeleteWorkspaceRequest> /*@__PURE__*/ =
+  messageDesc(file_workspace, 5)
 
 /**
  * @generated from message workspace.ListMyWorkspacesRequest
@@ -234,20 +259,20 @@ export type ListMyWorkspacesRequest = Message<"workspace.ListMyWorkspacesRequest
   /**
    * @generated from field: int32 page_size = 1;
    */
-  pageSize: number;
+  pageSize: number
 
   /**
    * @generated from field: string page_token = 2;
    */
-  pageToken: string;
-};
+  pageToken: string
+}
 
 /**
  * Describes the message workspace.ListMyWorkspacesRequest.
  * Use `create(ListMyWorkspacesRequestSchema)` to create a new message.
  */
-export const ListMyWorkspacesRequestSchema: GenMessage<ListMyWorkspacesRequest> = /*@__PURE__*/
-  messageDesc(file_workspace, 6);
+export const ListMyWorkspacesRequestSchema: GenMessage<ListMyWorkspacesRequest> /*@__PURE__*/ =
+  messageDesc(file_workspace, 6)
 
 /**
  * @generated from message workspace.ListMyWorkspacesResponse
@@ -256,20 +281,20 @@ export type ListMyWorkspacesResponse = Message<"workspace.ListMyWorkspacesRespon
   /**
    * @generated from field: repeated workspace.Workspace workspaces = 1;
    */
-  workspaces: Workspace[];
+  workspaces: Workspace[]
 
   /**
    * @generated from field: string next_page_token = 2;
    */
-  nextPageToken: string;
-};
+  nextPageToken: string
+}
 
 /**
  * Describes the message workspace.ListMyWorkspacesResponse.
  * Use `create(ListMyWorkspacesResponseSchema)` to create a new message.
  */
-export const ListMyWorkspacesResponseSchema: GenMessage<ListMyWorkspacesResponse> = /*@__PURE__*/
-  messageDesc(file_workspace, 7);
+export const ListMyWorkspacesResponseSchema: GenMessage<ListMyWorkspacesResponse> /*@__PURE__*/ =
+  messageDesc(file_workspace, 7)
 
 /**
  * @generated from message workspace.ListMembersRequest
@@ -278,15 +303,17 @@ export type ListMembersRequest = Message<"workspace.ListMembersRequest"> & {
   /**
    * @generated from field: string workspace_id = 1;
    */
-  workspaceId: string;
-};
+  workspaceId: string
+}
 
 /**
  * Describes the message workspace.ListMembersRequest.
  * Use `create(ListMembersRequestSchema)` to create a new message.
  */
-export const ListMembersRequestSchema: GenMessage<ListMembersRequest> = /*@__PURE__*/
-  messageDesc(file_workspace, 8);
+export const ListMembersRequestSchema: GenMessage<ListMembersRequest> /*@__PURE__*/ = messageDesc(
+  file_workspace,
+  8,
+)
 
 /**
  * @generated from message workspace.ListMembersResponse
@@ -295,15 +322,17 @@ export type ListMembersResponse = Message<"workspace.ListMembersResponse"> & {
   /**
    * @generated from field: repeated workspace.WorkspaceMember members = 1;
    */
-  members: WorkspaceMember[];
-};
+  members: WorkspaceMember[]
+}
 
 /**
  * Describes the message workspace.ListMembersResponse.
  * Use `create(ListMembersResponseSchema)` to create a new message.
  */
-export const ListMembersResponseSchema: GenMessage<ListMembersResponse> = /*@__PURE__*/
-  messageDesc(file_workspace, 9);
+export const ListMembersResponseSchema: GenMessage<ListMembersResponse> /*@__PURE__*/ = messageDesc(
+  file_workspace,
+  9,
+)
 
 /**
  * @generated from message workspace.UpdateMemberRoleRequest
@@ -312,25 +341,25 @@ export type UpdateMemberRoleRequest = Message<"workspace.UpdateMemberRoleRequest
   /**
    * @generated from field: string workspace_id = 1;
    */
-  workspaceId: string;
+  workspaceId: string
 
   /**
    * @generated from field: string user_id = 2;
    */
-  userId: string;
+  userId: string
 
   /**
    * @generated from field: workspace.WorkspaceRole new_role = 3;
    */
-  newRole: WorkspaceRole;
-};
+  newRole: WorkspaceRole
+}
 
 /**
  * Describes the message workspace.UpdateMemberRoleRequest.
  * Use `create(UpdateMemberRoleRequestSchema)` to create a new message.
  */
-export const UpdateMemberRoleRequestSchema: GenMessage<UpdateMemberRoleRequest> = /*@__PURE__*/
-  messageDesc(file_workspace, 10);
+export const UpdateMemberRoleRequestSchema: GenMessage<UpdateMemberRoleRequest> /*@__PURE__*/ =
+  messageDesc(file_workspace, 10)
 
 /**
  * @generated from message workspace.RemoveMemberRequest
@@ -339,20 +368,22 @@ export type RemoveMemberRequest = Message<"workspace.RemoveMemberRequest"> & {
   /**
    * @generated from field: string workspace_id = 1;
    */
-  workspaceId: string;
+  workspaceId: string
 
   /**
    * @generated from field: string user_id = 2;
    */
-  userId: string;
-};
+  userId: string
+}
 
 /**
  * Describes the message workspace.RemoveMemberRequest.
  * Use `create(RemoveMemberRequestSchema)` to create a new message.
  */
-export const RemoveMemberRequestSchema: GenMessage<RemoveMemberRequest> = /*@__PURE__*/
-  messageDesc(file_workspace, 11);
+export const RemoveMemberRequestSchema: GenMessage<RemoveMemberRequest> /*@__PURE__*/ = messageDesc(
+  file_workspace,
+  11,
+)
 
 /**
  * @generated from message workspace.InviteMemberRequest
@@ -361,25 +392,27 @@ export type InviteMemberRequest = Message<"workspace.InviteMemberRequest"> & {
   /**
    * @generated from field: string workspace_id = 1;
    */
-  workspaceId: string;
+  workspaceId: string
 
   /**
    * @generated from field: string invited_email = 2;
    */
-  invitedEmail: string;
+  invitedEmail: string
 
   /**
    * @generated from field: workspace.WorkspaceRole role = 3;
    */
-  role: WorkspaceRole;
-};
+  role: WorkspaceRole
+}
 
 /**
  * Describes the message workspace.InviteMemberRequest.
  * Use `create(InviteMemberRequestSchema)` to create a new message.
  */
-export const InviteMemberRequestSchema: GenMessage<InviteMemberRequest> = /*@__PURE__*/
-  messageDesc(file_workspace, 12);
+export const InviteMemberRequestSchema: GenMessage<InviteMemberRequest> /*@__PURE__*/ = messageDesc(
+  file_workspace,
+  12,
+)
 
 /**
  * @generated from message workspace.InviteMemberResponse
@@ -388,22 +421,22 @@ export type InviteMemberResponse = Message<"workspace.InviteMemberResponse"> & {
   /**
    * @generated from field: string invitation_id = 1;
    */
-  invitationId: string;
+  invitationId: string
 
   /**
    * only returned for internal/dev use
    *
    * @generated from field: string token = 2;
    */
-  token: string;
-};
+  token: string
+}
 
 /**
  * Describes the message workspace.InviteMemberResponse.
  * Use `create(InviteMemberResponseSchema)` to create a new message.
  */
-export const InviteMemberResponseSchema: GenMessage<InviteMemberResponse> = /*@__PURE__*/
-  messageDesc(file_workspace, 13);
+export const InviteMemberResponseSchema: GenMessage<InviteMemberResponse> /*@__PURE__*/ =
+  messageDesc(file_workspace, 13)
 
 /**
  * @generated from message workspace.AcceptInvitationRequest
@@ -412,15 +445,15 @@ export type AcceptInvitationRequest = Message<"workspace.AcceptInvitationRequest
   /**
    * @generated from field: string token = 1;
    */
-  token: string;
-};
+  token: string
+}
 
 /**
  * Describes the message workspace.AcceptInvitationRequest.
  * Use `create(AcceptInvitationRequestSchema)` to create a new message.
  */
-export const AcceptInvitationRequestSchema: GenMessage<AcceptInvitationRequest> = /*@__PURE__*/
-  messageDesc(file_workspace, 14);
+export const AcceptInvitationRequestSchema: GenMessage<AcceptInvitationRequest> /*@__PURE__*/ =
+  messageDesc(file_workspace, 14)
 
 /**
  * @generated from message workspace.AcceptInvitationResponse
@@ -429,15 +462,32 @@ export type AcceptInvitationResponse = Message<"workspace.AcceptInvitationRespon
   /**
    * @generated from field: workspace.Workspace workspace = 1;
    */
-  workspace?: Workspace | undefined;
-};
+  workspace?: Workspace | undefined
+}
 
 /**
  * Describes the message workspace.AcceptInvitationResponse.
  * Use `create(AcceptInvitationResponseSchema)` to create a new message.
  */
-export const AcceptInvitationResponseSchema: GenMessage<AcceptInvitationResponse> = /*@__PURE__*/
-  messageDesc(file_workspace, 15);
+export const AcceptInvitationResponseSchema: GenMessage<AcceptInvitationResponse> /*@__PURE__*/ =
+  messageDesc(file_workspace, 15)
+
+/**
+ * @generated from message workspace.RejectInvitationRequest
+ */
+export type RejectInvitationRequest = Message<"workspace.RejectInvitationRequest"> & {
+  /**
+   * @generated from field: string token = 1;
+   */
+  token: string
+}
+
+/**
+ * Describes the message workspace.RejectInvitationRequest.
+ * Use `create(RejectInvitationRequestSchema)` to create a new message.
+ */
+export const RejectInvitationRequestSchema: GenMessage<RejectInvitationRequest> /*@__PURE__*/ =
+  messageDesc(file_workspace, 16)
 
 /**
  * @generated from message workspace.CheckPermissionRequest
@@ -446,27 +496,27 @@ export type CheckPermissionRequest = Message<"workspace.CheckPermissionRequest">
   /**
    * @generated from field: string user_id = 1;
    */
-  userId: string;
+  userId: string
 
   /**
    * @generated from field: string workspace_id = 2;
    */
-  workspaceId: string;
+  workspaceId: string
 
   /**
    * e.g. "workspace:edit", "members:invite"
    *
    * @generated from field: string permission = 3;
    */
-  permission: string;
-};
+  permission: string
+}
 
 /**
  * Describes the message workspace.CheckPermissionRequest.
  * Use `create(CheckPermissionRequestSchema)` to create a new message.
  */
-export const CheckPermissionRequestSchema: GenMessage<CheckPermissionRequest> = /*@__PURE__*/
-  messageDesc(file_workspace, 16);
+export const CheckPermissionRequestSchema: GenMessage<CheckPermissionRequest> /*@__PURE__*/ =
+  messageDesc(file_workspace, 17)
 
 /**
  * @generated from message workspace.CheckPermissionResponse
@@ -475,20 +525,20 @@ export type CheckPermissionResponse = Message<"workspace.CheckPermissionResponse
   /**
    * @generated from field: bool allowed = 1;
    */
-  allowed: boolean;
+  allowed: boolean
 
   /**
    * @generated from field: workspace.WorkspaceRole role = 2;
    */
-  role: WorkspaceRole;
-};
+  role: WorkspaceRole
+}
 
 /**
  * Describes the message workspace.CheckPermissionResponse.
  * Use `create(CheckPermissionResponseSchema)` to create a new message.
  */
-export const CheckPermissionResponseSchema: GenMessage<CheckPermissionResponse> = /*@__PURE__*/
-  messageDesc(file_workspace, 17);
+export const CheckPermissionResponseSchema: GenMessage<CheckPermissionResponse> /*@__PURE__*/ =
+  messageDesc(file_workspace, 18)
 
 /**
  * @generated from enum workspace.WorkspaceRole
@@ -528,8 +578,7 @@ export enum WorkspaceRole {
 /**
  * Describes the enum workspace.WorkspaceRole.
  */
-export const WorkspaceRoleSchema: GenEnum<WorkspaceRole> = /*@__PURE__*/
-  enumDesc(file_workspace, 0);
+export const WorkspaceRoleSchema: GenEnum<WorkspaceRole> /*@__PURE__*/ = enumDesc(file_workspace, 0)
 
 /**
  * @generated from service workspace.WorkspaceService
@@ -541,96 +590,102 @@ export const WorkspaceService: GenService<{
    * @generated from rpc workspace.WorkspaceService.CreateWorkspace
    */
   createWorkspace: {
-    methodKind: "unary";
-    input: typeof CreateWorkspaceRequestSchema;
-    output: typeof WorkspaceSchema;
-  },
+    methodKind: "unary"
+    input: typeof CreateWorkspaceRequestSchema
+    output: typeof WorkspaceSchema
+  }
   /**
    * @generated from rpc workspace.WorkspaceService.GetWorkspace
    */
   getWorkspace: {
-    methodKind: "unary";
-    input: typeof GetWorkspaceRequestSchema;
-    output: typeof WorkspaceSchema;
-  },
+    methodKind: "unary"
+    input: typeof GetWorkspaceRequestSchema
+    output: typeof WorkspaceSchema
+  }
   /**
    * @generated from rpc workspace.WorkspaceService.UpdateWorkspace
    */
   updateWorkspace: {
-    methodKind: "unary";
-    input: typeof UpdateWorkspaceRequestSchema;
-    output: typeof WorkspaceSchema;
-  },
+    methodKind: "unary"
+    input: typeof UpdateWorkspaceRequestSchema
+    output: typeof WorkspaceSchema
+  }
   /**
    * @generated from rpc workspace.WorkspaceService.DeleteWorkspace
    */
   deleteWorkspace: {
-    methodKind: "unary";
-    input: typeof DeleteWorkspaceRequestSchema;
-    output: typeof EmptySchema;
-  },
+    methodKind: "unary"
+    input: typeof DeleteWorkspaceRequestSchema
+    output: typeof EmptySchema
+  }
   /**
    * @generated from rpc workspace.WorkspaceService.ListMyWorkspaces
    */
   listMyWorkspaces: {
-    methodKind: "unary";
-    input: typeof ListMyWorkspacesRequestSchema;
-    output: typeof ListMyWorkspacesResponseSchema;
-  },
+    methodKind: "unary"
+    input: typeof ListMyWorkspacesRequestSchema
+    output: typeof ListMyWorkspacesResponseSchema
+  }
   /**
    * Members
    *
    * @generated from rpc workspace.WorkspaceService.ListMembers
    */
   listMembers: {
-    methodKind: "unary";
-    input: typeof ListMembersRequestSchema;
-    output: typeof ListMembersResponseSchema;
-  },
+    methodKind: "unary"
+    input: typeof ListMembersRequestSchema
+    output: typeof ListMembersResponseSchema
+  }
   /**
    * @generated from rpc workspace.WorkspaceService.UpdateMemberRole
    */
   updateMemberRole: {
-    methodKind: "unary";
-    input: typeof UpdateMemberRoleRequestSchema;
-    output: typeof WorkspaceMemberSchema;
-  },
+    methodKind: "unary"
+    input: typeof UpdateMemberRoleRequestSchema
+    output: typeof WorkspaceMemberSchema
+  }
   /**
    * @generated from rpc workspace.WorkspaceService.RemoveMember
    */
   removeMember: {
-    methodKind: "unary";
-    input: typeof RemoveMemberRequestSchema;
-    output: typeof EmptySchema;
-  },
+    methodKind: "unary"
+    input: typeof RemoveMemberRequestSchema
+    output: typeof EmptySchema
+  }
   /**
    * Invitations
    *
    * @generated from rpc workspace.WorkspaceService.InviteMember
    */
   inviteMember: {
-    methodKind: "unary";
-    input: typeof InviteMemberRequestSchema;
-    output: typeof InviteMemberResponseSchema;
-  },
+    methodKind: "unary"
+    input: typeof InviteMemberRequestSchema
+    output: typeof InviteMemberResponseSchema
+  }
   /**
    * @generated from rpc workspace.WorkspaceService.AcceptInvitation
    */
   acceptInvitation: {
-    methodKind: "unary";
-    input: typeof AcceptInvitationRequestSchema;
-    output: typeof AcceptInvitationResponseSchema;
-  },
+    methodKind: "unary"
+    input: typeof AcceptInvitationRequestSchema
+    output: typeof AcceptInvitationResponseSchema
+  }
+  /**
+   * @generated from rpc workspace.WorkspaceService.RejectInvitation
+   */
+  rejectInvitation: {
+    methodKind: "unary"
+    input: typeof RejectInvitationRequestSchema
+    output: typeof EmptySchema
+  }
   /**
    * Internal — called by other services (pages, docs, etc.)
    *
    * @generated from rpc workspace.WorkspaceService.CheckPermission
    */
   checkPermission: {
-    methodKind: "unary";
-    input: typeof CheckPermissionRequestSchema;
-    output: typeof CheckPermissionResponseSchema;
-  },
-}> = /*@__PURE__*/
-  serviceDesc(file_workspace, 0);
-
+    methodKind: "unary"
+    input: typeof CheckPermissionRequestSchema
+    output: typeof CheckPermissionResponseSchema
+  }
+}> /*@__PURE__*/ = serviceDesc(file_workspace, 0)

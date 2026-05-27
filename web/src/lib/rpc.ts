@@ -1,10 +1,14 @@
 import { Code, ConnectError, createClient, type Interceptor } from "@connectrpc/connect"
 import { createConnectTransport } from "@connectrpc/connect-web"
-import { tokenStore } from "@/lib/token-store"
 import { AuthService } from "../gen/pb/auth/auth_pb"
+import { NotesService } from "../gen/pb/notes/notes_pb"
+import { tokenStore } from "@/lib/token-store"
+import { WhiteboardService } from "../gen/pb/whiteboard/whiteboard_pb"
 import { WorkspaceService } from "../gen/pb/workspace/workspace_pb"
 
 const AUTH_BASE_URL = process.env.NEXT_PUBLIC_AUTH_RPC_URL ?? "http://localhost:50051"
+const NOTES_BASE_URL = process.env.NEXT_PUBLIC_NOTES_RPC_URL ?? "http://localhost:9092"
+const WHITEBOARD_BASE_URL = process.env.NEXT_PUBLIC_WHITEBOARD_RPC_URL ?? "http://localhost:9093"
 const WORKSPACE_BASE_URL = process.env.NEXT_PUBLIC_WORKSPACE_RPC_URL ?? "http://localhost:9091"
 
 const authInterceptor: Interceptor = (next) => async (req) => {
@@ -28,7 +32,7 @@ const authInterceptor: Interceptor = (next) => async (req) => {
 function createTransport(baseUrl: string, authenticated = false) {
   return createConnectTransport({
     baseUrl,
-    useBinaryFormat: true,
+    // useBinaryFormat: true,
     ...(authenticated && { interceptors: [authInterceptor] }),
   })
 }
@@ -40,4 +44,16 @@ export const authRpcClient = createClient(AuthService, createTransport(AUTH_BASE
 export const authBrowserRpcClient = createClient(AuthService, createTransport(AUTH_BASE_URL, true))
 
 // Always authenticated
-export const workspaceRpcClient = createClient(WorkspaceService, createTransport(WORKSPACE_BASE_URL, true))
+export const notesRpcClient = createClient(NotesService, createTransport(NOTES_BASE_URL, true))
+
+// Always authenticated
+export const whiteboardRpcClient = createClient(
+  WhiteboardService,
+  createTransport(WHITEBOARD_BASE_URL, true),
+)
+
+// Always authenticated
+export const workspaceRpcClient = createClient(
+  WorkspaceService,
+  createTransport(WORKSPACE_BASE_URL, true),
+)

@@ -77,7 +77,7 @@ export async function logoutAction() {
 
   if (refreshToken) {
     try {
-      // Call the gRPC endpoint to immediately revoke the token in Redis
+      // Call the gRPC endpoint so backend can invalidate the current session row
       await authRpcClient.logout({ refreshToken })
     } catch (error) {
       // Log but don't block logout — still clear the cookie

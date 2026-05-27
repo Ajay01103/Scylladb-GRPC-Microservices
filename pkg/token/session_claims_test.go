@@ -15,6 +15,8 @@ func TestJWTMaker_SessionTokenRoundTrip(t *testing.T) {
 
 	refreshToken, refreshPayload, err := maker.CreateSessionRefreshToken(
 		"11111111-1111-1111-1111-111111111111",
+		"user@example.com",
+		"User One",
 		"22222222-2222-2222-2222-222222222222",
 		7,
 		3,
@@ -37,7 +39,10 @@ func TestJWTMaker_SessionTokenRoundTrip(t *testing.T) {
 
 	accessToken, accessPayload, err := maker.CreateSessionAccessToken(
 		"11111111-1111-1111-1111-111111111111",
-		[]string{"admin", "writer"},
+		"user@example.com",
+		"User One",
+		"22222222-2222-2222-2222-222222222222",
+		7,
 		3,
 		time.Minute,
 	)
@@ -52,8 +57,8 @@ func TestJWTMaker_SessionTokenRoundTrip(t *testing.T) {
 	if parsedAccess.GlobalVer != accessPayload.GlobalVer {
 		t.Fatalf("expected global ver %d, got %d", accessPayload.GlobalVer, parsedAccess.GlobalVer)
 	}
-	if len(parsedAccess.Roles) != 2 || parsedAccess.Roles[0] != "admin" || parsedAccess.Roles[1] != "writer" {
-		t.Fatalf("unexpected access roles: %+v", parsedAccess.Roles)
+	if parsedAccess.SessionID.String() != "22222222-2222-2222-2222-222222222222" || parsedAccess.Gen != 7 {
+		t.Fatalf("unexpected session anchoring claims: %+v", parsedAccess)
 	}
 }
 
@@ -69,6 +74,8 @@ func TestEDDSAMaker_SessionTokenRoundTrip(t *testing.T) {
 
 	refreshToken, _, err := maker.CreateSessionRefreshToken(
 		"11111111-1111-1111-1111-111111111111",
+		"user@example.com",
+		"User One",
 		"22222222-2222-2222-2222-222222222222",
 		9,
 		5,
@@ -83,7 +90,10 @@ func TestEDDSAMaker_SessionTokenRoundTrip(t *testing.T) {
 
 	accessToken, _, err := maker.CreateSessionAccessToken(
 		"11111111-1111-1111-1111-111111111111",
-		[]string{"reader"},
+		"user@example.com",
+		"User One",
+		"22222222-2222-2222-2222-222222222222",
+		9,
 		5,
 		time.Minute,
 	)

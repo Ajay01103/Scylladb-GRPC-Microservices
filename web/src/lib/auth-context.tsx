@@ -21,12 +21,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     tokenStore
       .refreshAccessTokenSingleton()
+      .then(() => {
+        setAuthError(null)
+      })
       .catch((err) => {
         setAuthError(err instanceof Error ? err : new Error(String(err)))
         console.error("Failed to restore session:", err)
       })
-
-    return () => tokenStore.cancelRefreshTimer()
   }, [])
 
   const value = useMemo(

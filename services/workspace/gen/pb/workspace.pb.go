@@ -199,14 +199,18 @@ func (x *Workspace) GetMyRole() WorkspaceRole {
 }
 
 type WorkspaceMember struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	WorkspaceId   string                 `protobuf:"bytes,2,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
-	Role          WorkspaceRole          `protobuf:"varint,3,opt,name=role,proto3,enum=workspace.WorkspaceRole" json:"role,omitempty"`
-	InvitedBy     string                 `protobuf:"bytes,4,opt,name=invited_by,json=invitedBy,proto3" json:"invited_by,omitempty"`
-	JoinedAt      *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=joined_at,json=joinedAt,proto3" json:"joined_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	UserId         string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	WorkspaceId    string                 `protobuf:"bytes,2,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
+	Role           WorkspaceRole          `protobuf:"varint,3,opt,name=role,proto3,enum=workspace.WorkspaceRole" json:"role,omitempty"`
+	InvitedBy      string                 `protobuf:"bytes,4,opt,name=invited_by,json=invitedBy,proto3" json:"invited_by,omitempty"`
+	JoinedAt       *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=joined_at,json=joinedAt,proto3" json:"joined_at,omitempty"`
+	UserName       string                 `protobuf:"bytes,6,opt,name=user_name,json=userName,proto3" json:"user_name,omitempty"`
+	UserEmail      string                 `protobuf:"bytes,7,opt,name=user_email,json=userEmail,proto3" json:"user_email,omitempty"`
+	InvitedByName  string                 `protobuf:"bytes,8,opt,name=invited_by_name,json=invitedByName,proto3" json:"invited_by_name,omitempty"`
+	InvitedByEmail string                 `protobuf:"bytes,9,opt,name=invited_by_email,json=invitedByEmail,proto3" json:"invited_by_email,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *WorkspaceMember) Reset() {
@@ -272,6 +276,34 @@ func (x *WorkspaceMember) GetJoinedAt() *timestamppb.Timestamp {
 		return x.JoinedAt
 	}
 	return nil
+}
+
+func (x *WorkspaceMember) GetUserName() string {
+	if x != nil {
+		return x.UserName
+	}
+	return ""
+}
+
+func (x *WorkspaceMember) GetUserEmail() string {
+	if x != nil {
+		return x.UserEmail
+	}
+	return ""
+}
+
+func (x *WorkspaceMember) GetInvitedByName() string {
+	if x != nil {
+		return x.InvitedByName
+	}
+	return ""
+}
+
+func (x *WorkspaceMember) GetInvitedByEmail() string {
+	if x != nil {
+		return x.InvitedByEmail
+	}
+	return ""
 }
 
 type CreateWorkspaceRequest struct {
@@ -1018,6 +1050,50 @@ func (x *AcceptInvitationResponse) GetWorkspace() *Workspace {
 	return nil
 }
 
+type RejectInvitationRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RejectInvitationRequest) Reset() {
+	*x = RejectInvitationRequest{}
+	mi := &file_workspace_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RejectInvitationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RejectInvitationRequest) ProtoMessage() {}
+
+func (x *RejectInvitationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_workspace_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RejectInvitationRequest.ProtoReflect.Descriptor instead.
+func (*RejectInvitationRequest) Descriptor() ([]byte, []int) {
+	return file_workspace_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *RejectInvitationRequest) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
 type CheckPermissionRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
@@ -1029,7 +1105,7 @@ type CheckPermissionRequest struct {
 
 func (x *CheckPermissionRequest) Reset() {
 	*x = CheckPermissionRequest{}
-	mi := &file_workspace_proto_msgTypes[16]
+	mi := &file_workspace_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1041,7 +1117,7 @@ func (x *CheckPermissionRequest) String() string {
 func (*CheckPermissionRequest) ProtoMessage() {}
 
 func (x *CheckPermissionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_workspace_proto_msgTypes[16]
+	mi := &file_workspace_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1054,7 +1130,7 @@ func (x *CheckPermissionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckPermissionRequest.ProtoReflect.Descriptor instead.
 func (*CheckPermissionRequest) Descriptor() ([]byte, []int) {
-	return file_workspace_proto_rawDescGZIP(), []int{16}
+	return file_workspace_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *CheckPermissionRequest) GetUserId() string {
@@ -1088,7 +1164,7 @@ type CheckPermissionResponse struct {
 
 func (x *CheckPermissionResponse) Reset() {
 	*x = CheckPermissionResponse{}
-	mi := &file_workspace_proto_msgTypes[17]
+	mi := &file_workspace_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1100,7 +1176,7 @@ func (x *CheckPermissionResponse) String() string {
 func (*CheckPermissionResponse) ProtoMessage() {}
 
 func (x *CheckPermissionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_workspace_proto_msgTypes[17]
+	mi := &file_workspace_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1113,7 +1189,7 @@ func (x *CheckPermissionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckPermissionResponse.ProtoReflect.Descriptor instead.
 func (*CheckPermissionResponse) Descriptor() ([]byte, []int) {
-	return file_workspace_proto_rawDescGZIP(), []int{17}
+	return file_workspace_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *CheckPermissionResponse) GetAllowed() bool {
@@ -1148,14 +1224,19 @@ const file_workspace_proto_rawDesc = "" +
 	"\n" +
 	"updated_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x121\n" +
 	"\amy_role\x18\n" +
-	" \x01(\x0e2\x18.workspace.WorkspaceRoleR\x06myRole\"\xd3\x01\n" +
+	" \x01(\x0e2\x18.workspace.WorkspaceRoleR\x06myRole\"\xe1\x02\n" +
 	"\x0fWorkspaceMember\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12!\n" +
 	"\fworkspace_id\x18\x02 \x01(\tR\vworkspaceId\x12,\n" +
 	"\x04role\x18\x03 \x01(\x0e2\x18.workspace.WorkspaceRoleR\x04role\x12\x1d\n" +
 	"\n" +
 	"invited_by\x18\x04 \x01(\tR\tinvitedBy\x127\n" +
-	"\tjoined_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\bjoinedAt\"\x9a\x01\n" +
+	"\tjoined_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\bjoinedAt\x12\x1b\n" +
+	"\tuser_name\x18\x06 \x01(\tR\buserName\x12\x1d\n" +
+	"\n" +
+	"user_email\x18\a \x01(\tR\tuserEmail\x12&\n" +
+	"\x0finvited_by_name\x18\b \x01(\tR\rinvitedByName\x12(\n" +
+	"\x10invited_by_email\x18\t \x01(\tR\x0einvitedByEmail\"\x9a\x01\n" +
 	"\x16CreateWorkspaceRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x12\n" +
 	"\x04slug\x18\x02 \x01(\tR\x04slug\x12 \n" +
@@ -1202,7 +1283,9 @@ const file_workspace_proto_rawDesc = "" +
 	"\x17AcceptInvitationRequest\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\"N\n" +
 	"\x18AcceptInvitationResponse\x122\n" +
-	"\tworkspace\x18\x01 \x01(\v2\x14.workspace.WorkspaceR\tworkspace\"t\n" +
+	"\tworkspace\x18\x01 \x01(\v2\x14.workspace.WorkspaceR\tworkspace\"/\n" +
+	"\x17RejectInvitationRequest\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\"t\n" +
 	"\x16CheckPermissionRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12!\n" +
 	"\fworkspace_id\x18\x02 \x01(\tR\vworkspaceId\x12\x1e\n" +
@@ -1218,7 +1301,7 @@ const file_workspace_proto_rawDesc = "" +
 	"\x14WORKSPACE_ROLE_ADMIN\x10\x02\x12\x19\n" +
 	"\x15WORKSPACE_ROLE_EDITOR\x10\x03\x12\x19\n" +
 	"\x15WORKSPACE_ROLE_MEMBER\x10\x04\x12\x18\n" +
-	"\x14WORKSPACE_ROLE_GUEST\x10\x052\x8d\a\n" +
+	"\x14WORKSPACE_ROLE_GUEST\x10\x052\xdd\a\n" +
 	"\x10WorkspaceService\x12J\n" +
 	"\x0fCreateWorkspace\x12!.workspace.CreateWorkspaceRequest\x1a\x14.workspace.Workspace\x12D\n" +
 	"\fGetWorkspace\x12\x1e.workspace.GetWorkspaceRequest\x1a\x14.workspace.Workspace\x12J\n" +
@@ -1229,7 +1312,8 @@ const file_workspace_proto_rawDesc = "" +
 	"\x10UpdateMemberRole\x12\".workspace.UpdateMemberRoleRequest\x1a\x1a.workspace.WorkspaceMember\x12F\n" +
 	"\fRemoveMember\x12\x1e.workspace.RemoveMemberRequest\x1a\x16.google.protobuf.Empty\x12O\n" +
 	"\fInviteMember\x12\x1e.workspace.InviteMemberRequest\x1a\x1f.workspace.InviteMemberResponse\x12[\n" +
-	"\x10AcceptInvitation\x12\".workspace.AcceptInvitationRequest\x1a#.workspace.AcceptInvitationResponse\x12X\n" +
+	"\x10AcceptInvitation\x12\".workspace.AcceptInvitationRequest\x1a#.workspace.AcceptInvitationResponse\x12N\n" +
+	"\x10RejectInvitation\x12\".workspace.RejectInvitationRequest\x1a\x16.google.protobuf.Empty\x12X\n" +
 	"\x0fCheckPermission\x12!.workspace.CheckPermissionRequest\x1a\".workspace.CheckPermissionResponseB4Z2github.com/Ajay01103/go-notion/workspace/gen/pb;pbb\x06proto3"
 
 var (
@@ -1245,7 +1329,7 @@ func file_workspace_proto_rawDescGZIP() []byte {
 }
 
 var file_workspace_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_workspace_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_workspace_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_workspace_proto_goTypes = []any{
 	(WorkspaceRole)(0),               // 0: workspace.WorkspaceRole
 	(*Workspace)(nil),                // 1: workspace.Workspace
@@ -1264,17 +1348,18 @@ var file_workspace_proto_goTypes = []any{
 	(*InviteMemberResponse)(nil),     // 14: workspace.InviteMemberResponse
 	(*AcceptInvitationRequest)(nil),  // 15: workspace.AcceptInvitationRequest
 	(*AcceptInvitationResponse)(nil), // 16: workspace.AcceptInvitationResponse
-	(*CheckPermissionRequest)(nil),   // 17: workspace.CheckPermissionRequest
-	(*CheckPermissionResponse)(nil),  // 18: workspace.CheckPermissionResponse
-	(*timestamppb.Timestamp)(nil),    // 19: google.protobuf.Timestamp
-	(*emptypb.Empty)(nil),            // 20: google.protobuf.Empty
+	(*RejectInvitationRequest)(nil),  // 17: workspace.RejectInvitationRequest
+	(*CheckPermissionRequest)(nil),   // 18: workspace.CheckPermissionRequest
+	(*CheckPermissionResponse)(nil),  // 19: workspace.CheckPermissionResponse
+	(*timestamppb.Timestamp)(nil),    // 20: google.protobuf.Timestamp
+	(*emptypb.Empty)(nil),            // 21: google.protobuf.Empty
 }
 var file_workspace_proto_depIdxs = []int32{
-	19, // 0: workspace.Workspace.created_at:type_name -> google.protobuf.Timestamp
-	19, // 1: workspace.Workspace.updated_at:type_name -> google.protobuf.Timestamp
+	20, // 0: workspace.Workspace.created_at:type_name -> google.protobuf.Timestamp
+	20, // 1: workspace.Workspace.updated_at:type_name -> google.protobuf.Timestamp
 	0,  // 2: workspace.Workspace.my_role:type_name -> workspace.WorkspaceRole
 	0,  // 3: workspace.WorkspaceMember.role:type_name -> workspace.WorkspaceRole
-	19, // 4: workspace.WorkspaceMember.joined_at:type_name -> google.protobuf.Timestamp
+	20, // 4: workspace.WorkspaceMember.joined_at:type_name -> google.protobuf.Timestamp
 	1,  // 5: workspace.ListMyWorkspacesResponse.workspaces:type_name -> workspace.Workspace
 	2,  // 6: workspace.ListMembersResponse.members:type_name -> workspace.WorkspaceMember
 	0,  // 7: workspace.UpdateMemberRoleRequest.new_role:type_name -> workspace.WorkspaceRole
@@ -1291,20 +1376,22 @@ var file_workspace_proto_depIdxs = []int32{
 	12, // 18: workspace.WorkspaceService.RemoveMember:input_type -> workspace.RemoveMemberRequest
 	13, // 19: workspace.WorkspaceService.InviteMember:input_type -> workspace.InviteMemberRequest
 	15, // 20: workspace.WorkspaceService.AcceptInvitation:input_type -> workspace.AcceptInvitationRequest
-	17, // 21: workspace.WorkspaceService.CheckPermission:input_type -> workspace.CheckPermissionRequest
-	1,  // 22: workspace.WorkspaceService.CreateWorkspace:output_type -> workspace.Workspace
-	1,  // 23: workspace.WorkspaceService.GetWorkspace:output_type -> workspace.Workspace
-	1,  // 24: workspace.WorkspaceService.UpdateWorkspace:output_type -> workspace.Workspace
-	20, // 25: workspace.WorkspaceService.DeleteWorkspace:output_type -> google.protobuf.Empty
-	8,  // 26: workspace.WorkspaceService.ListMyWorkspaces:output_type -> workspace.ListMyWorkspacesResponse
-	10, // 27: workspace.WorkspaceService.ListMembers:output_type -> workspace.ListMembersResponse
-	2,  // 28: workspace.WorkspaceService.UpdateMemberRole:output_type -> workspace.WorkspaceMember
-	20, // 29: workspace.WorkspaceService.RemoveMember:output_type -> google.protobuf.Empty
-	14, // 30: workspace.WorkspaceService.InviteMember:output_type -> workspace.InviteMemberResponse
-	16, // 31: workspace.WorkspaceService.AcceptInvitation:output_type -> workspace.AcceptInvitationResponse
-	18, // 32: workspace.WorkspaceService.CheckPermission:output_type -> workspace.CheckPermissionResponse
-	22, // [22:33] is the sub-list for method output_type
-	11, // [11:22] is the sub-list for method input_type
+	17, // 21: workspace.WorkspaceService.RejectInvitation:input_type -> workspace.RejectInvitationRequest
+	18, // 22: workspace.WorkspaceService.CheckPermission:input_type -> workspace.CheckPermissionRequest
+	1,  // 23: workspace.WorkspaceService.CreateWorkspace:output_type -> workspace.Workspace
+	1,  // 24: workspace.WorkspaceService.GetWorkspace:output_type -> workspace.Workspace
+	1,  // 25: workspace.WorkspaceService.UpdateWorkspace:output_type -> workspace.Workspace
+	21, // 26: workspace.WorkspaceService.DeleteWorkspace:output_type -> google.protobuf.Empty
+	8,  // 27: workspace.WorkspaceService.ListMyWorkspaces:output_type -> workspace.ListMyWorkspacesResponse
+	10, // 28: workspace.WorkspaceService.ListMembers:output_type -> workspace.ListMembersResponse
+	2,  // 29: workspace.WorkspaceService.UpdateMemberRole:output_type -> workspace.WorkspaceMember
+	21, // 30: workspace.WorkspaceService.RemoveMember:output_type -> google.protobuf.Empty
+	14, // 31: workspace.WorkspaceService.InviteMember:output_type -> workspace.InviteMemberResponse
+	16, // 32: workspace.WorkspaceService.AcceptInvitation:output_type -> workspace.AcceptInvitationResponse
+	21, // 33: workspace.WorkspaceService.RejectInvitation:output_type -> google.protobuf.Empty
+	19, // 34: workspace.WorkspaceService.CheckPermission:output_type -> workspace.CheckPermissionResponse
+	23, // [23:35] is the sub-list for method output_type
+	11, // [11:23] is the sub-list for method input_type
 	11, // [11:11] is the sub-list for extension type_name
 	11, // [11:11] is the sub-list for extension extendee
 	0,  // [0:11] is the sub-list for field type_name
@@ -1321,7 +1408,7 @@ func file_workspace_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_workspace_proto_rawDesc), len(file_workspace_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   18,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

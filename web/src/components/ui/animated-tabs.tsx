@@ -33,9 +33,7 @@ export default function AnimatedTabs({
   const generatedId = useId()
   const layoutId = customLayoutId ?? `animated-tabs-${generatedId}`
 
-  const [internalActiveTab, setInternalActiveTab] = useState(
-    defaultTab ?? tabs[0]?.id ?? "",
-  )
+  const [internalActiveTab, setInternalActiveTab] = useState(defaultTab ?? tabs[0]?.id ?? "")
 
   const isControlled = controlledActiveTab !== undefined
   const activeTab = isControlled ? controlledActiveTab : internalActiveTab
@@ -109,17 +107,12 @@ export default function AnimatedTabs({
     cn(
       "absolute",
       variant === "underline" && "right-0 -bottom-px left-0 h-0.5 bg-brand",
-      variant === "pill" &&
-        "inset-0 rounded-full border border-border bg-background shadow-sm",
-      variant === "segment" &&
-        "inset-0 rounded-md border border-border bg-background shadow-sm",
+      variant === "pill" && "inset-0 rounded-full border border-border bg-background shadow-sm",
+      variant === "segment" && "inset-0 rounded-md border border-border bg-background shadow-sm",
     )
 
   return (
-    <div
-      aria-label="Tabs"
-      className={cn(baseContainerStyles, className)}
-      role="tablist">
+    <div aria-label="Tabs" className={cn(baseContainerStyles, className)} role="tablist">
       {tabs.map((tab, index) => {
         const isActive = activeTab === tab.id
 
@@ -133,7 +126,8 @@ export default function AnimatedTabs({
             onKeyDown={(e) => handleKeyDown(e, index)}
             role="tab"
             tabIndex={isActive ? 0 : -1}
-            type="button">
+            type="button"
+          >
             {isActive && (
               <motion.span
                 className={getIndicatorStyles()}

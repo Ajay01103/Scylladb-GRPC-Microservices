@@ -10,45 +10,26 @@ let initialized = false
 let refreshTimer: ReturnType<typeof setTimeout> | null = null
 let inFlightRefresh: Promise<string | null> | null = null
 const listeners = new Set<Listener>()
+let browserListenersAttached = false
 
 const emit = () => listeners.forEach((l) => l())
 
 // Cross-tab channel for logout notifications
-const channel = typeof window !== 'undefined' && 'BroadcastChannel' in window
-  ? new BroadcastChannel('motion_auth')
-  : null
-
-channel?.addEventListener('message', (e) => {
-  try {
-    if (e.data?.type === 'logout') {
-      accessToken = null
-      // mark initialized so we don't re-trigger loading in other tabs
-      initialized = true
-      tokenStore.cancelRefreshTimer()
-      emit()
-    }
-  } catch {}
-})
-
-// Visibility handler: on resume, refresh if token is expiring
-if (typeof document !== 'undefined') {
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && isExpiringSoon(accessToken)) {
-      void tokenStore.refreshAccessTokenSingleton()
-    }
-  })
-}
+const channel =
+  typeof window !== "undefined" && "BroadcastChannel" in window
+    ? new BroadcastChannel("motion_auth")
+    : null
 
 function parseJwtExp(token: string): number | null {
   try {
-    const part = token.split('.')[1]
+    const part = token.split(".")[1]
     if (!part) return null
     // base64url -> base64
-    const padded = part.replace(/-/g, '+').replace(/_/g, '/')
+    const padded = part.replace(/-/g, "+").replace(/_/g, "/")
     const pad = (4 - (padded.length % 4)) % 4
-    const withPad = padded + '='.repeat(pad)
+    const withPad = padded + "=".repeat(pad)
     const payload = JSON.parse(atob(withPad))
-    return typeof payload.exp === 'number' ? payload.exp : null
+    return typeof payload.exp === "number" ? payload.exp : null
   } catch {
     return null
   }
@@ -67,6 +48,38 @@ function scheduleRefresh(token: string) {
   refreshTimer = setTimeout(() => void tokenStore.refreshAccessTokenSingleton(), delay)
 }
 
+function attachBrowserListeners() {
+  if (browserListenersAttached || typeof window === "undefined") {
+    return
+  }
+
+  browserListenersAttached = true
+
+  channel?.addEventListener("message", (e) => {
+    try {
+      if (e.data?.type === "logout") {
+        accessToken = null
+        // Mark initialized so we don't re-trigger loading in other tabs.
+        initialized = true
+        tokenStore.cancelRefreshTimer()
+        emit()
+      }
+    } catch {
+      // Ignore malformed broadcast payloads.
+    }
+  })
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && isExpiringSoon(accessToken)) {
+      void tokenStore.refreshAccessTokenSingleton()
+    }
+  })
+}
+
+if (typeof window !== "undefined") {
+  attachBrowserListeners()
+}
+
 export const tokenStore = {
   getSnapshot: () => accessToken,
   getIsLoading: () => !initialized,
@@ -79,6 +92,7 @@ export const tokenStore = {
   set(token: string | null) {
     if (accessToken === token) return
     accessToken = token
+    initialized = true
     tokenStore.cancelRefreshTimer()
     if (token) scheduleRefresh(token)
     emit()
@@ -90,7 +104,7 @@ export const tokenStore = {
     initialized = false
     tokenStore.cancelRefreshTimer()
     try {
-      channel?.postMessage({ type: 'logout' })
+      channel?.postMessage({ type: "logout" })
     } catch {}
     emit()
   },

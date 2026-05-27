@@ -28,10 +28,11 @@ import (
 	pkglogger "github.com/Ajay01103/go-notion/pkg/logger"
 	"github.com/Ajay01103/go-notion/pkg/token"
 )
+
 // corsMiddleware allows Next.js or any other frontend to access Connect endpoints.
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Connect-Protocol-Version, Authorization")
 		if r.Method == http.MethodOptions {
@@ -97,18 +98,18 @@ func run() error {
 
 	// 4. Setup dependencies
 	userRepo := repository.NewUserRepo(session)
-	
+
 	// Session-based stores (new model)
 	sessionStore := scyllastore.NewSessionStore(session)
 	revocationStore := scyllastore.NewRevocationStore(session)
-	
+
 	// Shared auth cache for session state and revocation lookups
 	authCache, err := tokencache.NewRistrettoCache()
 	if err != nil {
 		logger.Error("cannot create token cache", zap.Error(err))
 		return fmt.Errorf("create token cache: %w", err)
 	}
-	
+
 	eddsaKeyRetention := cfg.EDDSASigningKeyRetentionDuration
 	if eddsaKeyRetention < cfg.RefreshTokenDuration {
 		logger.Warn(

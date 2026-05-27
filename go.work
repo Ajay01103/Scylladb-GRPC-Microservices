@@ -3,5 +3,7 @@ go 1.25.0
 use (
 	./pkg
 	./services/auth
+	./services/notes
+	./services/whiteboard
 	./services/workspace
 )

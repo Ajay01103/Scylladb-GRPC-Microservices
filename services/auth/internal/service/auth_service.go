@@ -159,7 +159,7 @@ func (s *AuthService) RefreshToken(ctx context.Context, refreshTokenStr string) 
 				return nil, ErrTokenRevoked
 			}
 			// Cache hit: mint and update cache
-			return s.issueAndUpdateSessionCache(ctx, uid, sid, sessionGen, minGlobalVer)
+			return s.issueAndUpdateSessionCache(ctx, uid, payload.Email, payload.Name, sid, sessionGen, minGlobalVer)
 		}
 	}
 
@@ -222,14 +222,14 @@ func (s *AuthService) RefreshToken(ctx context.Context, refreshTokenStr string) 
 
 	// Mint new token pair
 	newRefreshStr, _, err := s.tokenMaker.CreateSessionRefreshToken(
-		uid, sid, newGen, globalVer, s.cfg.RefreshTokenDuration,
+		uid, payload.Email, payload.Name, sid, newGen, globalVer, s.cfg.RefreshTokenDuration,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("create session refresh token: %w", err)
 	}
 
 	newAccessStr, _, err := s.tokenMaker.CreateSessionAccessToken(
-		uid, []string{"user"}, globalVer, s.cfg.AccessTokenDuration,
+		uid, payload.Email, payload.Name, sid, newGen, globalVer, s.cfg.AccessTokenDuration,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("create session access token: %w", err)
@@ -319,7 +319,6 @@ func (s *AuthService) GetCurrentUserProfile(ctx context.Context, userID uuid.UUI
 }
 
 func (s *AuthService) ValidateToken(ctx context.Context, accessTokenStr string) (*ValidateResult, error) {
-	// Pure crypto — no DB call, no cache required for AT signature validation
 	payload, err := s.tokenMaker.VerifySessionAccessToken(accessTokenStr)
 	if err != nil {
 		if errors.Is(err, token.ErrExpiredToken) {
@@ -328,21 +327,55 @@ func (s *AuthService) ValidateToken(ctx context.Context, accessTokenStr string) 
 		return nil, ErrInvalidToken
 	}
 
-	// ── Optional: Check global version from cache only (no Scylla) ─────────
-	// If global_ver in token is less than cached global_ver, token is revoked
-	if cached, ok := s.cache.Get(tokencache.GlobalVerKey(payload.UserID.String())); ok {
-		if storedGv, ok := cached.(int); ok {
-			if payload.GlobalVer < storedGv {
+	uid := payload.UserID.String()
+	sid := payload.SessionID.String()
+
+	if cached, ok := s.cache.Get(tokencache.SessionKey(sid)); ok {
+		if entry, ok := cached.(*CachedSession); ok {
+			if payload.Gen != entry.Gen {
 				return nil, ErrTokenRevoked
 			}
+			if payload.GlobalVer < entry.MinGlobalVer {
+				return nil, ErrTokenRevoked
+			}
+			return &ValidateResult{UserID: payload.UserID, Email: payload.Email, Name: payload.Name}, nil
 		}
 	}
-	// Cache miss: token passes (stale window accepted per design)
+
+	sessionRec, err := s.sessionStore.GetSession(ctx, uid, sid)
+	if err != nil {
+		return nil, fmt.Errorf("get session: %w", err)
+	}
+	if sessionRec == nil || time.Now().UTC().After(sessionRec.ExpiresAt) {
+		return nil, ErrTokenRevoked
+	}
+	if payload.Gen != sessionRec.Gen {
+		return nil, ErrTokenRevoked
+	}
+
+	userRev, err := s.revocationStore.GetUserRevocation(ctx, uid)
+	if err != nil {
+		return nil, fmt.Errorf("get user revocation: %w", err)
+	}
+	currentGv := 0
+	if userRev != nil {
+		currentGv = userRev.GlobalVer
+	}
+	if payload.GlobalVer < currentGv {
+		return nil, ErrTokenRevoked
+	}
+
+	s.cache.SetWithTTL(
+		tokencache.SessionKey(sid),
+		&CachedSession{Gen: sessionRec.Gen, MinGlobalVer: currentGv},
+		tokencache.SessionStateCost,
+		tokencache.SessionStateTTL,
+	)
 
 	return &ValidateResult{
 		UserID: payload.UserID,
-		Email:  "", // session tokens don't carry email
-		Name:   "", // session tokens don't carry name
+		Email:  payload.Email,
+		Name:   payload.Name,
 	}, nil
 }
 
@@ -392,7 +425,7 @@ func (s *AuthService) mintSessionTokenPair(ctx context.Context, user repository.
 
 	// Mint session-mode refresh token
 	refreshStr, _, err := s.tokenMaker.CreateSessionRefreshToken(
-		user.ID, sessionID, 1, globalVer, s.cfg.RefreshTokenDuration,
+		user.ID, user.Email, user.Name, sessionID, 1, globalVer, s.cfg.RefreshTokenDuration,
 	)
 	if err != nil {
 		return "", "", fmt.Errorf("create session refresh token: %w", err)
@@ -400,7 +433,7 @@ func (s *AuthService) mintSessionTokenPair(ctx context.Context, user repository.
 
 	// Mint session-mode access token
 	accessStr, _, err := s.tokenMaker.CreateSessionAccessToken(
-		user.ID, []string{"user"}, globalVer, s.cfg.AccessTokenDuration,
+		user.ID, user.Email, user.Name, sessionID, 1, globalVer, s.cfg.AccessTokenDuration,
 	)
 	if err != nil {
 		return "", "", fmt.Errorf("create session access token: %w", err)
@@ -419,7 +452,7 @@ func (s *AuthService) mintSessionTokenPair(ctx context.Context, user repository.
 
 func (s *AuthService) issueAndUpdateSessionCache(
 	ctx context.Context,
-	userID, sessionID string,
+	userID, email, name, sessionID string,
 	currentGen int64,
 	currentGv int,
 ) (*RefreshResult, error) {
@@ -439,14 +472,14 @@ func (s *AuthService) issueAndUpdateSessionCache(
 
 	// Mint new tokens
 	newRefreshStr, _, err := s.tokenMaker.CreateSessionRefreshToken(
-		userID, sessionID, newGen, currentGv, s.cfg.RefreshTokenDuration,
+		userID, email, name, sessionID, newGen, currentGv, s.cfg.RefreshTokenDuration,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("create session refresh token: %w", err)
 	}
 
 	newAccessStr, _, err := s.tokenMaker.CreateSessionAccessToken(
-		userID, []string{"user"}, currentGv, s.cfg.AccessTokenDuration,
+		userID, email, name, sessionID, newGen, currentGv, s.cfg.AccessTokenDuration,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("create session access token: %w", err)
@@ -471,8 +504,11 @@ func (s *AuthService) handleTheftDetected(ctx context.Context, userID, sessionID
 	)
 
 	// Delete session from Scylla (best effort, async cleanup)
-	// This is fire-and-forget; logging only on error
-	if err := s.sessionStore.DeleteSession(ctx, userID, sessionID); err != nil {
+	// Use a detached context so request cancellation does not abort cleanup.
+	cleanupCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	if err := s.sessionStore.DeleteSession(cleanupCtx, userID, sessionID); err != nil {
 		s.logger.Error("failed to delete compromised session from DB",
 			zap.String("userID", userID),
 			zap.String("sessionID", sessionID),

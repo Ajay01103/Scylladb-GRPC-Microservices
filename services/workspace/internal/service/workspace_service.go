@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gocql/gocql"
@@ -22,6 +23,11 @@ type Service struct {
 	session *gocql.Session
 	logger  *zap.Logger
 	authz   *authz.Checker
+}
+
+type memberProfile struct {
+	Name  string
+	Email string
 }
 
 // New creates a new workspace service
@@ -211,19 +217,35 @@ func (s *Service) ListMyWorkspaces(ctx context.Context, userID uuid.UUID) ([]*pb
 		return nil, fmt.Errorf("list user workspaces (members fallback): %w", err)
 	}
 
+	if len(workspaceIDs) == 0 {
+		return []*pb.Workspace{}, nil
+	}
+
+	workspaceNameByID := make(map[string]string, len(workspaceIDs))
+	workspaceIter := s.session.Query(
+		`SELECT id, name FROM workspaces WHERE id IN ?`,
+		workspaceIDs,
+	).WithContext(ctx).Iter()
+
+	var fetchedWorkspaceID string
+	var workspaceName string
+	for workspaceIter.Scan(&fetchedWorkspaceID, &workspaceName) {
+		workspaceNameByID[fetchedWorkspaceID] = workspaceName
+	}
+
+	if err := workspaceIter.Close(); err != nil {
+		return nil, fmt.Errorf("list user workspaces (workspace lookup): %w", err)
+	}
+
 	workspaces := make([]*pb.Workspace, 0, len(workspaceIDs))
 	for _, wsID := range workspaceIDs {
-		parsedWorkspaceID, err := uuid.Parse(wsID)
-		if err != nil {
+		name, exists := workspaceNameByID[wsID]
+		if !exists {
 			continue
 		}
 
-		ws, err := s.GetWorkspace(ctx, parsedWorkspaceID, userID)
-		if err != nil {
-			continue
-		}
-
-		if fetchedRole, exists := workspaceRoleByID[wsID]; exists {
+		ws := &pb.Workspace{Id: wsID, Name: name}
+		if fetchedRole, roleExists := workspaceRoleByID[wsID]; roleExists {
 			ws.MyRole = authz.StringToProtoRole(fetchedRole)
 		}
 
@@ -268,7 +290,7 @@ func (s *Service) DeleteWorkspace(ctx context.Context, workspaceID uuid.UUID, re
 
 	var invitationTokens []string
 	invitationIter := s.session.Query(
-		`SELECT token FROM workspace_invitations_by_workspace WHERE workspace_id = ?`,
+		`SELECT "token" FROM workspace_invitations_by_workspace WHERE workspace_id = ?`,
 		workspaceIDStr,
 	).WithContext(ctx).Iter()
 	var invitationToken string
@@ -277,7 +299,7 @@ func (s *Service) DeleteWorkspace(ctx context.Context, workspaceID uuid.UUID, re
 	}
 	if err := invitationIter.Close(); err == nil {
 		for _, invitationToken := range invitationTokens {
-			_ = s.session.Query(`DELETE FROM workspace_invitations WHERE token = ?`, invitationToken).WithContext(ctx).Exec()
+			_ = s.session.Query(`DELETE FROM workspace_invitations WHERE "token" = ?`, invitationToken).WithContext(ctx).Exec()
 		}
 	}
 
@@ -290,7 +312,7 @@ func (s *Service) DeleteWorkspace(ctx context.Context, workspaceID uuid.UUID, re
 	if err := s.session.Query(`DELETE FROM workspace_invitations_by_workspace WHERE workspace_id = ?`, workspaceIDStr).WithContext(ctx).Exec(); err != nil {
 		return fmt.Errorf("delete workspace invitations by workspace: %w", err)
 	}
-	if err := s.session.Query(`DELETE FROM workspace_invitations WHERE token IN ?`, []string{}).WithContext(ctx).Exec(); err != nil {
+	if err := s.session.Query(`DELETE FROM workspace_invitations WHERE "token" IN ?`, []string{}).WithContext(ctx).Exec(); err != nil {
 		// No-op: individual invitation cleanup is handled by workspace-specific table.
 		_ = err
 	}
@@ -319,24 +341,54 @@ func (s *Service) ListMembers(ctx context.Context, workspaceID uuid.UUID, reques
 	iter := s.session.Query(query, workspaceID.String()).WithContext(ctx).Iter()
 	defer iter.Close()
 
-	var members []*pb.WorkspaceMember
+	type memberRecord struct {
+		UserID    string
+		Role      string
+		InvitedBy string
+		JoinedAt  time.Time
+	}
+
+	var records []memberRecord
+	profileIDs := make([]string, 0)
 	var userID string
 	var memberRole string
 	var invitedBy string
 	var joinedAt time.Time
 
 	for iter.Scan(&userID, &memberRole, &invitedBy, &joinedAt) {
-		members = append(members, &pb.WorkspaceMember{
-			UserId:      userID,
-			WorkspaceId: workspaceID.String(),
-			Role:        authz.StringToProtoRole(memberRole),
-			InvitedBy:   invitedBy,
-			JoinedAt:    timestampProto(joinedAt),
+		records = append(records, memberRecord{
+			UserID:    userID,
+			Role:      memberRole,
+			InvitedBy: invitedBy,
+			JoinedAt:  joinedAt,
 		})
+		profileIDs = append(profileIDs, userID)
+		if invitedBy != "" {
+			profileIDs = append(profileIDs, invitedBy)
+		}
 	}
 
 	if err := iter.Close(); err != nil {
 		return nil, fmt.Errorf("list members: %w", err)
+	}
+
+	profiles := s.getMemberProfiles(ctx, profileIDs)
+	members := make([]*pb.WorkspaceMember, 0, len(records))
+	for _, record := range records {
+		memberProfile := profiles[record.UserID]
+		inviterProfile := profiles[record.InvitedBy]
+
+		members = append(members, &pb.WorkspaceMember{
+			UserId:         record.UserID,
+			WorkspaceId:    workspaceID.String(),
+			Role:           authz.StringToProtoRole(record.Role),
+			InvitedBy:      record.InvitedBy,
+			JoinedAt:       timestampProto(record.JoinedAt),
+			UserName:       memberProfile.Name,
+			UserEmail:      memberProfile.Email,
+			InvitedByName:  inviterProfile.Name,
+			InvitedByEmail: inviterProfile.Email,
+		})
 	}
 
 	return members, nil
@@ -376,20 +428,38 @@ func (s *Service) UpdateMemberRole(ctx context.Context, workspaceID, userID uuid
 		return nil, fmt.Errorf("update member role (user view): %w", err)
 	}
 
+	profiles := s.getMemberProfiles(ctx, []string{userID.String(), requesterID.String()})
+
+	memberProfile := profiles[userID.String()]
+	requesterProfile := profiles[requesterID.String()]
+
 	return &pb.WorkspaceMember{
-		UserId:      userID.String(),
-		WorkspaceId: workspaceID.String(),
-		Role:        newRole,
-		InvitedBy:   requesterID.String(),
-		JoinedAt:    timestampProto(now),
+		UserId:         userID.String(),
+		WorkspaceId:    workspaceID.String(),
+		Role:           newRole,
+		InvitedBy:      requesterID.String(),
+		JoinedAt:       timestampProto(now),
+		UserName:       memberProfile.Name,
+		UserEmail:      memberProfile.Email,
+		InvitedByName:  requesterProfile.Name,
+		InvitedByEmail: requesterProfile.Email,
 	}, nil
 }
 
 // RemoveMember removes a member from a workspace
 func (s *Service) RemoveMember(ctx context.Context, workspaceID, userID uuid.UUID, requesterID uuid.UUID) error {
-	// Check permission
+	// Allow non-owner members to leave their own workspace.
 	actorRole, err := s.getMemberRole(ctx, workspaceID, requesterID)
-	if err != nil || !s.authz.Can(actorRole, authz.PermMembersRemove) {
+	if err != nil {
+		return errors.New("access denied: cannot remove members")
+	}
+
+	isSelfLeave := userID == requesterID
+	if isSelfLeave && actorRole == "owner" {
+		return errors.New("workspace owners cannot leave the workspace")
+	}
+
+	if !isSelfLeave && !s.authz.Can(actorRole, authz.PermMembersRemove) {
 		return errors.New("access denied: cannot remove members")
 	}
 
@@ -427,6 +497,13 @@ func (s *Service) InviteMember(ctx context.Context, workspaceID uuid.UUID, invit
 		return "", errors.New("invalid role")
 	}
 
+	cleanEmail := strings.TrimSpace(email)
+	if cleanEmail == "" {
+		if err := s.resetInviteCodeLinks(ctx, workspaceID, inviterID); err != nil {
+			return "", fmt.Errorf("reset invite links: %w", err)
+		}
+	}
+
 	// Generate secure random token
 	token, err = generateSecureToken(32)
 	if err != nil {
@@ -438,9 +515,9 @@ func (s *Service) InviteMember(ctx context.Context, workspaceID uuid.UUID, invit
 
 	// Insert into workspace_invitations
 	err = s.session.Query(
-		`INSERT INTO workspace_invitations (token, workspace_id, invited_email, role, invited_by, expires_at, created_at)
+		`INSERT INTO workspace_invitations ("token", workspace_id, invited_email, role, invited_by, expires_at, created_at)
 		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		token, workspaceID.String(), email, roleStr, inviterID.String(), expiresAt, now,
+		token, workspaceID.String(), cleanEmail, roleStr, inviterID.String(), expiresAt, now,
 	).WithContext(ctx).Exec()
 	if err != nil {
 		return "", fmt.Errorf("create invitation: %w", err)
@@ -448,9 +525,9 @@ func (s *Service) InviteMember(ctx context.Context, workspaceID uuid.UUID, invit
 
 	// Insert into workspace_invitations_by_workspace (denormalized for listing)
 	err = s.session.Query(
-		`INSERT INTO workspace_invitations_by_workspace (workspace_id, token, invited_email, role, invited_by, expires_at, created_at)
+		`INSERT INTO workspace_invitations_by_workspace (workspace_id, "token", invited_email, role, invited_by, expires_at, created_at)
 		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		workspaceID.String(), token, email, roleStr, inviterID.String(), expiresAt, now,
+		workspaceID.String(), token, cleanEmail, roleStr, inviterID.String(), expiresAt, now,
 	).WithContext(ctx).Exec()
 	if err != nil {
 		return "", fmt.Errorf("create invitation (workspace view): %w", err)
@@ -468,7 +545,7 @@ func (s *Service) AcceptInvitation(ctx context.Context, token string, userID uui
 	var acceptedAt *time.Time
 
 	err := s.session.Query(
-		`SELECT workspace_id, role, expires_at, accepted_at FROM workspace_invitations WHERE token = ?`,
+		`SELECT workspace_id, role, expires_at, accepted_at FROM workspace_invitations WHERE "token" = ?`,
 		token,
 	).WithContext(ctx).Scan(&workspaceID, &role, &expiresAt, &acceptedAt)
 	if err == gocql.ErrNotFound {
@@ -485,8 +562,7 @@ func (s *Service) AcceptInvitation(ctx context.Context, token string, userID uui
 
 	// Check if already accepted (idempotent)
 	if acceptedAt != nil {
-		// Already accepted—return the workspace
-		return s.GetWorkspace(ctx, parsedWorkspaceID, userID)
+		return nil, errors.New("invitation already used")
 	}
 
 	// Check if expired
@@ -498,7 +574,7 @@ func (s *Service) AcceptInvitation(ctx context.Context, token string, userID uui
 
 	// Mark invitation as accepted
 	err = s.session.Query(
-		`UPDATE workspace_invitations SET accepted_at = ? WHERE token = ?`,
+		`UPDATE workspace_invitations SET accepted_at = ? WHERE "token" = ?`,
 		now, token,
 	).WithContext(ctx).Exec()
 	if err != nil {
@@ -525,7 +601,40 @@ func (s *Service) AcceptInvitation(ctx context.Context, token string, userID uui
 		return nil, fmt.Errorf("add member (user view): %w", err)
 	}
 
-	return s.GetWorkspace(ctx, parsedWorkspaceID, userID)
+	if err := s.invalidateInvitationToken(ctx, workspaceID, token); err != nil {
+		return nil, fmt.Errorf("invalidate invitation: %w", err)
+	}
+
+	return s.getWorkspaceSnapshot(ctx, parsedWorkspaceID, role)
+}
+
+// RejectInvitation rejects an invitation and invalidates the token.
+func (s *Service) RejectInvitation(ctx context.Context, token string, userID uuid.UUID) error {
+	_ = userID
+
+	var workspaceID string
+	var acceptedAt *time.Time
+
+	err := s.session.Query(
+		`SELECT workspace_id, accepted_at FROM workspace_invitations WHERE "token" = ?`,
+		token,
+	).WithContext(ctx).Scan(&workspaceID, &acceptedAt)
+	if err == gocql.ErrNotFound {
+		return errors.New("invitation not found or expired")
+	}
+	if err != nil {
+		return fmt.Errorf("reject invitation: %w", err)
+	}
+
+	if acceptedAt != nil {
+		return errors.New("invitation already used")
+	}
+
+	if err := s.invalidateInvitationToken(ctx, workspaceID, token); err != nil {
+		return fmt.Errorf("reject invitation: %w", err)
+	}
+
+	return nil
 }
 
 // CheckPermission checks if a user has a specific permission in a workspace
@@ -586,4 +695,123 @@ func validateSlug(slug string) error {
 // timestampProto converts a time.Time to a protobuf Timestamp
 func timestampProto(t time.Time) *timestamppb.Timestamp {
 	return timestamppb.New(t)
+}
+
+func (s *Service) getWorkspaceSnapshot(ctx context.Context, workspaceID uuid.UUID, role string) (*pb.Workspace, error) {
+	var ws pb.Workspace
+	var createdAt time.Time
+	var updatedAt time.Time
+
+	err := s.session.Query(
+		`SELECT id, name, slug, description, icon_url, owner_id, is_public, created_at, updated_at
+		 FROM workspaces WHERE id = ?`,
+		workspaceID.String(),
+	).WithContext(ctx).Scan(
+		&ws.Id, &ws.Name, &ws.Slug, &ws.Description, &ws.IconUrl, &ws.OwnerId,
+		&ws.IsPublic, &createdAt, &updatedAt,
+	)
+	if err == gocql.ErrNotFound {
+		return nil, errors.New("workspace not found")
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get workspace snapshot: %w", err)
+	}
+
+	ws.CreatedAt = timestampProto(createdAt)
+	ws.UpdatedAt = timestampProto(updatedAt)
+	ws.MyRole = authz.StringToProtoRole(role)
+
+	return &ws, nil
+}
+
+func (s *Service) getMemberProfiles(ctx context.Context, userIDs []string) map[string]memberProfile {
+	profiles := make(map[string]memberProfile)
+	if len(userIDs) == 0 {
+		return profiles
+	}
+
+	seen := make(map[string]struct{}, len(userIDs))
+	for _, rawID := range userIDs {
+		id := rawID
+		if id == "" {
+			continue
+		}
+		if _, exists := seen[id]; exists {
+			continue
+		}
+		seen[id] = struct{}{}
+
+		var name string
+		var email string
+		err := s.session.Query(
+			`SELECT name, email FROM auth_ks.users WHERE id = ? LIMIT 1`,
+			id,
+		).WithContext(ctx).Scan(&name, &email)
+		if err != nil {
+			if err != gocql.ErrNotFound {
+				s.logger.Warn("failed to load member profile", zap.String("user_id", id), zap.Error(err))
+			}
+			continue
+		}
+
+		profiles[id] = memberProfile{
+			Name:  name,
+			Email: email,
+		}
+	}
+
+	return profiles
+}
+
+func (s *Service) resetInviteCodeLinks(ctx context.Context, workspaceID, inviterID uuid.UUID) error {
+	query := `SELECT "token", invited_email, invited_by, accepted_at FROM workspace_invitations_by_workspace WHERE workspace_id = ?`
+	iter := s.session.Query(query, workspaceID.String()).WithContext(ctx).Iter()
+	defer iter.Close()
+
+	var token string
+	var invitedEmail string
+	var invitedBy string
+	var acceptedAt *time.Time
+
+	for iter.Scan(&token, &invitedEmail, &invitedBy, &acceptedAt) {
+		if invitedBy != inviterID.String() {
+			continue
+		}
+
+		if strings.TrimSpace(invitedEmail) != "" {
+			continue
+		}
+
+		if acceptedAt != nil {
+			continue
+		}
+
+		if err := s.invalidateInvitationToken(ctx, workspaceID.String(), token); err != nil {
+			return err
+		}
+	}
+
+	if err := iter.Close(); err != nil {
+		return fmt.Errorf("scan workspace invite links: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Service) invalidateInvitationToken(ctx context.Context, workspaceID, token string) error {
+	if err := s.session.Query(
+		`DELETE FROM workspace_invitations_by_workspace WHERE workspace_id = ? AND "token" = ?`,
+		workspaceID, token,
+	).WithContext(ctx).Exec(); err != nil {
+		return fmt.Errorf("delete workspace invite by workspace: %w", err)
+	}
+
+	if err := s.session.Query(
+		`DELETE FROM workspace_invitations WHERE "token" = ?`,
+		token,
+	).WithContext(ctx).Exec(); err != nil {
+		return fmt.Errorf("delete workspace invite: %w", err)
+	}
+
+	return nil
 }

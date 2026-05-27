@@ -1,6 +1,5 @@
 "use client"
 
-import AnimatedTabs from "@/components/ui/animated-tabs"
 import {
   Combobox,
   ComboboxContent,
@@ -32,12 +31,7 @@ import {
   useCreateWorkspace,
   useMyWorkspaces,
 } from "@/modules/workspace/api/use-workspaces"
-import { useWorkspaceUrlState } from "@/modules/workspace/api/use-workspace-url-state"
-import {
-  type LucideIcon,
-  Settings,
-  Headphones,
-} from "lucide-react"
+import { type LucideIcon, LayoutGrid, Settings, Headphones, Users } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { useParams, usePathname, useRouter } from "next/navigation"
@@ -48,6 +42,7 @@ interface MenuItem {
   url?: string
   icon: LucideIcon
   onClick?: () => void
+  match?: "exact" | "prefix"
 }
 
 interface NavSectionProps {
@@ -57,6 +52,18 @@ interface NavSectionProps {
 }
 
 const NavSection = ({ label, items, pathname }: NavSectionProps) => {
+  const isItemActive = (item: MenuItem) => {
+    if (!item.url) {
+      return false
+    }
+
+    if (item.match === "exact") {
+      return pathname === item.url
+    }
+
+    return item.url === "/" ? pathname === "/" : pathname.startsWith(item.url)
+  }
+
   return (
     <SidebarGroup>
       {label && (
@@ -71,11 +78,10 @@ const NavSection = ({ label, items, pathname }: NavSectionProps) => {
               {item.url ? (
                 <Link href={item.url}>
                   <SidebarMenuButton
-                    isActive={
-                      item.url === "/" ? pathname === "/" : pathname.startsWith(item.url)
-                    }
+                    isActive={isItemActive(item)}
                     tooltip={item.title}
-                    className="h-9 px-3 py-2 text-[13px] tracking-tight font-medium border border-transparent data-[active=true]:border-border data-[active=true]:shadow-[0px_1px_1px_0px_rgba(44,54,53,0.03),inset_0px_0px_0px_2px_white]">
+                    className="h-9 px-3 py-2 text-[13px] tracking-tight font-medium border border-transparent data-[active=true]:border-border data-[active=true]:shadow-[0px_1px_1px_0px_rgba(44,54,53,0.03),inset_0px_0px_0px_2px_white]"
+                  >
                     <item.icon />
                     <span>{item.title}</span>
                   </SidebarMenuButton>
@@ -85,7 +91,8 @@ const NavSection = ({ label, items, pathname }: NavSectionProps) => {
                   isActive={false}
                   onClick={item.onClick}
                   tooltip={item.title}
-                  className="h-9 px-3 py-2 text-[13px] tracking-tight font-medium border border-transparent data-[active=true]:border-border data-[active=true]:shadow-[0px_1px_1px_0px_rgba(44,54,53,0.03),inset_0px_0px_0px_2px_white]">
+                  className="h-9 px-3 py-2 text-[13px] tracking-tight font-medium border border-transparent data-[active=true]:border-border data-[active=true]:shadow-[0px_1px_1px_0px_rgba(44,54,53,0.03),inset_0px_0px_0px_2px_white]"
+                >
                   <item.icon />
                   <span>{item.title}</span>
                 </SidebarMenuButton>
@@ -103,46 +110,26 @@ export const DashboardSidebar = () => {
   const router = useRouter()
   const params = useParams<{ id?: string | string[] }>()
   const routeWorkspaceId = Array.isArray(params?.id) ? params.id[0] : (params?.id ?? "")
-  const [activeTab, setActiveTab] = useState("white-board")
   const [workspaceSearch, setWorkspaceSearch] = useState("")
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false)
-  const { setWorkspaceQuery, workspaceQuery } = useWorkspaceUrlState(routeWorkspaceId)
 
   const workspacesQuery = useMyWorkspaces()
   const createWorkspaceMutation = useCreateWorkspace()
   const workspaces = workspacesQuery.data ?? []
-  const sortedWorkspaces = useMemo(
-    () =>
-      [...workspaces].sort((left, right) => {
-        const leftCreatedAt = left.createdAt ? Number(left.createdAt.seconds ?? 0) : Number.MAX_SAFE_INTEGER
-        const rightCreatedAt = right.createdAt ? Number(right.createdAt.seconds ?? 0) : Number.MAX_SAFE_INTEGER
-
-        if (leftCreatedAt !== rightCreatedAt) {
-          return leftCreatedAt - rightCreatedAt
-        }
-
-        return left.name.localeCompare(right.name)
-      }),
-    [workspaces],
-  )
   const workspaceOptions = useMemo(
     () =>
-      sortedWorkspaces.map((workspace) => ({
+      workspaces.map((workspace) => ({
         value: workspace.id,
         label: workspace.name,
-        keywords: [workspace.name, workspace.slug],
+        keywords: [workspace.name],
       })),
-    [sortedWorkspaces],
+    [workspaces],
   )
   const defaultWorkspaceId = workspaceOptions[0]?.value ?? ""
-  const selectedWorkspaceId = routeWorkspaceId || workspaceQuery
-  const effectiveSelectedWorkspaceId =
-    workspaceOptions.some((workspace) => workspace.value === selectedWorkspaceId)
-      ? selectedWorkspaceId
-      : defaultWorkspaceId
+  const effectiveSelectedWorkspaceId = routeWorkspaceId || defaultWorkspaceId
   const selectedWorkspaceLabel =
-    workspaceOptions.find((workspace) => workspace.value === effectiveSelectedWorkspaceId)
-      ?.label ?? ""
+    workspaceOptions.find((workspace) => workspace.value === effectiveSelectedWorkspaceId)?.label ??
+    ""
 
   const filteredWorkspaces = useMemo(() => {
     const normalizedSearch = workspaceSearch.trim().toLowerCase()
@@ -156,10 +143,21 @@ export const DashboardSidebar = () => {
     )
   }, [workspaceOptions, workspaceSearch])
 
-  const tabs = [
-    { id: "white-board", label: "White Board" },
-    { id: "notes", label: "Notes" },
-  ]
+  const workspaceNavigationItems: MenuItem[] = effectiveSelectedWorkspaceId
+    ? [
+        {
+          title: "Overview",
+          url: `/workspace/${effectiveSelectedWorkspaceId}`,
+          icon: LayoutGrid,
+          match: "exact",
+        },
+        {
+          title: "Members",
+          url: `/workspace/${effectiveSelectedWorkspaceId}/members`,
+          icon: Users,
+        },
+      ]
+    : []
 
   const mainMenuItems: MenuItem[] = [
     // main navigation intentionally minimal; dashboard-specific link removed
@@ -178,45 +176,6 @@ export const DashboardSidebar = () => {
     },
   ]
 
-  const recentWhiteboards = [
-    { id: "wb-1", title: "Sprint Planning", url: "/dashboard/whiteboard/1" },
-    { id: "wb-2", title: "Product Vision", url: "/dashboard/whiteboard/2" },
-    { id: "wb-3", title: "Design Notes", url: "/dashboard/whiteboard/3" },
-    { id: "wb-4", title: "Roadmap", url: "/dashboard/whiteboard/4" },
-    { id: "wb-5", title: "Retrospective", url: "/dashboard/whiteboard/5" },
-    { id: "wb-6", title: "Ideas", url: "/dashboard/whiteboard/6" },
-  ]
-
-  const recentNotes = [
-    { id: "n-1", title: "Meeting Notes", url: "/dashboard/notes/1" },
-    { id: "n-2", title: "Research", url: "/dashboard/notes/2" },
-    { id: "n-3", title: "Specs", url: "/dashboard/notes/3" },
-    { id: "n-4", title: "User Feedback", url: "/dashboard/notes/4" },
-    { id: "n-5", title: "Changelog", url: "/dashboard/notes/5" },
-    { id: "n-6", title: "Backlog", url: "/dashboard/notes/6" },
-  ]
-
-  useEffect(() => {
-    // Ensure the base /dashboard route shows white-board by default
-    if (pathname === "/dashboard" || pathname === "/dashboard/") {
-      setActiveTab("white-board")
-    }
-  }, [pathname])
-
-  useEffect(() => {
-    if (routeWorkspaceId && routeWorkspaceId !== workspaceQuery) {
-      void setWorkspaceQuery(routeWorkspaceId)
-    }
-  }, [routeWorkspaceId, setWorkspaceQuery, workspaceQuery])
-
-  useEffect(() => {
-    if (!defaultWorkspaceId || routeWorkspaceId || workspaceQuery) {
-      return
-    }
-
-    void setWorkspaceQuery(defaultWorkspaceId)
-  }, [defaultWorkspaceId, routeWorkspaceId, setWorkspaceQuery, workspaceQuery])
-
   useEffect(() => {
     if (!workspaceMenuOpen) {
       setWorkspaceSearch("")
@@ -228,10 +187,9 @@ export const DashboardSidebar = () => {
       return
     }
 
-    void setWorkspaceQuery(workspaceId)
     setWorkspaceSearch("")
     setWorkspaceMenuOpen(false)
-    router.push(`/workspace/${workspaceId}?workspace=${encodeURIComponent(workspaceId)}`)
+    router.push(`/workspace/${workspaceId}`)
   }
 
   const handleCreateWorkspace = async (workspaceName: string) => {
@@ -273,13 +231,7 @@ export const DashboardSidebar = () => {
       <Sidebar collapsible="icon">
         <SidebarHeader className="flex flex-col gap-3 pt-4">
           <div className="flex items-center gap-2 pl-1 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:pl-0">
-            <Image
-              src="/logo.svg"
-              alt="Resonance"
-              width={24}
-              height={24}
-              className="rounded-sm"
-            />
+            <Image src="/logo.svg" alt="Resonance" width={24} height={24} className="rounded-sm" />
             <span className="group-data-[collapsible=icon]:hidden font-semibold text-lg tracking-tighter text-foreground">
               Resonance
             </span>
@@ -295,7 +247,8 @@ export const DashboardSidebar = () => {
               onOpenChange={setWorkspaceMenuOpen}
               onValueChange={handleWorkspaceChange}
               open={workspaceMenuOpen}
-              value={effectiveSelectedWorkspaceId}>
+              value={effectiveSelectedWorkspaceId}
+            >
               <ComboboxTrigger className="h-10 w-full justify-between rounded-xl border-border/60 bg-background px-3 text-sm shadow-sm" />
               <ComboboxContent className="p-0">
                 <ComboboxInput
@@ -312,7 +265,8 @@ export const DashboardSidebar = () => {
                       <ComboboxItem
                         key={workspace.value}
                         keywords={workspace.keywords}
-                        value={workspace.value}>
+                        value={workspace.value}
+                      >
                         {workspace.label}
                       </ComboboxItem>
                     ))}
@@ -326,76 +280,15 @@ export const DashboardSidebar = () => {
               </p>
             ) : null}
           </div>
-          <div className="flex items-center justify-start group-data-[collapsible=icon]:hidden">
-            <div className="ml-1">
-              <AnimatedTabs
-                className="bg-card-tint-peach/50"
-                activeTab={activeTab}
-                layoutId="pill-demo"
-                onChange={setActiveTab}
-                tabs={tabs}
-                variant="pill"
-              />
-            </div>
-          </div>
+          <div className="flex items-center justify-start group-data-[collapsible=icon]:hidden"></div>
         </SidebarHeader>
         <div className="border-b border-dashed border-border" />
         <SidebarContent>
-          <NavSection
-            items={mainMenuItems}
-            pathname={pathname}
-          />
-          <NavSection
-            label="Others"
-            items={othersMenuItems}
-            pathname={pathname}
-          />
-
-          {activeTab === "white-board" ? (
-            <SidebarGroup>
-              <SidebarGroupLabel className="text-[13px] uppercase text-muted-foreground">
-                Recent Whiteboards
-              </SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {recentWhiteboards.slice(0, 5).map((wb) => (
-                    <SidebarMenuItem key={wb.id}>
-                      <Link href={wb.url}>
-                        <SidebarMenuButton
-                          isActive={pathname.startsWith(wb.url)}
-                          tooltip={wb.title}
-                          className="h-9 px-3 py-2 text-[13px] tracking-tight font-medium">
-                          <span>{wb.title}</span>
-                        </SidebarMenuButton>
-                      </Link>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          ) : (
-            <SidebarGroup>
-              <SidebarGroupLabel className="text-[13px] uppercase text-muted-foreground">
-                Recent Notes
-              </SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {recentNotes.slice(0, 5).map((n) => (
-                    <SidebarMenuItem key={n.id}>
-                      <Link href={n.url}>
-                        <SidebarMenuButton
-                          isActive={pathname.startsWith(n.url)}
-                          tooltip={n.title}
-                          className="h-9 px-3 py-2 text-[13px] tracking-tight font-medium">
-                          <span>{n.title}</span>
-                        </SidebarMenuButton>
-                      </Link>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          )}
+          {workspaceNavigationItems.length > 0 ? (
+            <NavSection label="Workspace" items={workspaceNavigationItems} pathname={pathname} />
+          ) : null}
+          <NavSection items={mainMenuItems} pathname={pathname} />
+          <NavSection label="Others" items={othersMenuItems} pathname={pathname} />
         </SidebarContent>
         <div className="border-b border-dashed border-border" />
         <SidebarFooter className="gap-3 py-3">

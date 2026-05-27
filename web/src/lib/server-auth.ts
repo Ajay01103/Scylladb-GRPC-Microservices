@@ -20,5 +20,5 @@ export async function requireAuthenticated() {
 
 export async function requireGuest() {
   const authenticated = await hasServerSession()
-  if (authenticated) redirect("/dashboard")
+  if (authenticated) redirect("/workspace")
 }
