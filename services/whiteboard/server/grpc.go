@@ -101,3 +101,39 @@ func (s *WhiteboardServer) AppendBoardOp(ctx context.Context, req *connect.Reque
 	}
 	return connect.NewResponse(&emptypb.Empty{}), nil
 }
+
+func (s *WhiteboardServer) RegisterAsset(ctx context.Context, req *connect.Request[pb.RegisterAssetRequest]) (*connect.Response[pb.RegisterAssetResponse], error) {
+	if req.Msg.GetAssetId() == "" || req.Msg.GetBoardId() == "" || req.Msg.GetWorkspaceId() == "" || req.Msg.GetS3Key() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("asset_id, board_id, workspace_id and s3_key are required"))
+	}
+	boardID, err := uuid.Parse(req.Msg.GetBoardId())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	workspaceID, err := uuid.Parse(req.Msg.GetWorkspaceId())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	userID, err := interceptor.UserIDFromContext(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, err)
+	}
+
+	res, err := s.svc.RegisterAsset(
+		ctx,
+		req.Msg.GetAssetId(),
+		boardID,
+		workspaceID,
+		userID,
+		req.Msg.GetName(),
+		req.Msg.GetMimeType(),
+		req.Msg.GetSizeBytes(),
+		req.Msg.GetS3Key(),
+	)
+	if err != nil {
+		return nil, connect.NewError(connect.CodePermissionDenied, err)
+	}
+
+	return connect.NewResponse(res), nil
+}
+

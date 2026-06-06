@@ -48,6 +48,24 @@ CREATE TABLE IF NOT EXISTS boards (
     PRIMARY KEY (workspace_id, board_id)
 ) WITH CLUSTERING ORDER BY (board_id ASC);
 
+CREATE TABLE IF NOT EXISTS board_state (
+    board_id UUID PRIMARY KEY,
+    document BLOB,
+    op_clock BIGINT,
+    schema_version INT,
+    updated_at TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS board_ops_hot (
+    board_id UUID,
+    op_clock BIGINT,
+    op_data BLOB,
+    user_id UUID,
+    created_at TIMESTAMP,
+    PRIMARY KEY (board_id, op_clock)
+) WITH CLUSTERING ORDER BY (op_clock ASC)
+AND default_time_to_live = 259200;
+
 CREATE TABLE IF NOT EXISTS boards_by_id (
     board_id UUID PRIMARY KEY,
     workspace_id UUID,
@@ -58,20 +76,19 @@ CREATE TABLE IF NOT EXISTS boards_by_id (
     updated_at TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS board_snapshots (
+CREATE TABLE IF NOT EXISTS assets (
+    asset_id TEXT PRIMARY KEY,
     board_id UUID,
-    snapshot_at TIMEUUID,
-    document BLOB,
-    schema_version INT,
-    PRIMARY KEY (board_id, snapshot_at)
-) WITH CLUSTERING ORDER BY (snapshot_at DESC);
+    workspace_id UUID,
+    name TEXT,
+    mime_type TEXT,
+    size_bytes BIGINT,
+    s3_key TEXT,
+    created_at TIMESTAMP
+);
 
-CREATE TABLE IF NOT EXISTS board_ops (
-    board_id UUID,
-    op_id TIMEUUID,
-    op_type TEXT,
-    records BLOB,
+CREATE TABLE IF NOT EXISTS ws_tickets (
+    ticket TEXT PRIMARY KEY,
     user_id UUID,
-    PRIMARY KEY (board_id, op_id)
-) WITH CLUSTERING ORDER BY (op_id DESC)
-AND default_time_to_live = 604800;
+    created_at TIMESTAMP
+) WITH default_time_to_live = 30;

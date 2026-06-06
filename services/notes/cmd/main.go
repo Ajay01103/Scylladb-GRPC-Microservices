@@ -93,8 +93,8 @@ func run() error {
 	jwksCache, err := jwks.New(jwksCtx,
 		jwks.WithJWKSURL(cfg.JWKSEndpoint),
 		jwks.WithFetchTimeout(10*time.Second),
-		jwks.WithRefreshInterval(15*time.Minute),
-		jwks.WithMinRefreshInterval(5*time.Minute),
+		jwks.WithRefreshInterval(1*time.Hour),
+		jwks.WithMinRefreshInterval(15*time.Minute),
 		jwks.WithScyllaDB(jwksStore, "notes"),
 	)
 	if err != nil {

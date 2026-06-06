@@ -11,10 +11,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/dgraph-io/ristretto"
 	"github.com/gocql/gocql"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"github.com/redis/go-redis/v9"
 )
 
 // EDDSAMaker implements TokenMaker using Ed25519 (EdDSA) JWT tokens.
@@ -25,6 +25,8 @@ type EDDSAMaker struct {
 	publicKeys       map[string]ed25519.PublicKey
 	privateKeysByKid map[string]ed25519.PrivateKey
 	expiresByKid     map[string]time.Time
+	jwksCacheKey     string
+	jwksCache        *ristretto.Cache
 	keyStore         eddsaKeyStoreBackend
 	keyTTL           time.Duration
 }
@@ -38,73 +40,8 @@ func NewEDDSAMaker() (*EDDSAMaker, error) {
 	return NewEDDSAMakerFromPrivateKey(privateKey)
 }
 
-// NewEDDSAMakerWithRedis loads keys from Redis and rotates only when needed.
-func NewEDDSAMakerWithRedis(redisClient *redis.Client, keyTTL time.Duration) (*EDDSAMaker, error) {
-	if redisClient == nil {
-		return nil, errors.New("redis client is nil")
-	}
-	if keyTTL < 90*24*time.Hour {
-		keyTTL = 90 * 24 * time.Hour
-	}
-
-	maker := &EDDSAMaker{
-		publicKeys:       make(map[string]ed25519.PublicKey),
-		privateKeysByKid: make(map[string]ed25519.PrivateKey),
-		expiresByKid:     make(map[string]time.Time),
-		keyStore:         newEDDSARedisKeyStore(redisClient),
-		keyTTL:           keyTTL,
-	}
-
-	ctx := context.Background()
-	kids, err := maker.keyStore.loadAllKids(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	currentKid, err := maker.keyStore.loadCurrentKID(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, kid := range kids {
-		meta, err := maker.keyStore.loadKeyMeta(ctx, kid)
-		if err != nil || meta == nil {
-			continue
-		}
-
-		pubKey, err := maker.keyStore.loadPublicKey(ctx, kid)
-		if err != nil || pubKey == nil {
-			continue
-		}
-
-		maker.publicKeys[kid] = pubKey
-		maker.expiresByKid[kid] = meta.ExpiresAt
-
-		if meta.Status == KeyStatusActive {
-			privKey, err := maker.keyStore.loadPrivateKey(ctx, kid)
-			if err == nil && privKey != nil {
-				maker.privateKeysByKid[kid] = privKey
-			}
-		}
-
-		if kid == currentKid && meta.Status == KeyStatusActive {
-			maker.currentKeyID = currentKid
-			maker.privateKey = maker.privateKeysByKid[currentKid]
-		}
-	}
-
-	if maker.currentKeyID != "" && maker.privateKey != nil {
-		return maker, nil
-	}
-
-	if _, err := maker.RotateKey(); err != nil {
-		return nil, err
-	}
-	return maker, nil
-}
-
 // NewEDDSAMakerWithScylla loads keys from ScyllaDB and rotates only when needed.
-func NewEDDSAMakerWithScylla(session interface{}, keyTTL time.Duration) (*EDDSAMaker, error) {
+func NewEDDSAMakerWithScylla(session interface{}, keyTTL time.Duration, jwksCacheKey string, jwksCache *ristretto.Cache) (*EDDSAMaker, error) {
 	// Type assert to gocql.Session
 	scyllaSession, ok := session.(*gocql.Session)
 	if !ok {
@@ -119,6 +56,8 @@ func NewEDDSAMakerWithScylla(session interface{}, keyTTL time.Duration) (*EDDSAM
 		publicKeys:       make(map[string]ed25519.PublicKey),
 		privateKeysByKid: make(map[string]ed25519.PrivateKey),
 		expiresByKid:     make(map[string]time.Time),
+		jwksCacheKey:     jwksCacheKey,
+		jwksCache:        jwksCache,
 		keyStore:         newEDDSAScyllaKeyStore(scyllaSession),
 		keyTTL:           keyTTL,
 	}
@@ -468,6 +407,10 @@ func (m *EDDSAMaker) RotateKey() (string, error) {
 		if err := m.keyStore.storeKey(ctx, newKeyID, newPrivateKey, m.keyTTL); err != nil {
 			return "", err
 		}
+	}
+
+	if m.jwksCache != nil && m.jwksCacheKey != "" {
+		m.jwksCache.Del(m.jwksCacheKey)
 	}
 
 	return newKeyID, nil

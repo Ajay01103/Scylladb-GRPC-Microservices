@@ -15,9 +15,15 @@ import (
 )
 
 type BufferedOp struct {
-	OpType  string
 	Records []byte
 	UserID  uuid.UUID
+}
+
+// Op represents a buffered board payload stored in board_ops_hot.
+type Op struct {
+	Clock  int64
+	Data   []byte
+	UserID uuid.UUID
 }
 
 type Service struct {
@@ -151,42 +157,70 @@ func (s *Service) AppendBoardOp(ctx context.Context, boardID, userID uuid.UUID, 
 	}
 
 	return s.session.Query(
-		`INSERT INTO board_ops (board_id, op_id, op_type, records, user_id) VALUES (?, now(), ?, ?, ?)`,
-		toGocqlUUID(boardID), opType, records, toGocqlUUID(userID),
+		`INSERT INTO board_ops_hot (board_id, op_clock, op_data, user_id) VALUES (?, ?, ?, ?)`,
+		toGocqlUUID(boardID), time.Now().UnixNano(), records, toGocqlUUID(userID),
 	).WithContext(ctx).Exec()
 }
 
 func (s *Service) BatchAppendBoardOps(ctx context.Context, boardID uuid.UUID, ops []BufferedOp) error {
+	if len(ops) == 0 {
+		return nil
+	}
+
 	batch := s.session.NewBatch(gocql.UnloggedBatch)
-	for _, op := range ops {
+	baseClock := time.Now().UnixNano()
+	for i, op := range ops {
 		batch.Query(
-			`INSERT INTO board_ops (board_id, op_id, op_type, records, user_id) VALUES (?, now(), ?, ?, ?)`,
-			toGocqlUUID(boardID), op.OpType, op.Records, toGocqlUUID(op.UserID),
+			`INSERT INTO board_ops_hot (board_id, op_clock, op_data, user_id) VALUES (?, ?, ?, ?)`,
+			toGocqlUUID(boardID), baseClock+int64(i), op.Records, toGocqlUUID(op.UserID),
 		)
 	}
 	return s.session.ExecuteBatch(batch.WithContext(ctx))
 }
 
-func (s *Service) UpsertBoardSnapshot(ctx context.Context, boardID uuid.UUID, document []byte) error {
+// LoadBoardState returns the canonical board document and its latest op clock.
+func (s *Service) LoadBoardState(ctx context.Context, boardID uuid.UUID) ([]byte, int64, bool, error) {
+	var document []byte
+	var opClock int64
+	err := s.session.Query(
+		`SELECT document, op_clock FROM board_state WHERE board_id = ?`,
+		toGocqlUUID(boardID),
+	).WithContext(ctx).Scan(&document, &opClock)
+	if err == gocql.ErrNotFound {
+		return nil, 0, false, nil
+	}
+	if err != nil {
+		return nil, 0, false, fmt.Errorf("load board state: %w", err)
+	}
+	return document, opClock, true, nil
+}
+
+func (s *Service) UpsertBoardState(ctx context.Context, boardID uuid.UUID, document []byte, opClock int64) error {
+	now := time.Now().UTC()
 	return s.session.Query(
-		`INSERT INTO board_snapshots (board_id, snapshot_at, document, schema_version) VALUES (?, now(), ?, ?)`,
-		toGocqlUUID(boardID), document, 1,
+		`INSERT INTO board_state (board_id, document, op_clock, schema_version, updated_at) VALUES (?, ?, ?, ?, ?)`,
+		toGocqlUUID(boardID), document, opClock, 1, now,
 	).WithContext(ctx).Exec()
 }
 
-func (s *Service) LatestBoardSnapshot(ctx context.Context, boardID uuid.UUID) ([]byte, error) {
-	var document []byte
-	err := s.session.Query(
-		`SELECT document FROM board_snapshots WHERE board_id = ? LIMIT 1`,
-		toGocqlUUID(boardID),
-	).WithContext(ctx).Scan(&document)
-	if err == gocql.ErrNotFound {
-		return nil, nil
+// LoadBoardOps loads hot ops for a board since (exclusive) the provided opClock.
+func (s *Service) LoadBoardOps(ctx context.Context, boardID uuid.UUID, sinceClock int64) ([]Op, error) {
+	iter := s.session.Query(
+		`SELECT op_clock, op_data, user_id FROM board_ops_hot WHERE board_id = ? AND op_clock > ?`,
+		toGocqlUUID(boardID), sinceClock,
+	).WithContext(ctx).Iter()
+
+	var out []Op
+	var opClock int64
+	var data []byte
+	var user gocql.UUID
+	for iter.Scan(&opClock, &data, &user) {
+		out = append(out, Op{Clock: opClock, Data: data, UserID: fromGocqlUUID(user)})
 	}
-	if err != nil {
-		return nil, fmt.Errorf("latest board snapshot: %w", err)
+	if err := iter.Close(); err != nil {
+		return nil, fmt.Errorf("load board ops: %w", err)
 	}
-	return document, nil
+	return out, nil
 }
 
 func (s *Service) CanAccessBoard(ctx context.Context, boardID, userID uuid.UUID) (bool, error) {
@@ -238,3 +272,27 @@ func (s *Service) getBoardByID(ctx context.Context, boardID uuid.UUID) (uuid.UUI
 
 	return fromGocqlUUID(workspaceID), title, fromGocqlUUID(createdBy), isPrivate, createdAt, updatedAt, nil
 }
+
+func (s *Service) RegisterAsset(ctx context.Context, assetID string, boardID, workspaceID, userID uuid.UUID, name, mimeType string, sizeBytes int64, s3Key string) (*pb.RegisterAssetResponse, error) {
+	if ok, err := s.CanAccessBoard(ctx, boardID, userID); err != nil || !ok {
+		if err != nil {
+			return nil, err
+		}
+		return nil, errors.New("access denied")
+	}
+
+	now := time.Now().UTC()
+	err := s.session.Query(
+		`INSERT INTO assets (asset_id, board_id, workspace_id, name, mime_type, size_bytes, s3_key, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		assetID, toGocqlUUID(boardID), toGocqlUUID(workspaceID), name, mimeType, sizeBytes, s3Key, now,
+	).WithContext(ctx).Exec()
+	if err != nil {
+		return nil, fmt.Errorf("register asset: %w", err)
+	}
+
+	return &pb.RegisterAssetResponse{
+		AssetId: assetID,
+		S3Key:   s3Key,
+	}, nil
+}
+

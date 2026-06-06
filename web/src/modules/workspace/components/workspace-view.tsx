@@ -3,11 +3,14 @@
 import { useMemo, useState } from "react"
 
 import { Plus } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 import AnimatedTabs from "@/components/ui/animated-tabs"
 import { Button } from "@/components/ui/button"
 import type { Workspace } from "@/gen/pb/workspace/workspace_pb"
 import { Skeleton } from "@/components/ui/skeleton"
+
+import { useCreateWhiteboard } from "@/modules/whiteboard/api/use-whiteboards"
 
 import { useWorkspaceBoards, useWorkspaceNotes } from "../api/use-workspaces"
 import { WorkspaceLibraryTable } from "./workspace-library-table"
@@ -23,10 +26,26 @@ const tabs = [
 ]
 
 export function WorkspaceView({ workspace }: WorkspaceViewProps) {
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]["id"]>("whiteboards")
+  const createWhiteboardMutation = useCreateWhiteboard()
 
   const whiteboardsQuery = useWorkspaceBoards(workspace?.id ?? "", activeTab === "whiteboards")
   const notesQuery = useWorkspaceNotes(workspace?.id ?? "", activeTab === "notes")
+
+  const handleCreateWhiteboard = async () => {
+    if (!workspace || activeTab !== "whiteboards" || createWhiteboardMutation.isPending) {
+      return
+    }
+
+    const createdBoard = await createWhiteboardMutation.mutateAsync({
+      workspaceId: workspace.id,
+    })
+
+    if (createdBoard.title) {
+      router.push(`/whiteboard/${encodeURIComponent(createdBoard.title)}`)
+    }
+  }
 
   const libraryView = useMemo(() => {
     if (activeTab === "notes") {
@@ -60,9 +79,9 @@ export function WorkspaceView({ workspace }: WorkspaceViewProps) {
     return (
       <div className="flex min-h-full flex-1 items-center justify-center p-6">
         <div className="w-full max-w-7xl space-y-4">
-          <Skeleton className="h-[220px] w-full rounded-[32px]" />
+          <Skeleton className="h-55 w-full rounded-4xl" />
           <Skeleton className="h-24 w-full rounded-2xl" />
-          <Skeleton className="h-[420px] w-full rounded-3xl" />
+          <Skeleton className="h-105 w-full rounded-3xl" />
         </div>
       </div>
     )
@@ -87,9 +106,19 @@ export function WorkspaceView({ workspace }: WorkspaceViewProps) {
           </div>
 
           <div className="flex items-center gap-3">
-            <Button className="rounded-full bg-card-tint-lavender" size="sm" variant="outline">
+            <Button
+              className="rounded-full bg-card-tint-lavender"
+              disabled={activeTab !== "whiteboards" || createWhiteboardMutation.isPending}
+              onClick={() => void handleCreateWhiteboard()}
+              size="sm"
+              variant="outline"
+            >
               <Plus className="mr-2 size-4" />
-              New {activeTab === "notes" ? "note" : "whiteboard"}
+              {createWhiteboardMutation.isPending
+                ? "Creating..."
+                : activeTab === "notes"
+                  ? "New note"
+                  : "New whiteboard"}
             </Button>
             <Button className="rounded-full px-5 bg-card-tint-mint" size="sm" variant="outline">
               <Plus className="mr-2 size-4" />

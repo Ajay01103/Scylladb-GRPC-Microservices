@@ -1,6 +1,6 @@
 allowBuilds:
   msw: true
-  sharp: set this to true or false
+  sharp: true
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver

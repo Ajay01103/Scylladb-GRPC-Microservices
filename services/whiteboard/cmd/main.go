@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -93,8 +94,8 @@ func run() error {
 	jwksCache, err := jwks.New(jwksCtx,
 		jwks.WithJWKSURL(cfg.JWKSEndpoint),
 		jwks.WithFetchTimeout(10*time.Second),
-		jwks.WithRefreshInterval(15*time.Minute),
-		jwks.WithMinRefreshInterval(5*time.Minute),
+		jwks.WithRefreshInterval(1*time.Hour),
+		jwks.WithMinRefreshInterval(15*time.Minute),
 		jwks.WithScyllaDB(jwksStore, "whiteboard"),
 	)
 	if err != nil {
@@ -106,6 +107,10 @@ func run() error {
 	whiteboardServer := server.New(whiteboardSvc)
 	whiteboardHub := realtime.NewHub(whiteboardSvc, logger)
 
+	// Create a dedicated cancel hook for the hub, cancelled before server shutdown.
+	_, hubCancel := context.WithCancel(context.Background())
+	defer hubCancel()
+
 	loggingInterceptor := interceptor.NewLoggingInterceptor(logger)
 	authInterceptor := interceptor.NewAuthInterceptor(jwksVerifier)
 
@@ -116,8 +121,31 @@ func run() error {
 	)
 	mux.Handle(path, corsMiddleware(handler))
 
-	mux.HandleFunc("GET /ws/boards/{boardId}", func(w http.ResponseWriter, r *http.Request) {
+	wsTicketHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userID, err := authenticateHTTP(r, jwksVerifier)
+		if err != nil {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		ticket, err := whiteboardSvc.IssueWSTicket(r.Context(), userID)
+		if err != nil {
+			logger.Error("failed to issue websocket ticket", zap.Error(err), zap.String("user_id", userID.String()))
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(map[string]string{"ticket": ticket}); err != nil {
+			logger.Error("failed to encode websocket ticket response", zap.Error(err))
+		}
+	})
+	mux.Handle("POST /ws/ticket", corsMiddleware(wsTicketHandler))
+	mux.Handle("OPTIONS /ws/ticket", corsMiddleware(wsTicketHandler))
+
+	mux.HandleFunc("GET /ws/boards/{boardId}", func(w http.ResponseWriter, r *http.Request) {
+		ticket := r.URL.Query().Get("ticket")
+		userID, err := whiteboardSvc.RedeemWSTicket(r.Context(), ticket)
 		if err != nil {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
@@ -151,7 +179,9 @@ func run() error {
 	case <-quit:
 	}
 
-	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+	hubCancel()
+
+	ctx, cancel = context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
 		return fmt.Errorf("graceful shutdown: %w", err)

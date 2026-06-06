@@ -2,19 +2,17 @@
 // @generated from file notes.proto (package notes, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2"
-import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2"
-import type { EmptySchema, Timestamp } from "@bufbuild/protobuf/wkt"
-import { file_google_protobuf_empty, file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt"
-import type { Message } from "@bufbuild/protobuf"
+import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { EmptySchema, Timestamp } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_empty, file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
+import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file notes.proto.
  */
-export const file_notes: GenFile /*@__PURE__*/ = fileDesc(
-  "Cgtub3Rlcy5wcm90bxIFbm90ZXMivwEKBE5vdGUSCgoCaWQYASABKAkSFAoMd29ya3NwYWNlX2lkGAIgASgJEg0KBXRpdGxlGAMgASgJEhIKCmNyZWF0ZWRfYnkYBCABKAkSEgoKaXNfcHJpdmF0ZRgFIAEoCBIuCgpjcmVhdGVkX2F0GAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgp1cGRhdGVkX2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJMChFDcmVhdGVOb3RlUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkSDQoFdGl0bGUYAiABKAkSEgoKaXNfcHJpdmF0ZRgDIAEoCCIhCg5HZXROb3RlUmVxdWVzdBIPCgdub3RlX2lkGAEgASgJIjEKGUxpc3RXb3Jrc3BhY2VOb3Rlc1JlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJIjgKGkxpc3RXb3Jrc3BhY2VOb3Rlc1Jlc3BvbnNlEhoKBW5vdGVzGAEgAygLMgsubm90ZXMuTm90ZSI4ChdBcHBlbmROb3RlVXBkYXRlUmVxdWVzdBIPCgdub3RlX2lkGAEgASgJEgwKBGRhdGEYAiABKAwymQIKDE5vdGVzU2VydmljZRIzCgpDcmVhdGVOb3RlEhgubm90ZXMuQ3JlYXRlTm90ZVJlcXVlc3QaCy5ub3Rlcy5Ob3RlEi0KB0dldE5vdGUSFS5ub3Rlcy5HZXROb3RlUmVxdWVzdBoLLm5vdGVzLk5vdGUSWQoSTGlzdFdvcmtzcGFjZU5vdGVzEiAubm90ZXMuTGlzdFdvcmtzcGFjZU5vdGVzUmVxdWVzdBohLm5vdGVzLkxpc3RXb3Jrc3BhY2VOb3Rlc1Jlc3BvbnNlEkoKEEFwcGVuZE5vdGVVcGRhdGUSHi5ub3Rlcy5BcHBlbmROb3RlVXBkYXRlUmVxdWVzdBoWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eUIwWi5naXRodWIuY29tL0FqYXkwMTEwMy9nby1ub3Rpb24vbm90ZXMvZ2VuL3BiO3BiYgZwcm90bzM",
-  [file_google_protobuf_empty, file_google_protobuf_timestamp],
-)
+export const file_notes: GenFile = /*@__PURE__*/
+  fileDesc("Cgtub3Rlcy5wcm90bxIFbm90ZXMivwEKBE5vdGUSCgoCaWQYASABKAkSFAoMd29ya3NwYWNlX2lkGAIgASgJEg0KBXRpdGxlGAMgASgJEhIKCmNyZWF0ZWRfYnkYBCABKAkSEgoKaXNfcHJpdmF0ZRgFIAEoCBIuCgpjcmVhdGVkX2F0GAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgp1cGRhdGVkX2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJMChFDcmVhdGVOb3RlUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkSDQoFdGl0bGUYAiABKAkSEgoKaXNfcHJpdmF0ZRgDIAEoCCIhCg5HZXROb3RlUmVxdWVzdBIPCgdub3RlX2lkGAEgASgJIjEKGUxpc3RXb3Jrc3BhY2VOb3Rlc1JlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJIjgKGkxpc3RXb3Jrc3BhY2VOb3Rlc1Jlc3BvbnNlEhoKBW5vdGVzGAEgAygLMgsubm90ZXMuTm90ZSI4ChdBcHBlbmROb3RlVXBkYXRlUmVxdWVzdBIPCgdub3RlX2lkGAEgASgJEgwKBGRhdGEYAiABKAwymQIKDE5vdGVzU2VydmljZRIzCgpDcmVhdGVOb3RlEhgubm90ZXMuQ3JlYXRlTm90ZVJlcXVlc3QaCy5ub3Rlcy5Ob3RlEi0KB0dldE5vdGUSFS5ub3Rlcy5HZXROb3RlUmVxdWVzdBoLLm5vdGVzLk5vdGUSWQoSTGlzdFdvcmtzcGFjZU5vdGVzEiAubm90ZXMuTGlzdFdvcmtzcGFjZU5vdGVzUmVxdWVzdBohLm5vdGVzLkxpc3RXb3Jrc3BhY2VOb3Rlc1Jlc3BvbnNlEkoKEEFwcGVuZE5vdGVVcGRhdGUSHi5ub3Rlcy5BcHBlbmROb3RlVXBkYXRlUmVxdWVzdBoWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eUIwWi5naXRodWIuY29tL0FqYXkwMTEwMy9nby1ub3Rpb24vbm90ZXMvZ2VuL3BiO3BiYgZwcm90bzM", [file_google_protobuf_empty, file_google_protobuf_timestamp]);
 
 /**
  * @generated from message notes.Note
@@ -23,44 +21,45 @@ export type Note = Message<"notes.Note"> & {
   /**
    * @generated from field: string id = 1;
    */
-  id: string
+  id: string;
 
   /**
    * @generated from field: string workspace_id = 2;
    */
-  workspaceId: string
+  workspaceId: string;
 
   /**
    * @generated from field: string title = 3;
    */
-  title: string
+  title: string;
 
   /**
    * @generated from field: string created_by = 4;
    */
-  createdBy: string
+  createdBy: string;
 
   /**
    * @generated from field: bool is_private = 5;
    */
-  isPrivate: boolean
+  isPrivate: boolean;
 
   /**
    * @generated from field: google.protobuf.Timestamp created_at = 6;
    */
-  createdAt?: Timestamp | undefined
+  createdAt?: Timestamp | undefined;
 
   /**
    * @generated from field: google.protobuf.Timestamp updated_at = 7;
    */
-  updatedAt?: Timestamp | undefined
-}
+  updatedAt?: Timestamp | undefined;
+};
 
 /**
  * Describes the message notes.Note.
  * Use `create(NoteSchema)` to create a new message.
  */
-export const NoteSchema: GenMessage<Note> /*@__PURE__*/ = messageDesc(file_notes, 0)
+export const NoteSchema: GenMessage<Note> = /*@__PURE__*/
+  messageDesc(file_notes, 0);
 
 /**
  * @generated from message notes.CreateNoteRequest
@@ -69,27 +68,25 @@ export type CreateNoteRequest = Message<"notes.CreateNoteRequest"> & {
   /**
    * @generated from field: string workspace_id = 1;
    */
-  workspaceId: string
+  workspaceId: string;
 
   /**
    * @generated from field: string title = 2;
    */
-  title: string
+  title: string;
 
   /**
    * @generated from field: bool is_private = 3;
    */
-  isPrivate: boolean
-}
+  isPrivate: boolean;
+};
 
 /**
  * Describes the message notes.CreateNoteRequest.
  * Use `create(CreateNoteRequestSchema)` to create a new message.
  */
-export const CreateNoteRequestSchema: GenMessage<CreateNoteRequest> /*@__PURE__*/ = messageDesc(
-  file_notes,
-  1,
-)
+export const CreateNoteRequestSchema: GenMessage<CreateNoteRequest> = /*@__PURE__*/
+  messageDesc(file_notes, 1);
 
 /**
  * @generated from message notes.GetNoteRequest
@@ -98,17 +95,15 @@ export type GetNoteRequest = Message<"notes.GetNoteRequest"> & {
   /**
    * @generated from field: string note_id = 1;
    */
-  noteId: string
-}
+  noteId: string;
+};
 
 /**
  * Describes the message notes.GetNoteRequest.
  * Use `create(GetNoteRequestSchema)` to create a new message.
  */
-export const GetNoteRequestSchema: GenMessage<GetNoteRequest> /*@__PURE__*/ = messageDesc(
-  file_notes,
-  2,
-)
+export const GetNoteRequestSchema: GenMessage<GetNoteRequest> = /*@__PURE__*/
+  messageDesc(file_notes, 2);
 
 /**
  * @generated from message notes.ListWorkspaceNotesRequest
@@ -117,15 +112,15 @@ export type ListWorkspaceNotesRequest = Message<"notes.ListWorkspaceNotesRequest
   /**
    * @generated from field: string workspace_id = 1;
    */
-  workspaceId: string
-}
+  workspaceId: string;
+};
 
 /**
  * Describes the message notes.ListWorkspaceNotesRequest.
  * Use `create(ListWorkspaceNotesRequestSchema)` to create a new message.
  */
-export const ListWorkspaceNotesRequestSchema: GenMessage<ListWorkspaceNotesRequest> /*@__PURE__*/ =
-  messageDesc(file_notes, 3)
+export const ListWorkspaceNotesRequestSchema: GenMessage<ListWorkspaceNotesRequest> = /*@__PURE__*/
+  messageDesc(file_notes, 3);
 
 /**
  * @generated from message notes.ListWorkspaceNotesResponse
@@ -134,15 +129,15 @@ export type ListWorkspaceNotesResponse = Message<"notes.ListWorkspaceNotesRespon
   /**
    * @generated from field: repeated notes.Note notes = 1;
    */
-  notes: Note[]
-}
+  notes: Note[];
+};
 
 /**
  * Describes the message notes.ListWorkspaceNotesResponse.
  * Use `create(ListWorkspaceNotesResponseSchema)` to create a new message.
  */
-export const ListWorkspaceNotesResponseSchema: GenMessage<ListWorkspaceNotesResponse> /*@__PURE__*/ =
-  messageDesc(file_notes, 4)
+export const ListWorkspaceNotesResponseSchema: GenMessage<ListWorkspaceNotesResponse> = /*@__PURE__*/
+  messageDesc(file_notes, 4);
 
 /**
  * @generated from message notes.AppendNoteUpdateRequest
@@ -151,20 +146,20 @@ export type AppendNoteUpdateRequest = Message<"notes.AppendNoteUpdateRequest"> &
   /**
    * @generated from field: string note_id = 1;
    */
-  noteId: string
+  noteId: string;
 
   /**
    * @generated from field: bytes data = 2;
    */
-  data: Uint8Array
-}
+  data: Uint8Array;
+};
 
 /**
  * Describes the message notes.AppendNoteUpdateRequest.
  * Use `create(AppendNoteUpdateRequestSchema)` to create a new message.
  */
-export const AppendNoteUpdateRequestSchema: GenMessage<AppendNoteUpdateRequest> /*@__PURE__*/ =
-  messageDesc(file_notes, 5)
+export const AppendNoteUpdateRequestSchema: GenMessage<AppendNoteUpdateRequest> = /*@__PURE__*/
+  messageDesc(file_notes, 5);
 
 /**
  * @generated from service notes.NotesService
@@ -174,32 +169,34 @@ export const NotesService: GenService<{
    * @generated from rpc notes.NotesService.CreateNote
    */
   createNote: {
-    methodKind: "unary"
-    input: typeof CreateNoteRequestSchema
-    output: typeof NoteSchema
-  }
+    methodKind: "unary";
+    input: typeof CreateNoteRequestSchema;
+    output: typeof NoteSchema;
+  },
   /**
    * @generated from rpc notes.NotesService.GetNote
    */
   getNote: {
-    methodKind: "unary"
-    input: typeof GetNoteRequestSchema
-    output: typeof NoteSchema
-  }
+    methodKind: "unary";
+    input: typeof GetNoteRequestSchema;
+    output: typeof NoteSchema;
+  },
   /**
    * @generated from rpc notes.NotesService.ListWorkspaceNotes
    */
   listWorkspaceNotes: {
-    methodKind: "unary"
-    input: typeof ListWorkspaceNotesRequestSchema
-    output: typeof ListWorkspaceNotesResponseSchema
-  }
+    methodKind: "unary";
+    input: typeof ListWorkspaceNotesRequestSchema;
+    output: typeof ListWorkspaceNotesResponseSchema;
+  },
   /**
    * @generated from rpc notes.NotesService.AppendNoteUpdate
    */
   appendNoteUpdate: {
-    methodKind: "unary"
-    input: typeof AppendNoteUpdateRequestSchema
-    output: typeof EmptySchema
-  }
-}> /*@__PURE__*/ = serviceDesc(file_notes, 0)
+    methodKind: "unary";
+    input: typeof AppendNoteUpdateRequestSchema;
+    output: typeof EmptySchema;
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_notes, 0);
+

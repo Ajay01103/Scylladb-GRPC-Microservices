@@ -41,9 +41,25 @@ message AppendBoardOpRequest {
   bytes records = 3;
 }
 
+message RegisterAssetRequest {
+  string asset_id = 1;
+  string board_id = 2;
+  string workspace_id = 3;
+  string name = 4;
+  string mime_type = 5;
+  int64 size_bytes = 6;
+  string s3_key = 7;
+}
+
+message RegisterAssetResponse {
+  string asset_id = 1;
+  string s3_key = 2;
+}
+
 service WhiteboardService {
   rpc CreateBoard(CreateBoardRequest) returns (Board);
   rpc GetBoard(GetBoardRequest) returns (Board);
   rpc ListWorkspaceBoards(ListWorkspaceBoardsRequest) returns (ListWorkspaceBoardsResponse);
   rpc AppendBoardOp(AppendBoardOpRequest) returns (google.protobuf.Empty);
+  rpc RegisterAsset(RegisterAssetRequest) returns (RegisterAssetResponse);
 }

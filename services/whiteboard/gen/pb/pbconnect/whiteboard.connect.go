@@ -46,6 +46,9 @@ const (
 	// WhiteboardServiceAppendBoardOpProcedure is the fully-qualified name of the WhiteboardService's
 	// AppendBoardOp RPC.
 	WhiteboardServiceAppendBoardOpProcedure = "/whiteboard.WhiteboardService/AppendBoardOp"
+	// WhiteboardServiceRegisterAssetProcedure is the fully-qualified name of the WhiteboardService's
+	// RegisterAsset RPC.
+	WhiteboardServiceRegisterAssetProcedure = "/whiteboard.WhiteboardService/RegisterAsset"
 )
 
 // WhiteboardServiceClient is a client for the whiteboard.WhiteboardService service.
@@ -54,6 +57,7 @@ type WhiteboardServiceClient interface {
 	GetBoard(context.Context, *connect.Request[pb.GetBoardRequest]) (*connect.Response[pb.Board], error)
 	ListWorkspaceBoards(context.Context, *connect.Request[pb.ListWorkspaceBoardsRequest]) (*connect.Response[pb.ListWorkspaceBoardsResponse], error)
 	AppendBoardOp(context.Context, *connect.Request[pb.AppendBoardOpRequest]) (*connect.Response[emptypb.Empty], error)
+	RegisterAsset(context.Context, *connect.Request[pb.RegisterAssetRequest]) (*connect.Response[pb.RegisterAssetResponse], error)
 }
 
 // NewWhiteboardServiceClient constructs a client for the whiteboard.WhiteboardService service. By
@@ -91,6 +95,12 @@ func NewWhiteboardServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			connect.WithSchema(whiteboardServiceMethods.ByName("AppendBoardOp")),
 			connect.WithClientOptions(opts...),
 		),
+		registerAsset: connect.NewClient[pb.RegisterAssetRequest, pb.RegisterAssetResponse](
+			httpClient,
+			baseURL+WhiteboardServiceRegisterAssetProcedure,
+			connect.WithSchema(whiteboardServiceMethods.ByName("RegisterAsset")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -100,6 +110,7 @@ type whiteboardServiceClient struct {
 	getBoard            *connect.Client[pb.GetBoardRequest, pb.Board]
 	listWorkspaceBoards *connect.Client[pb.ListWorkspaceBoardsRequest, pb.ListWorkspaceBoardsResponse]
 	appendBoardOp       *connect.Client[pb.AppendBoardOpRequest, emptypb.Empty]
+	registerAsset       *connect.Client[pb.RegisterAssetRequest, pb.RegisterAssetResponse]
 }
 
 // CreateBoard calls whiteboard.WhiteboardService.CreateBoard.
@@ -122,12 +133,18 @@ func (c *whiteboardServiceClient) AppendBoardOp(ctx context.Context, req *connec
 	return c.appendBoardOp.CallUnary(ctx, req)
 }
 
+// RegisterAsset calls whiteboard.WhiteboardService.RegisterAsset.
+func (c *whiteboardServiceClient) RegisterAsset(ctx context.Context, req *connect.Request[pb.RegisterAssetRequest]) (*connect.Response[pb.RegisterAssetResponse], error) {
+	return c.registerAsset.CallUnary(ctx, req)
+}
+
 // WhiteboardServiceHandler is an implementation of the whiteboard.WhiteboardService service.
 type WhiteboardServiceHandler interface {
 	CreateBoard(context.Context, *connect.Request[pb.CreateBoardRequest]) (*connect.Response[pb.Board], error)
 	GetBoard(context.Context, *connect.Request[pb.GetBoardRequest]) (*connect.Response[pb.Board], error)
 	ListWorkspaceBoards(context.Context, *connect.Request[pb.ListWorkspaceBoardsRequest]) (*connect.Response[pb.ListWorkspaceBoardsResponse], error)
 	AppendBoardOp(context.Context, *connect.Request[pb.AppendBoardOpRequest]) (*connect.Response[emptypb.Empty], error)
+	RegisterAsset(context.Context, *connect.Request[pb.RegisterAssetRequest]) (*connect.Response[pb.RegisterAssetResponse], error)
 }
 
 // NewWhiteboardServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -161,6 +178,12 @@ func NewWhiteboardServiceHandler(svc WhiteboardServiceHandler, opts ...connect.H
 		connect.WithSchema(whiteboardServiceMethods.ByName("AppendBoardOp")),
 		connect.WithHandlerOptions(opts...),
 	)
+	whiteboardServiceRegisterAssetHandler := connect.NewUnaryHandler(
+		WhiteboardServiceRegisterAssetProcedure,
+		svc.RegisterAsset,
+		connect.WithSchema(whiteboardServiceMethods.ByName("RegisterAsset")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/whiteboard.WhiteboardService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case WhiteboardServiceCreateBoardProcedure:
@@ -171,6 +194,8 @@ func NewWhiteboardServiceHandler(svc WhiteboardServiceHandler, opts ...connect.H
 			whiteboardServiceListWorkspaceBoardsHandler.ServeHTTP(w, r)
 		case WhiteboardServiceAppendBoardOpProcedure:
 			whiteboardServiceAppendBoardOpHandler.ServeHTTP(w, r)
+		case WhiteboardServiceRegisterAssetProcedure:
+			whiteboardServiceRegisterAssetHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -194,4 +219,8 @@ func (UnimplementedWhiteboardServiceHandler) ListWorkspaceBoards(context.Context
 
 func (UnimplementedWhiteboardServiceHandler) AppendBoardOp(context.Context, *connect.Request[pb.AppendBoardOpRequest]) (*connect.Response[emptypb.Empty], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("whiteboard.WhiteboardService.AppendBoardOp is not implemented"))
+}
+
+func (UnimplementedWhiteboardServiceHandler) RegisterAsset(context.Context, *connect.Request[pb.RegisterAssetRequest]) (*connect.Response[pb.RegisterAssetResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("whiteboard.WhiteboardService.RegisterAsset is not implemented"))
 }

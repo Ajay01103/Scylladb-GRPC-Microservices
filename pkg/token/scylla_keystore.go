@@ -28,7 +28,7 @@ func newEDDSAScyllaKeyStore(session *gocql.Session) *eddsaScyllaKeyStore {
 // loadAllKids retrieves all key IDs from the database
 func (s *eddsaScyllaKeyStore) loadAllKids(ctx context.Context) ([]string, error) {
 	iter := s.session.Query(
-		`SELECT kid FROM signing_keys WHERE status IN ('active', 'rotated') ALLOW FILTERING`,
+		`SELECT kid FROM signing_keys WHERE status IN ('active', 'retired') ALLOW FILTERING`,
 	).WithContext(ctx).Iter()
 	defer iter.Close()
 

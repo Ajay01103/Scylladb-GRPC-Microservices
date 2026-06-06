@@ -23,10 +23,15 @@ type AuthService struct {
 	userRepo        *repository.UserRepo
 	tokenMaker      token.TokenMaker
 	sessionStore    *scyllastore.SessionStore
-	revocationStore *scyllastore.SessionStore
+	revocationStore revocationStore
 	cache           *ristretto.Cache
 	cfg             config.Config
 	logger          *zap.Logger
+}
+
+type revocationStore interface {
+	GetUserRevocation(ctx context.Context, userID string) (*scyllastore.UserRevocationRecord, error)
+	BumpUserGlobalVer(ctx context.Context, userID string) (int, error)
 }
 
 // New creates an AuthService with its dependencies wired.
@@ -34,7 +39,7 @@ func New(
 	userRepo *repository.UserRepo,
 	tokenMaker token.TokenMaker,
 	sessionStore *scyllastore.SessionStore,
-	revocationStore *scyllastore.SessionStore,
+	revocationStore revocationStore,
 	cache *ristretto.Cache,
 	cfg config.Config,
 	logger *zap.Logger,
@@ -146,7 +151,7 @@ func (s *AuthService) RefreshToken(ctx context.Context, refreshTokenStr string) 
 					zap.Int64("expected", sessionGen),
 					zap.Int64("got", payload.Gen),
 				)
-				go s.handleTheftDetected(ctx, uid, sid)
+				go s.handleTheftDetected(uid, sid)
 				return nil, ErrReplayDetected
 			}
 			// Check user revocation from cache
@@ -179,7 +184,7 @@ func (s *AuthService) RefreshToken(ctx context.Context, refreshTokenStr string) 
 			zap.String("userID", uid),
 			zap.String("sessionID", sid),
 		)
-		go s.handleTheftDetected(ctx, uid, sid)
+		go s.handleTheftDetected(uid, sid)
 		return nil, ErrReplayDetected
 	}
 
@@ -496,29 +501,75 @@ func (s *AuthService) issueAndUpdateSessionCache(
 	return &RefreshResult{AccessToken: newAccessStr, RefreshToken: newRefreshStr}, nil
 }
 
-func (s *AuthService) handleTheftDetected(ctx context.Context, userID, sessionID string) {
+func (s *AuthService) handleTheftDetected(userID, sessionID string) {
 	// Non-negotiable: kill the session immediately on replay detection
 	s.logger.Warn("TOKEN REPLAY DETECTED - KILLING SESSION",
 		zap.String("userID", userID),
 		zap.String("sessionID", sessionID),
 	)
 
+	// The theft counter is intentionally best-effort: concurrent replay attempts can
+	// under-count, but repeated theft still eventually crosses the threshold.
+	attempts := s.recordTheftAttempt(userID)
+	if attempts >= tokencache.TheftThreshold && s.revocationStore != nil {
+		cleanupCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+
+		newGv, err := s.revocationStore.BumpUserGlobalVer(cleanupCtx, userID)
+		if err != nil {
+			s.logger.Error("failed to bump global version after repeated theft",
+				zap.String("userID", userID),
+				zap.Error(err),
+			)
+		} else {
+			s.logger.Warn("repeated theft detected, bumping global version",
+				zap.String("userID", userID),
+				zap.Int("newGv", newGv),
+			)
+		}
+		if s.cache != nil {
+			s.cache.Del(tokencache.GlobalVerKey(userID))
+			s.cache.Del(tokencache.TheftCounterKey(userID))
+		}
+	}
+
 	// Delete session from Scylla (best effort, async cleanup)
 	// Use a detached context so request cancellation does not abort cleanup.
 	cleanupCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	if err := s.sessionStore.DeleteSession(cleanupCtx, userID, sessionID); err != nil {
+	if s.sessionStore != nil {
+		if err := s.sessionStore.DeleteSession(cleanupCtx, userID, sessionID); err != nil {
 		s.logger.Error("failed to delete compromised session from DB",
 			zap.String("userID", userID),
 			zap.String("sessionID", sessionID),
 			zap.Error(err),
 		)
+		}
 	}
 
 	// Evict from cache immediately (must succeed)
-	s.cache.Del(tokencache.SessionKey(sessionID))
+	if s.cache != nil {
+		s.cache.Del(tokencache.SessionKey(sessionID))
+	}
 
 	// TODO: emit audit event for security team
-	// TODO: optionally bump global_ver to revoke all user sessions on repeated theft
+}
+
+func (s *AuthService) recordTheftAttempt(userID string) int {
+	if s.cache == nil {
+		return 0
+	}
+
+	key := tokencache.TheftCounterKey(userID)
+	attempts := 1
+	if cached, ok := s.cache.Get(key); ok {
+		if count, ok := cached.(int); ok {
+			attempts = count + 1
+		}
+	}
+
+	s.cache.SetWithTTL(key, attempts, tokencache.TheftCountCost, tokencache.TheftCountTTL)
+	s.cache.Wait()
+	return attempts
 }

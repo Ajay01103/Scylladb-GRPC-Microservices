@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"go.uber.org/zap"
 
 	"connectrpc.com/connect"
+	"github.com/dgraph-io/ristretto"
 	"github.com/gocql/gocql"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -120,12 +122,23 @@ func run() error {
 		eddsaKeyRetention = cfg.RefreshTokenDuration
 	}
 
-	eddsaMaker, err := token.NewEDDSAMakerWithScylla(session, eddsaKeyRetention)
+	for _, warning := range ValidateTokenDurations(cfg, logger) {
+		logger.Warn(warning)
+	}
+
+	eddsaMaker, err := token.NewEDDSAMakerWithScylla(session, eddsaKeyRetention, tokencache.JWKSCacheKey(), authCache)
 	if err != nil {
 		logger.Error("cannot create EdDSA token maker", zap.Error(err))
 		return fmt.Errorf("create eddsa token maker: %w", err)
 	}
 	var tokenMaker token.TokenMaker = eddsaMaker
+
+	jwksCtx, jwksCancel := context.WithCancel(context.Background())
+	defer jwksCancel()
+	go startJWKSRefreshLoop(jwksCtx, session, eddsaMaker, authCache, logger)
+	if err := refreshJWKSCache(context.Background(), session, eddsaMaker, authCache, logger); err != nil {
+		logger.Warn("initial jwks cache population failed", zap.Error(err))
+	}
 
 	authService := service.New(userRepo, tokenMaker, sessionStore, revocationStore, authCache, cfg, logger)
 	authServer := server.New(authService)
@@ -137,16 +150,27 @@ func run() error {
 
 	// JWKS endpoint for token validation by other services
 	mux.HandleFunc("GET /.well-known/jwks.json", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d", int(tokencache.JWKSTTL.Seconds())))
+
+		if cached, ok := authCache.Get(tokencache.JWKSCacheKey()); ok {
+			if jwksBytes, ok := cached.([]byte); ok {
+				_, _ = w.Write(jwksBytes)
+				return
+			}
+		}
+
 		// Cache miss: try to load serialized JWKS from ScyllaDB table first
 		var jwksText string
 		if err := session.Query(`SELECT jwks_json FROM jwks_public_keys WHERE id = ?`, "current").WithContext(r.Context()).Scan(&jwksText); err == nil {
 			jwksBytes := []byte(jwksText)
-			w.Header().Set("Content-Type", "application/json")
-			w.Header().Set("Cache-Control", "public, max-age=3600")
-			w.Write(jwksBytes)
+			authCache.SetWithTTL(tokencache.JWKSCacheKey(), jwksBytes, tokencache.JWKSCost, tokencache.JWKSTTL)
+			authCache.Wait()
+			_, _ = w.Write(jwksBytes)
 			return
+		} else if !errors.Is(err, gocql.ErrNotFound) {
+			logger.Warn("jwks scylla lookup failed; falling back to in-memory export", zap.Error(err))
 		}
-
 		// If not found in Scylla, export from EDDSAMaker (in-memory keys loaded at startup)
 		jwksData, err := eddsaMaker.ExportPublicKeys()
 		if err != nil {
@@ -155,9 +179,9 @@ func run() error {
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Cache-Control", "public, max-age=3600")
-		w.Write(jwksData)
+		authCache.SetWithTTL(tokencache.JWKSCacheKey(), jwksData, tokencache.JWKSCost, tokencache.JWKSTTL)
+		authCache.Wait()
+		_, _ = w.Write(jwksData)
 	})
 
 	path, handler := pbconnect.NewAuthServiceHandler(
@@ -204,4 +228,60 @@ func run() error {
 	logger.Info("server stopped")
 
 	return nil
+}
+
+func ValidateTokenDurations(cfg config.Config, _ *zap.Logger) []string {
+	var warnings []string
+	if cfg.AccessTokenDuration > tokencache.SessionStateTTL {
+		warnings = append(warnings, fmt.Sprintf("access token duration %s exceeds session cache TTL %s", cfg.AccessTokenDuration, tokencache.SessionStateTTL))
+	}
+	return warnings
+}
+
+func refreshJWKSCache(ctx context.Context, session *gocql.Session, eddsaMaker *token.EDDSAMaker, authCache *ristretto.Cache, logger *zap.Logger) error {
+	if authCache == nil {
+		return errors.New("auth cache is nil")
+	}
+
+	var jwksText string
+	if err := session.Query(`SELECT jwks_json FROM jwks_public_keys WHERE id = ?`, "current").WithContext(ctx).Scan(&jwksText); err == nil {
+		jwksBytes := []byte(jwksText)
+		authCache.SetWithTTL(tokencache.JWKSCacheKey(), jwksBytes, tokencache.JWKSCost, tokencache.JWKSTTL)
+		authCache.Wait()
+		return nil
+	} else {
+		if logger != nil {
+			if errors.Is(err, gocql.ErrNotFound) {
+				logger.Debug("jwks row not found in scylla; using in-memory exporter")
+			} else {
+				logger.Warn("jwks refresh from scylla failed; using in-memory exporter", zap.Error(err))
+			}
+		}
+	}
+
+	jwksData, err := eddsaMaker.ExportPublicKeys()
+	if err != nil {
+		return fmt.Errorf("export jwks: %w", err)
+	}
+	authCache.SetWithTTL(tokencache.JWKSCacheKey(), jwksData, tokencache.JWKSCost, tokencache.JWKSTTL)
+	authCache.Wait()
+	return nil
+}
+
+func startJWKSRefreshLoop(ctx context.Context, session *gocql.Session, eddsaMaker *token.EDDSAMaker, authCache *ristretto.Cache, logger *zap.Logger) {
+	ticker := time.NewTicker(tokencache.JWKSTTL / 2)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			refreshCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			if err := refreshJWKSCache(refreshCtx, session, eddsaMaker, authCache, logger); err != nil && logger != nil {
+				logger.Warn("periodic jwks cache refresh failed", zap.Error(err))
+			}
+			cancel()
+		}
+	}
 }

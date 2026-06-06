@@ -65,13 +65,3 @@ CREATE TABLE IF NOT EXISTS board_snapshots (
     schema_version INT,
     PRIMARY KEY (board_id, snapshot_at)
 ) WITH CLUSTERING ORDER BY (snapshot_at DESC);
-
-CREATE TABLE IF NOT EXISTS board_ops (
-    board_id UUID,
-    op_id TIMEUUID,
-    op_type TEXT,
-    records BLOB,
-    user_id UUID,
-    PRIMARY KEY (board_id, op_id)
-) WITH CLUSTERING ORDER BY (op_id DESC)
-AND default_time_to_live = 604800;

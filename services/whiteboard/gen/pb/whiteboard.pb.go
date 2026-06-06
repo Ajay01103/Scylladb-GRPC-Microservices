@@ -367,6 +367,150 @@ func (x *AppendBoardOpRequest) GetRecords() []byte {
 	return nil
 }
 
+type RegisterAssetRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AssetId       string                 `protobuf:"bytes,1,opt,name=asset_id,json=assetId,proto3" json:"asset_id,omitempty"`
+	BoardId       string                 `protobuf:"bytes,2,opt,name=board_id,json=boardId,proto3" json:"board_id,omitempty"`
+	WorkspaceId   string                 `protobuf:"bytes,3,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
+	Name          string                 `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
+	MimeType      string                 `protobuf:"bytes,5,opt,name=mime_type,json=mimeType,proto3" json:"mime_type,omitempty"`
+	SizeBytes     int64                  `protobuf:"varint,6,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
+	S3Key         string                 `protobuf:"bytes,7,opt,name=s3_key,json=s3Key,proto3" json:"s3_key,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RegisterAssetRequest) Reset() {
+	*x = RegisterAssetRequest{}
+	mi := &file_whiteboard_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RegisterAssetRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterAssetRequest) ProtoMessage() {}
+
+func (x *RegisterAssetRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_whiteboard_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegisterAssetRequest.ProtoReflect.Descriptor instead.
+func (*RegisterAssetRequest) Descriptor() ([]byte, []int) {
+	return file_whiteboard_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *RegisterAssetRequest) GetAssetId() string {
+	if x != nil {
+		return x.AssetId
+	}
+	return ""
+}
+
+func (x *RegisterAssetRequest) GetBoardId() string {
+	if x != nil {
+		return x.BoardId
+	}
+	return ""
+}
+
+func (x *RegisterAssetRequest) GetWorkspaceId() string {
+	if x != nil {
+		return x.WorkspaceId
+	}
+	return ""
+}
+
+func (x *RegisterAssetRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *RegisterAssetRequest) GetMimeType() string {
+	if x != nil {
+		return x.MimeType
+	}
+	return ""
+}
+
+func (x *RegisterAssetRequest) GetSizeBytes() int64 {
+	if x != nil {
+		return x.SizeBytes
+	}
+	return 0
+}
+
+func (x *RegisterAssetRequest) GetS3Key() string {
+	if x != nil {
+		return x.S3Key
+	}
+	return ""
+}
+
+type RegisterAssetResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AssetId       string                 `protobuf:"bytes,1,opt,name=asset_id,json=assetId,proto3" json:"asset_id,omitempty"`
+	S3Key         string                 `protobuf:"bytes,2,opt,name=s3_key,json=s3Key,proto3" json:"s3_key,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RegisterAssetResponse) Reset() {
+	*x = RegisterAssetResponse{}
+	mi := &file_whiteboard_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RegisterAssetResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterAssetResponse) ProtoMessage() {}
+
+func (x *RegisterAssetResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_whiteboard_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegisterAssetResponse.ProtoReflect.Descriptor instead.
+func (*RegisterAssetResponse) Descriptor() ([]byte, []int) {
+	return file_whiteboard_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *RegisterAssetResponse) GetAssetId() string {
+	if x != nil {
+		return x.AssetId
+	}
+	return ""
+}
+
+func (x *RegisterAssetResponse) GetS3Key() string {
+	if x != nil {
+		return x.S3Key
+	}
+	return ""
+}
+
 var File_whiteboard_proto protoreflect.FileDescriptor
 
 const file_whiteboard_proto_rawDesc = "" +
@@ -399,12 +543,25 @@ const file_whiteboard_proto_rawDesc = "" +
 	"\x14AppendBoardOpRequest\x12\x19\n" +
 	"\bboard_id\x18\x01 \x01(\tR\aboardId\x12\x17\n" +
 	"\aop_type\x18\x02 \x01(\tR\x06opType\x12\x18\n" +
-	"\arecords\x18\x03 \x01(\fR\arecords2\xc4\x02\n" +
+	"\arecords\x18\x03 \x01(\fR\arecords\"\xd6\x01\n" +
+	"\x14RegisterAssetRequest\x12\x19\n" +
+	"\basset_id\x18\x01 \x01(\tR\aassetId\x12\x19\n" +
+	"\bboard_id\x18\x02 \x01(\tR\aboardId\x12!\n" +
+	"\fworkspace_id\x18\x03 \x01(\tR\vworkspaceId\x12\x12\n" +
+	"\x04name\x18\x04 \x01(\tR\x04name\x12\x1b\n" +
+	"\tmime_type\x18\x05 \x01(\tR\bmimeType\x12\x1d\n" +
+	"\n" +
+	"size_bytes\x18\x06 \x01(\x03R\tsizeBytes\x12\x15\n" +
+	"\x06s3_key\x18\a \x01(\tR\x05s3Key\"I\n" +
+	"\x15RegisterAssetResponse\x12\x19\n" +
+	"\basset_id\x18\x01 \x01(\tR\aassetId\x12\x15\n" +
+	"\x06s3_key\x18\x02 \x01(\tR\x05s3Key2\x9a\x03\n" +
 	"\x11WhiteboardService\x12@\n" +
 	"\vCreateBoard\x12\x1e.whiteboard.CreateBoardRequest\x1a\x11.whiteboard.Board\x12:\n" +
 	"\bGetBoard\x12\x1b.whiteboard.GetBoardRequest\x1a\x11.whiteboard.Board\x12f\n" +
 	"\x13ListWorkspaceBoards\x12&.whiteboard.ListWorkspaceBoardsRequest\x1a'.whiteboard.ListWorkspaceBoardsResponse\x12I\n" +
-	"\rAppendBoardOp\x12 .whiteboard.AppendBoardOpRequest\x1a\x16.google.protobuf.EmptyB5Z3github.com/Ajay01103/go-notion/whiteboard/gen/pb;pbb\x06proto3"
+	"\rAppendBoardOp\x12 .whiteboard.AppendBoardOpRequest\x1a\x16.google.protobuf.Empty\x12T\n" +
+	"\rRegisterAsset\x12 .whiteboard.RegisterAssetRequest\x1a!.whiteboard.RegisterAssetResponseB5Z3github.com/Ajay01103/go-notion/whiteboard/gen/pb;pbb\x06proto3"
 
 var (
 	file_whiteboard_proto_rawDescOnce sync.Once
@@ -418,7 +575,7 @@ func file_whiteboard_proto_rawDescGZIP() []byte {
 	return file_whiteboard_proto_rawDescData
 }
 
-var file_whiteboard_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_whiteboard_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_whiteboard_proto_goTypes = []any{
 	(*Board)(nil),                       // 0: whiteboard.Board
 	(*CreateBoardRequest)(nil),          // 1: whiteboard.CreateBoardRequest
@@ -426,23 +583,27 @@ var file_whiteboard_proto_goTypes = []any{
 	(*ListWorkspaceBoardsRequest)(nil),  // 3: whiteboard.ListWorkspaceBoardsRequest
 	(*ListWorkspaceBoardsResponse)(nil), // 4: whiteboard.ListWorkspaceBoardsResponse
 	(*AppendBoardOpRequest)(nil),        // 5: whiteboard.AppendBoardOpRequest
-	(*timestamppb.Timestamp)(nil),       // 6: google.protobuf.Timestamp
-	(*emptypb.Empty)(nil),               // 7: google.protobuf.Empty
+	(*RegisterAssetRequest)(nil),        // 6: whiteboard.RegisterAssetRequest
+	(*RegisterAssetResponse)(nil),       // 7: whiteboard.RegisterAssetResponse
+	(*timestamppb.Timestamp)(nil),       // 8: google.protobuf.Timestamp
+	(*emptypb.Empty)(nil),               // 9: google.protobuf.Empty
 }
 var file_whiteboard_proto_depIdxs = []int32{
-	6, // 0: whiteboard.Board.created_at:type_name -> google.protobuf.Timestamp
-	6, // 1: whiteboard.Board.updated_at:type_name -> google.protobuf.Timestamp
+	8, // 0: whiteboard.Board.created_at:type_name -> google.protobuf.Timestamp
+	8, // 1: whiteboard.Board.updated_at:type_name -> google.protobuf.Timestamp
 	0, // 2: whiteboard.ListWorkspaceBoardsResponse.boards:type_name -> whiteboard.Board
 	1, // 3: whiteboard.WhiteboardService.CreateBoard:input_type -> whiteboard.CreateBoardRequest
 	2, // 4: whiteboard.WhiteboardService.GetBoard:input_type -> whiteboard.GetBoardRequest
 	3, // 5: whiteboard.WhiteboardService.ListWorkspaceBoards:input_type -> whiteboard.ListWorkspaceBoardsRequest
 	5, // 6: whiteboard.WhiteboardService.AppendBoardOp:input_type -> whiteboard.AppendBoardOpRequest
-	0, // 7: whiteboard.WhiteboardService.CreateBoard:output_type -> whiteboard.Board
-	0, // 8: whiteboard.WhiteboardService.GetBoard:output_type -> whiteboard.Board
-	4, // 9: whiteboard.WhiteboardService.ListWorkspaceBoards:output_type -> whiteboard.ListWorkspaceBoardsResponse
-	7, // 10: whiteboard.WhiteboardService.AppendBoardOp:output_type -> google.protobuf.Empty
-	7, // [7:11] is the sub-list for method output_type
-	3, // [3:7] is the sub-list for method input_type
+	6, // 7: whiteboard.WhiteboardService.RegisterAsset:input_type -> whiteboard.RegisterAssetRequest
+	0, // 8: whiteboard.WhiteboardService.CreateBoard:output_type -> whiteboard.Board
+	0, // 9: whiteboard.WhiteboardService.GetBoard:output_type -> whiteboard.Board
+	4, // 10: whiteboard.WhiteboardService.ListWorkspaceBoards:output_type -> whiteboard.ListWorkspaceBoardsResponse
+	9, // 11: whiteboard.WhiteboardService.AppendBoardOp:output_type -> google.protobuf.Empty
+	7, // 12: whiteboard.WhiteboardService.RegisterAsset:output_type -> whiteboard.RegisterAssetResponse
+	8, // [8:13] is the sub-list for method output_type
+	3, // [3:8] is the sub-list for method input_type
 	3, // [3:3] is the sub-list for extension type_name
 	3, // [3:3] is the sub-list for extension extendee
 	0, // [0:3] is the sub-list for field type_name
@@ -459,7 +620,7 @@ func file_whiteboard_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_whiteboard_proto_rawDesc), len(file_whiteboard_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

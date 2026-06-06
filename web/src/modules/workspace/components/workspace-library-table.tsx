@@ -1,3 +1,5 @@
+import Link from "next/link"
+
 import { FileText, LayoutGrid, Lock, Search, SlidersHorizontal } from "lucide-react"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -37,6 +39,7 @@ export function WorkspaceLibraryTable({
   isLoading = false,
 }: WorkspaceLibraryTableProps) {
   const ItemIcon = iconByKind[icon]
+  const isWhiteboards = icon === "whiteboards"
 
   return (
     <section className="rounded-3xl border border-border/70 bg-card/90 shadow-sm backdrop-blur">
@@ -106,40 +109,55 @@ export function WorkspaceLibraryTable({
               </TableRow>
             ))
           ) : items.length > 0 ? (
-            items.map((item) => (
-              <TableRow className="border-border/60 hover:bg-muted/30" key={item.id}>
-                <TableCell className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-8 items-center justify-center rounded-lg border border-border/60 bg-muted text-muted-foreground">
-                      <ItemIcon className="size-4" />
+            items.map((item) => {
+              return (
+                <TableRow className="border-border/60 hover:bg-muted/30" key={item.id}>
+                  <TableCell className="px-6 py-4">
+                    {isWhiteboards ? (
+                      <Link
+                        className="flex items-center gap-3"
+                        href={`/whiteboard/${encodeURIComponent(item.title)}`}
+                        prefetch
+                      >
+                        <div className="flex size-8 items-center justify-center rounded-lg border border-border/60 bg-muted text-muted-foreground">
+                          <ItemIcon className="size-4" />
+                        </div>
+                        <span className="text-sm font-medium text-foreground">{item.title}</span>
+                      </Link>
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        <div className="flex size-8 items-center justify-center rounded-lg border border-border/60 bg-muted text-muted-foreground">
+                          <ItemIcon className="size-4" />
+                        </div>
+                        <span className="text-sm font-medium text-foreground">{item.title}</span>
+                      </div>
+                    )}
+                  </TableCell>
+
+                  <TableCell className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <Avatar size="sm">
+                        <AvatarFallback className="bg-slate-900 text-[11px] font-medium text-white">
+                          {item.createdBy.slice(0, 1).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm text-muted-foreground">{item.createdBy}</span>
                     </div>
-                    <span className="text-sm font-medium text-foreground">{item.title}</span>
-                  </div>
-                </TableCell>
+                  </TableCell>
 
-                <TableCell className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <Avatar size="sm">
-                      <AvatarFallback className="bg-slate-900 text-[11px] font-medium text-white">
-                        {item.createdBy.slice(0, 1).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm text-muted-foreground">{item.createdBy}</span>
-                  </div>
-                </TableCell>
+                  <TableCell className="px-6 py-4 text-sm text-muted-foreground">
+                    <span className="inline-flex items-center gap-2 rounded-full border border-border/60 px-2.5 py-1 text-xs font-medium text-foreground">
+                      <Lock className="size-3.5" />
+                      {item.visibility}
+                    </span>
+                  </TableCell>
 
-                <TableCell className="px-6 py-4 text-sm text-muted-foreground">
-                  <span className="inline-flex items-center gap-2 rounded-full border border-border/60 px-2.5 py-1 text-xs font-medium text-foreground">
-                    <Lock className="size-3.5" />
-                    {item.visibility}
-                  </span>
-                </TableCell>
-
-                <TableCell className="px-6 py-4 text-sm text-muted-foreground">
-                  {item.updatedAt}
-                </TableCell>
-              </TableRow>
-            ))
+                  <TableCell className="px-6 py-4 text-sm text-muted-foreground">
+                    {item.updatedAt}
+                  </TableCell>
+                </TableRow>
+              )
+            })
           ) : (
             <TableRow className="border-border/60 hover:bg-transparent">
               <TableCell

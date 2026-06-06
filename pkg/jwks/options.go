@@ -58,8 +58,8 @@ func WithScyllaDB(store JWKSStore, serviceID string) Option {
 func defaultConfig() *Config {
 	return &Config{
 		Algorithm:          jwa.RS256,
-		RefreshInterval:    15 * time.Minute,
-		MinRefreshInterval: 5 * time.Minute,
+		RefreshInterval:    1 * time.Hour,
+		MinRefreshInterval: 15 * time.Minute,
 		FetchTimeout:       10 * time.Second,
 	}
 }
