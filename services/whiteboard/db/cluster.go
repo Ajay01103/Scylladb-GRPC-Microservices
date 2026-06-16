@@ -8,7 +8,7 @@ import (
 	"github.com/gocql/gocql"
 )
 
-const Keyspace = "notes_and_whiteboard"
+const Keyspace = "whiteboard_ks"
 
 type Config struct {
 	Hosts             []string

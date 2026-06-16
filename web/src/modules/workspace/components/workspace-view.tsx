@@ -11,6 +11,7 @@ import type { Workspace } from "@/gen/pb/workspace/workspace_pb"
 import { Skeleton } from "@/components/ui/skeleton"
 
 import { useCreateWhiteboard } from "@/modules/whiteboard/api/use-whiteboards"
+import { useCreateNote } from "@/modules/notes/api/use-notes"
 
 import { useWorkspaceBoards, useWorkspaceNotes } from "../api/use-workspaces"
 import { WorkspaceLibraryTable } from "./workspace-library-table"
@@ -29,6 +30,7 @@ export function WorkspaceView({ workspace }: WorkspaceViewProps) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]["id"]>("whiteboards")
   const createWhiteboardMutation = useCreateWhiteboard()
+  const createNoteMutation = useCreateNote()
 
   const whiteboardsQuery = useWorkspaceBoards(workspace?.id ?? "", activeTab === "whiteboards")
   const notesQuery = useWorkspaceNotes(workspace?.id ?? "", activeTab === "notes")
@@ -44,6 +46,20 @@ export function WorkspaceView({ workspace }: WorkspaceViewProps) {
 
     if (createdBoard.title) {
       router.push(`/whiteboard/${encodeURIComponent(createdBoard.title)}`)
+    }
+  }
+
+  const handleCreateNote = async () => {
+    if (!workspace || activeTab !== "notes" || createNoteMutation.isPending) {
+      return
+    }
+
+    const createdNote = await createNoteMutation.mutateAsync({
+      workspaceId: workspace.id,
+    })
+
+    if (createdNote.title) {
+      router.push(`/notes/${encodeURIComponent(createdNote.title)}`)
     }
   }
 
@@ -88,7 +104,7 @@ export function WorkspaceView({ workspace }: WorkspaceViewProps) {
   }
 
   return (
-    <div className="min-h-full flex-1 bg-background">
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-background">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
         <WorkspaceHeader workspace={workspace} />
 
@@ -108,16 +124,25 @@ export function WorkspaceView({ workspace }: WorkspaceViewProps) {
           <div className="flex items-center gap-3">
             <Button
               className="rounded-full bg-card-tint-lavender"
-              disabled={activeTab !== "whiteboards" || createWhiteboardMutation.isPending}
-              onClick={() => void handleCreateWhiteboard()}
+              disabled={
+                (activeTab === "whiteboards" && createWhiteboardMutation.isPending) ||
+                (activeTab === "notes" && createNoteMutation.isPending)
+              }
+              onClick={() =>
+                activeTab === "notes"
+                  ? void handleCreateNote()
+                  : void handleCreateWhiteboard()
+              }
               size="sm"
               variant="outline"
             >
               <Plus className="mr-2 size-4" />
-              {createWhiteboardMutation.isPending
-                ? "Creating..."
-                : activeTab === "notes"
-                  ? "New note"
+              {activeTab === "notes"
+                ? createNoteMutation.isPending
+                  ? "Creating…"
+                  : "New note"
+                : createWhiteboardMutation.isPending
+                  ? "Creating…"
                   : "New whiteboard"}
             </Button>
             <Button className="rounded-full px-5 bg-card-tint-mint" size="sm" variant="outline">

@@ -47,6 +47,13 @@ func (v *Verifier) Verify(ctx context.Context, rawToken string) (*Claims, error)
 
 	token, err := jwt.ParseString(rawToken, options...)
 	if err != nil {
+		// Try refreshing cache once and parsing again in case key rotated/service restarted
+		if refreshSet, refreshErr := v.cache.Refresh(ctx); refreshErr == nil {
+			options[0] = jwt.WithKeySet(refreshSet)
+			token, err = jwt.ParseString(rawToken, options...)
+		}
+	}
+	if err != nil {
 		return nil, fmt.Errorf("jwks: invalid token: %w", err)
 	}
 

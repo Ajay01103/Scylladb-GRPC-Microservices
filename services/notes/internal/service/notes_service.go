@@ -158,46 +158,58 @@ func (s *Service) AppendNoteUpdate(ctx context.Context, noteID, userID uuid.UUID
 	).WithContext(ctx).Exec()
 }
 
+// noteUpdateTTLSeconds is the retention window for yjs_updates rows.
+// 72 hours — updates are only needed for the audit log; yjs_state holds the
+// authoritative snapshot. Rows auto-expire so the table stays bounded.
+const noteUpdateTTLSeconds = 72 * 60 * 60 // 259200
+
 func (s *Service) BatchAppendNoteUpdates(ctx context.Context, noteID uuid.UUID, updates []BufferedUpdate) error {
 	batch := s.session.NewBatch(gocql.UnloggedBatch)
 	for _, update := range updates {
 		batch.Query(
-			`INSERT INTO yjs_updates (note_id, update_id, data, user_id) VALUES (?, now(), ?, ?)`,
+			fmt.Sprintf(
+				`INSERT INTO yjs_updates (note_id, update_id, data, user_id) VALUES (?, now(), ?, ?) USING TTL %d`,
+				noteUpdateTTLSeconds,
+			),
 			toGocqlUUID(noteID), update.Data, toGocqlUUID(update.UserID),
 		)
 	}
 	return s.session.ExecuteBatch(batch.WithContext(ctx))
 }
 
-func (s *Service) UpsertSnapshot(ctx context.Context, noteID uuid.UUID, stateVector []byte) error {
+func (s *Service) UpsertYjsState(ctx context.Context, noteID uuid.UUID, content []byte) error {
+	now := time.Now().UTC()
 	return s.session.Query(
-		`INSERT INTO yjs_snapshots (note_id, snapshot_id, state_vector) VALUES (?, now(), ?)`,
-		toGocqlUUID(noteID), stateVector,
+		`INSERT INTO yjs_state (note_id, content, updated_at) VALUES (?, ?, ?)`,
+		toGocqlUUID(noteID), content, now,
 	).WithContext(ctx).Exec()
 }
 
-func (s *Service) LatestSnapshot(ctx context.Context, noteID uuid.UUID) ([]byte, uuid.UUID, error) {
-	var snapshotID gocql.UUID
-	var stateVector []byte
+func (s *Service) GetYjsState(ctx context.Context, noteID uuid.UUID) ([]byte, time.Time, error) {
+	var content []byte
+	var updatedAt time.Time
 	err := s.session.Query(
-		`SELECT snapshot_id, state_vector FROM yjs_snapshots WHERE note_id = ? LIMIT 1`,
+		`SELECT content, updated_at FROM yjs_state WHERE note_id = ? LIMIT 1`,
 		toGocqlUUID(noteID),
-	).WithContext(ctx).Scan(&snapshotID, &stateVector)
+	).WithContext(ctx).Scan(&content, &updatedAt)
 	if err == gocql.ErrNotFound {
-		return nil, uuid.Nil, nil
+		return nil, time.Time{}, nil
 	}
 	if err != nil {
-		return nil, uuid.Nil, fmt.Errorf("latest snapshot: %w", err)
+		return nil, time.Time{}, fmt.Errorf("get yjs state: %w", err)
 	}
-	return stateVector, fromGocqlUUID(snapshotID), nil
+	return content, updatedAt, nil
 }
 
-func (s *Service) UpdatesSince(ctx context.Context, noteID uuid.UUID, after gocql.UUID) ([][]byte, error) {
-	query := `SELECT data FROM yjs_updates WHERE note_id = ?`
-	args := []any{toGocqlUUID(noteID)}
-	if after != (gocql.UUID{}) {
-		query = `SELECT data FROM yjs_updates WHERE note_id = ? AND update_id > ?`
-		args = append(args, after)
+func (s *Service) UpdatesSinceTimestamp(ctx context.Context, noteID uuid.UUID, since time.Time) ([][]byte, error) {
+	var query string
+	var args []any
+	if since.IsZero() {
+		query = `SELECT data FROM yjs_updates WHERE note_id = ?`
+		args = []any{toGocqlUUID(noteID)}
+	} else {
+		query = `SELECT data FROM yjs_updates WHERE note_id = ? AND update_id > minTimeuuid(?)`
+		args = []any{toGocqlUUID(noteID), since}
 	}
 	iter := s.session.Query(query, args...).WithContext(ctx).Iter()
 	updates := make([][]byte, 0)
@@ -208,7 +220,7 @@ func (s *Service) UpdatesSince(ctx context.Context, noteID uuid.UUID, after gocq
 		updates = append(updates, copied)
 	}
 	if err := iter.Close(); err != nil {
-		return nil, fmt.Errorf("updates since: %w", err)
+		return nil, fmt.Errorf("updates since timestamp: %w", err)
 	}
 	return updates, nil
 }

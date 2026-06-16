@@ -2,12 +2,14 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -28,6 +30,51 @@ import (
 	"github.com/Ajay01103/go-notion/pkg/jwks"
 	pkglogger "github.com/Ajay01103/go-notion/pkg/logger"
 )
+
+// ── Per-user ticket rate limiter ─────────────────────────────────────────────
+// Allows at most wsTicketRateLimit requests per wsTicketRateWindow per userID.
+// In-memory sliding-window: cheap, effective for a single instance. For a
+// multi-instance deployment, swap this out for a Redis token bucket.
+
+const (
+	wsTicketRateLimit  = 10
+	wsTicketRateWindow = time.Minute
+)
+
+type ticketRateLimiter struct {
+	mu      sync.Mutex
+	buckets map[uuid.UUID][]time.Time
+}
+
+func newTicketRateLimiter() *ticketRateLimiter {
+	return &ticketRateLimiter{buckets: make(map[uuid.UUID][]time.Time)}
+}
+
+// allow returns true if the request should proceed, false if it is rate-limited.
+func (r *ticketRateLimiter) allow(userID uuid.UUID) bool {
+	now := time.Now()
+	cutoff := now.Add(-wsTicketRateWindow)
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	// Evict timestamps outside the current window.
+	ts := r.buckets[userID]
+	keep := ts[:0]
+	for _, t := range ts {
+		if t.After(cutoff) {
+			keep = append(keep, t)
+		}
+	}
+
+	if len(keep) >= wsTicketRateLimit {
+		r.buckets[userID] = keep
+		return false
+	}
+
+	r.buckets[userID] = append(keep, now)
+	return true
+}
 
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -105,6 +152,7 @@ func run() error {
 	notesSvc := service.New(session, logger)
 	notesServer := server.New(notesSvc)
 	notesHub := realtime.NewHub(notesSvc, logger)
+	ticketLimiter := newTicketRateLimiter()
 
 	loggingInterceptor := interceptor.NewLoggingInterceptor(logger)
 	authInterceptor := interceptor.NewAuthInterceptor(jwksVerifier)
@@ -117,12 +165,73 @@ func run() error {
 	)
 	mux.Handle(path, corsMiddleware(handler))
 
-	mux.HandleFunc("GET /ws/notes/{noteId}", func(w http.ResponseWriter, r *http.Request) {
+	// WS ticket exchange: browser fetches a short-lived ticket via REST then
+	// passes it as a query param when upgrading, since WebSocket connections
+	// cannot send custom Authorization headers.
+	wsTicketHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userID, err := authenticateHTTP(r, jwksVerifier)
 		if err != nil {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
+
+		// Bug-3 fix (availability): per-user sliding-window rate limit.
+		// Prevents a valid-JWT holder from flooding ScyllaDB with Paxos writes.
+		if !ticketLimiter.allow(userID) {
+			logger.Warn("ws ticket rate limit exceeded", zap.String("user_id", userID.String()))
+			w.Header().Set("Retry-After", "60")
+			http.Error(w, "rate limit exceeded", http.StatusTooManyRequests)
+			return
+		}
+
+		ticket, err := notesSvc.IssueWSTicket(r.Context(), userID)
+		if err != nil {
+			logger.Error("failed to issue websocket ticket", zap.Error(err), zap.String("user_id", userID.String()))
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(map[string]string{"ticket": ticket}); err != nil {
+			logger.Error("failed to encode websocket ticket response", zap.Error(err))
+		}
+	})
+	mux.Handle("POST /ws/ticket", corsMiddleware(wsTicketHandler))
+	mux.Handle("OPTIONS /ws/ticket", corsMiddleware(wsTicketHandler))
+
+	mux.HandleFunc("GET /ws/notes/{noteId}", func(w http.ResponseWriter, r *http.Request) {
+		noteID, err := uuid.Parse(r.PathValue("noteId"))
+		if err != nil {
+			http.Error(w, "invalid note id", http.StatusBadRequest)
+			return
+		}
+
+		ticket := r.URL.Query().Get("ticket")
+		userID, err := notesSvc.RedeemWSTicket(r.Context(), ticket)
+		if err != nil {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		// Bug-3 fix (security): verify the authenticated user can actually access
+		// this note. Without this check any user with a valid ticket could connect
+		// to an arbitrary noteId they don't own by supplying a foreign UUID in the
+		// URL — the ticket only proves identity, not note-level authorisation.
+		ok, err := notesSvc.CanAccessNote(r.Context(), noteID, userID)
+		if err != nil {
+			logger.Error("access check failed during ws upgrade",
+				zap.Error(err),
+				zap.String("note_id", noteID.String()),
+				zap.String("user_id", userID.String()),
+			)
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		if !ok {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+
 		notesHub.HandleNoteWS(w, r, userID)
 	})
 
@@ -155,6 +264,12 @@ func run() error {
 
 	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
+
+	// Bug-3 option C: flush all active rooms before the HTTP server closes.
+	// This covers the window between SIGTERM and process exit where the
+	// debounce timer may not have fired for the last edits in each room.
+	notesHub.Shutdown(ctx)
+
 	if err := srv.Shutdown(ctx); err != nil {
 		return fmt.Errorf("graceful shutdown: %w", err)
 	}

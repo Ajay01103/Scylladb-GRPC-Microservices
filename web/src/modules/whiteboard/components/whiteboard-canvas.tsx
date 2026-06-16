@@ -16,7 +16,7 @@ import {
 
 import { useAuth } from "@/lib/auth-context"
 import { requestWhiteboardWsTicket } from "@/modules/whiteboard/api/ws-ticket"
-import SocketManager from "@/lib/board-socket-manager"
+import { connectRoom, disconnectRoom, addMessageListener, sendRoomMessage } from "@/lib/board-socket-manager"
 import { MermaidDialogHost, MermaidToolbarButton } from "./mermaid-button"
 import { insertMermaidDiagram } from "./mermaid-utils"
 
@@ -113,6 +113,11 @@ export function WhiteboardCanvas({ boardId, workspaceId, slug }: WhiteboardCanva
   const editorRef = useRef<Editor | null>(null)
   const pendingDocumentRef = useRef<unknown | null>(null)
   const loadedSnapshotRef = useRef(false)
+
+  // Keep the access token in a ref so the fetchTicket closure always uses the
+  // latest token on reconnect attempts, not the stale value from mount time.
+  const accessTokenRef = useRef<string | null>(null)
+  accessTokenRef.current = accessToken
 
   // Cache object URLs locally to bypass CORS when rendering images.
   const blobUrlCacheRef = useRef<Map<string, string>>(new Map())
@@ -225,19 +230,26 @@ export function WhiteboardCanvas({ boardId, workspaceId, slug }: WhiteboardCanva
   useEffect(() => {
     if (!accessToken) return
 
-    const fetchTicket = async () => {
-      return await requestWhiteboardWsTicket(accessToken)
+    const fetchTicket = async (signal?: AbortSignal) => {
+      const token = accessTokenRef.current
+      if (!token) throw new Error("no access token")
+      return await requestWhiteboardWsTicket(token, signal)
     }
 
-    void SocketManager.connectBoard(boardId, fetchTicket)
+    connectRoom({
+      roomId: boardId,
+      wsUrl: process.env.NEXT_PUBLIC_WHITEBOARD_WS_URL ?? "ws://localhost:9093",
+      path: `/ws/boards/${boardId}`,
+      fetchTicket,
+    }).catch(() => {})
 
     return () => {
-      SocketManager.disconnectBoard(boardId)
+      disconnectRoom(boardId)
     }
   }, [accessToken, boardId])
 
   useEffect(() => {
-    const unsub = SocketManager.addMessageListener(boardId, async (e) => {
+    const unsub = addMessageListener(boardId, async (e) => {
       const text = await messageDataToText(e.data)
       if (!text) return
       const document = extractDocumentPayload(text)
@@ -269,7 +281,7 @@ export function WhiteboardCanvas({ boardId, workspaceId, slug }: WhiteboardCanva
         clock: Date.now(),
         document: snapshot.document,
       })
-      SocketManager.sendBoardMessage(boardId, msg)
+      sendRoomMessage(boardId, msg)
     }
 
     const unsubscribe = editor.store.listen(

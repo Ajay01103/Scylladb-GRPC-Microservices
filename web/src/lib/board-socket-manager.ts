@@ -1,13 +1,27 @@
-const WS_BASE = process.env.NEXT_PUBLIC_WHITEBOARD_WS_URL ?? "ws://localhost:9093"
+/**
+ * Generic WebSocket room manager.
+ *
+ * Works for both whiteboards (/ws/boards/{id}) and notes (/ws/notes/{id}).
+ */
 
 export type SocketState = "connecting" | "open" | "closed" | "error"
 
+export interface ConnectOptions {
+  /** Stable key for this connection — typically the resource ID (boardId / noteId). */
+  roomId: string
+  /** WebSocket base URL, e.g. "ws://localhost:9093" */
+  wsUrl: string
+  /** Path on the WS server, e.g. "/ws/boards/123" or "/ws/notes/456" */
+  path: string
+  /** Called to fetch a one-time ticket before each (re-)connect attempt. */
+  fetchTicket: (signal?: AbortSignal) => Promise<string>
+}
+
 interface SocketEntry {
   ws: WebSocket
-  boardId: string
+  opts: ConnectOptions
   retries: number
   retryTimer?: ReturnType<typeof setTimeout>
-  fetchTicket: (signal?: AbortSignal) => Promise<string>
   token: number
 }
 
@@ -22,40 +36,53 @@ const pendingConnections = new Map<string, PendingConnection>()
 const connectionTokens = new Map<string, number>()
 const msgListeners = new Map<string, Set<(e: MessageEvent) => void>>()
 const stateListeners = new Map<string, Set<(s: SocketState) => void>>()
-const sendQueue = new Map<string, (string | ArrayBuffer)[]>()
+const sendQueue = new Map<string, (string | ArrayBuffer | ArrayBufferView)[]>()
 
-function notifyState(boardId: string, state: SocketState) {
-  stateListeners.get(boardId)?.forEach((fn) => fn(state))
+function notifyState(roomId: string, state: SocketState) {
+  stateListeners.get(roomId)?.forEach((fn) => fn(state))
 }
 
-function flushQueue(boardId: string, ws: WebSocket) {
-  const queue = sendQueue.get(boardId) ?? []
-  sendQueue.delete(boardId)
-  for (const msg of queue) ws.send(msg)
+function flushQueue(roomId: string, ws: WebSocket) {
+  const queue = sendQueue.get(roomId) ?? []
+  sendQueue.delete(roomId)
+  for (const msg of queue) ws.send(msg as any)
 }
 
 function scheduleReconnect(entry: SocketEntry) {
-  const currentToken = connectionTokens.get(entry.boardId)
-  if (currentToken !== entry.token) {
-    return
-  }
+  const currentToken = connectionTokens.get(entry.opts.roomId)
+  if (currentToken !== entry.token) return
 
   const delay = Math.min(500 * 2 ** entry.retries, 30_000)
   entry.retries++
   entry.retryTimer = setTimeout(() => {
-    void connectBoard(entry.boardId, entry.fetchTicket)
+    connectRoom(entry.opts).catch(() => {
+      // FetchTicket or connection failed — retry with backoff.
+      scheduleReconnect(entry)
+    })
   }, delay)
 }
 
-export async function connectBoard(
-  boardId: string,
-  fetchTicket: (signal?: AbortSignal) => Promise<string>,
-): Promise<WebSocket> {
-  const existing = sockets.get(boardId)
+// ─── Core API ───────────────────────────────────────────────────────────────
+
+export async function connectRoom(opts: ConnectOptions): Promise<WebSocket> {
+  const { roomId } = opts
+
+  const existing = sockets.get(roomId)
   if (existing?.ws.readyState === WebSocket.OPEN) return existing.ws
 
-  const pending = pendingConnections.get(boardId)
-  if (pending) return pending.promise
+  // Bug-2 fix: only reuse a pending connection if its token still matches the
+  // current token. If disconnectRoom bumped the token and then cleared the
+  // pending entry, this check is moot (pending will be undefined). But if there
+  // is a race where the pending entry wasn't cleared yet, we must not reuse a
+  // promise whose ticket was already consumed by LWT delete.
+  const currentToken = connectionTokens.get(roomId) ?? 0
+  const pending = pendingConnections.get(roomId)
+  if (pending && pending.token === currentToken) return pending.promise
+  // Stale pending entry (token mismatch) — evict it so it can't be reused.
+  if (pending && pending.token !== currentToken) {
+    pending.controller.abort()
+    pendingConnections.delete(roomId)
+  }
 
   if (existing?.ws.readyState === WebSocket.CONNECTING) {
     return new Promise((resolve, reject) => {
@@ -64,119 +91,115 @@ export async function connectBoard(
     })
   }
 
-  const token = (connectionTokens.get(boardId) ?? 0) + 1
-  connectionTokens.set(boardId, token)
+  const token = currentToken + 1
+  connectionTokens.set(roomId, token)
   const controller = new AbortController()
 
-  const connection = (async () => {
+  const connection = (async (): Promise<WebSocket> => {
     try {
-      notifyState(boardId, "connecting")
-      const ticket = await fetchTicket(controller.signal)
-      if (controller.signal.aborted || connectionTokens.get(boardId) !== token) {
-        return new Promise<WebSocket>(() => {})
+      notifyState(roomId, "connecting")
+      const ticket = await opts.fetchTicket(controller.signal)
+      if (controller.signal.aborted || connectionTokens.get(roomId) !== token) {
+        throw new DOMException("connection superseded", "AbortError")
       }
 
-      const url = new URL(WS_BASE)
-      url.pathname = `/ws/boards/${boardId}`
+      const url = new URL(opts.wsUrl)
+      url.pathname = opts.path
       url.searchParams.set("ticket", ticket)
 
       const ws = new WebSocket(url.toString())
       ws.binaryType = "arraybuffer"
-      const entry: SocketEntry = { ws, boardId, retries: 0, fetchTicket, token }
-      sockets.set(boardId, entry)
+      const entry: SocketEntry = { ws, opts, retries: 0, token }
+      sockets.set(roomId, entry)
 
       ws.addEventListener("open", () => {
-        if (connectionTokens.get(boardId) !== token) {
+        if (connectionTokens.get(roomId) !== token) {
           ws.close(1000, "stale connection")
           return
         }
         entry.retries = 0
-        flushQueue(boardId, ws)
-        notifyState(boardId, "open")
+        flushQueue(roomId, ws)
+        notifyState(roomId, "open")
       })
 
       ws.addEventListener("message", (e) => {
-        // Dispatch to listeners
-        msgListeners.get(boardId)?.forEach((fn) => fn(e))
+        msgListeners.get(roomId)?.forEach((fn) => fn(e))
       })
 
       ws.addEventListener("close", (ev) => {
-        if (connectionTokens.get(boardId) !== token) {
-          return
-        }
-        sockets.delete(boardId)
+        if (connectionTokens.get(roomId) !== token) return
+        sockets.delete(roomId)
         if (ev.code === 1000) {
-          notifyState(boardId, "closed")
+          notifyState(roomId, "closed")
           return
         }
-        notifyState(boardId, "error")
+        notifyState(roomId, "error")
         scheduleReconnect(entry)
       })
 
-      ws.addEventListener("error", () => notifyState(boardId, "error"))
+      ws.addEventListener("error", () => notifyState(roomId, "error"))
       return ws
     } catch (error) {
-      if (controller.signal.aborted || connectionTokens.get(boardId) !== token) {
-        return new Promise<WebSocket>(() => {})
+      if (controller.signal.aborted || connectionTokens.get(roomId) !== token) {
+        throw new DOMException("connection superseded", "AbortError")
       }
-
-      notifyState(boardId, "error")
-      console.error("failed to connect whiteboard websocket", error)
-      return new Promise<WebSocket>(() => {})
+      notifyState(roomId, "error")
+      console.error(`[socket-manager] failed to connect room "${roomId}"`, error)
+      throw error
     }
   })()
 
-  pendingConnections.set(boardId, { promise: connection, controller, token })
+  pendingConnections.set(roomId, { promise: connection, controller, token })
   try {
     return await connection
   } finally {
-    const pendingEntry = pendingConnections.get(boardId)
+    const pendingEntry = pendingConnections.get(roomId)
     if (pendingEntry?.promise === connection) {
-      pendingConnections.delete(boardId)
+      pendingConnections.delete(roomId)
     }
   }
 }
 
-export function disconnectBoard(boardId: string) {
-  connectionTokens.set(boardId, (connectionTokens.get(boardId) ?? 0) + 1)
+export function disconnectRoom(roomId: string) {
+  connectionTokens.set(roomId, (connectionTokens.get(roomId) ?? 0) + 1)
 
-  const pending = pendingConnections.get(boardId)
+  const pending = pendingConnections.get(roomId)
   pending?.controller.abort()
-  pendingConnections.delete(boardId)
+  pendingConnections.delete(roomId)
 
-  const entry = sockets.get(boardId)
+  const entry = sockets.get(roomId)
   if (!entry) return
   clearTimeout(entry.retryTimer)
   entry.ws.close(1000, "client disconnect")
-  sockets.delete(boardId)
-  sendQueue.delete(boardId)
-  notifyState(boardId, "closed")
+  sockets.delete(roomId)
+  sendQueue.delete(roomId)
+  notifyState(roomId, "closed")
 }
 
-export function sendBoardMessage(boardId: string, data: string | ArrayBuffer) {
-  const entry = sockets.get(boardId)
+export function sendRoomMessage(roomId: string, data: string | ArrayBuffer | ArrayBufferView) {
+  const entry = sockets.get(roomId)
   if (entry?.ws.readyState === WebSocket.OPEN) {
-    entry.ws.send(data)
+    entry.ws.send(data as any)
     return
   }
-  if (!sendQueue.has(boardId)) sendQueue.set(boardId, [])
-  sendQueue.get(boardId)!.push(data)
+  if (!sendQueue.has(roomId)) sendQueue.set(roomId, [])
+  sendQueue.get(roomId)!.push(data)
 }
 
-export function addMessageListener(boardId: string, fn: (e: MessageEvent) => void): () => void {
-  if (!msgListeners.has(boardId)) msgListeners.set(boardId, new Set())
-  msgListeners.get(boardId)!.add(fn)
-  return () => msgListeners.get(boardId)?.delete(fn)
+export function addMessageListener(roomId: string, fn: (e: MessageEvent) => void): () => void {
+  if (!msgListeners.has(roomId)) msgListeners.set(roomId, new Set())
+  msgListeners.get(roomId)!.add(fn)
+  return () => msgListeners.get(roomId)?.delete(fn)
 }
 
-export function addStateListener(boardId: string, fn: (s: SocketState) => void): () => void {
-  if (!stateListeners.has(boardId)) stateListeners.set(boardId, new Set())
-  stateListeners.get(boardId)!.add(fn)
-  return () => stateListeners.get(boardId)?.delete(fn)
+export function addStateListener(roomId: string, fn: (s: SocketState) => void): () => void {
+  if (!stateListeners.has(roomId)) stateListeners.set(roomId, new Set())
+  stateListeners.get(roomId)!.add(fn)
+  return () => stateListeners.get(roomId)?.delete(fn)
 }
 
-export function getSocketState(boardId: string): SocketState {
-  const entry = sockets.get(boardId)
+export function getRoomState(roomId: string): SocketState {
+  const entry = sockets.get(roomId)
   if (!entry) return "closed"
   switch (entry.ws.readyState) {
     case WebSocket.CONNECTING:
@@ -186,12 +209,4 @@ export function getSocketState(boardId: string): SocketState {
     default:
       return "closed"
   }
-}
-
-export default {
-  connectBoard,
-  disconnectBoard,
-  sendBoardMessage,
-  addMessageListener,
-  addStateListener,
 }

@@ -125,12 +125,16 @@ export function WorkspaceLibraryTable({
                         <span className="text-sm font-medium text-foreground">{item.title}</span>
                       </Link>
                     ) : (
-                      <div className="flex items-center gap-3">
+                      <Link
+                        className="flex items-center gap-3"
+                        href={`/notes/${encodeURIComponent(item.title)}`}
+                        prefetch
+                      >
                         <div className="flex size-8 items-center justify-center rounded-lg border border-border/60 bg-muted text-muted-foreground">
                           <ItemIcon className="size-4" />
                         </div>
                         <span className="text-sm font-medium text-foreground">{item.title}</span>
-                      </div>
+                      </Link>
                     )}
                   </TableCell>
 
