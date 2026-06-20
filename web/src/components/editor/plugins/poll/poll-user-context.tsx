@@ -32,19 +32,10 @@ export function PollUserProvider({ children }: { children: ReactNode }) {
     (): PollUserContextValue => ({
       currentUser: user?.userId ?? ANONYMOUS_USER,
       isAuthenticated: isAuthenticated && Boolean(user?.userId),
-      isLoading:
-        isLoadingAuth || isLoadingToken || (isAuthenticated && isLoadingUser),
+      isLoading: isLoadingAuth || isLoadingToken || (isAuthenticated && isLoadingUser),
     }),
-    [
-      user?.userId,
-      isAuthenticated,
-      isLoadingAuth,
-      isLoadingToken,
-      isLoadingUser,
-    ],
+    [user?.userId, isAuthenticated, isLoadingAuth, isLoadingToken, isLoadingUser],
   )
 
-  return (
-    <PollUserContext.Provider value={value}>{children}</PollUserContext.Provider>
-  )
+  return <PollUserContext.Provider value={value}>{children}</PollUserContext.Provider>
 }

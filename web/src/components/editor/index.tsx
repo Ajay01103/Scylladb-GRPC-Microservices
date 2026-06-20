@@ -60,11 +60,7 @@ export function FullSetupEditor({
 
   const editor = useMemo(
     () =>
-      withEmoji(
-        withMentions(
-          createYooptaEditor({ plugins: THEMED_PLUGINS, marks: YOOPTA_MARKS }),
-        ),
-      ),
+      withEmoji(withMentions(createYooptaEditor({ plugins: THEMED_PLUGINS, marks: YOOPTA_MARKS }))),
     [],
   )
 

@@ -61,10 +61,7 @@ export function PollComponent({
     })
   }
 
-  const handleDeleteOption = (
-    event: MouseEvent<HTMLButtonElement>,
-    option: PollOption,
-  ) => {
+  const handleDeleteOption = (event: MouseEvent<HTMLButtonElement>, option: PollOption) => {
     event.stopPropagation()
     if (options.length <= 2) return
     updateProps({ options: options.filter((o) => o.id !== option.id) })
@@ -79,14 +76,10 @@ export function PollComponent({
   }
 
   return (
-    <div
-      {...attributes}
-      className="poll-container">
+    <div {...attributes} className="poll-container">
       <span style={{ display: "none" }}>{children}</span>
 
-      <div
-        contentEditable={false}
-        className="poll-inner">
+      <div contentEditable={false} className="poll-inner">
         <div className="poll-label">
           <BarChart2 size={12} aria-hidden="true" />
           <span>Poll</span>
@@ -103,15 +96,10 @@ export function PollComponent({
           />
         </div>
 
-        <div
-          className="poll-options"
-          role="group"
-          aria-label="Poll options">
+        <div className="poll-options" role="group" aria-label="Poll options">
           {options.map((option, index) => {
             const votePercent =
-              totalVotes === 0
-                ? 0
-                : Math.round((option.votes.length / totalVotes) * 100)
+              totalVotes === 0 ? 0 : Math.round((option.votes.length / totalVotes) * 100)
             const hasVoted = option.votes.includes(currentUser)
             const showResults = totalVotes > 0
 
@@ -139,11 +127,13 @@ export function PollComponent({
                 }}
                 role="button"
                 tabIndex={isAuthenticated ? 0 : -1}
-                aria-pressed={hasVoted}>
+                aria-pressed={hasVoted}
+              >
                 <label
                   className="poll-option-check"
                   htmlFor={`poll-${blockId}-opt-${option.id}`}
-                  onClick={(event) => event.stopPropagation()}>
+                  onClick={(event) => event.stopPropagation()}
+                >
                   <input
                     type="checkbox"
                     checked={hasVoted}
@@ -183,11 +173,8 @@ export function PollComponent({
                         <span className="poll-option-pct">{votePercent}%</span>
                       ) : null}
                       {option.votes.length > 0 ? (
-                        <span
-                          className="poll-option-votes"
-                          aria-live="polite">
-                          {option.votes.length}{" "}
-                          {option.votes.length === 1 ? "vote" : "votes"}
+                        <span className="poll-option-votes" aria-live="polite">
+                          {option.votes.length} {option.votes.length === 1 ? "vote" : "votes"}
                         </span>
                       ) : null}
                     </div>
@@ -200,12 +187,9 @@ export function PollComponent({
                   onMouseDown={stopEditorPropagation}
                   disabled={options.length <= 2}
                   aria-label={`Remove option ${index + 1}`}
-                  title={
-                    options.length <= 2
-                      ? "Need at least 2 options"
-                      : "Remove option"
-                  }
-                  type="button">
+                  title={options.length <= 2 ? "Need at least 2 options" : "Remove option"}
+                  type="button"
+                >
                   <X size={14} />
                 </button>
               </div>
@@ -219,14 +203,13 @@ export function PollComponent({
             onClick={handleAddOption}
             onMouseDown={stopEditorPropagation}
             type="button"
-            aria-label="Add a new poll option">
+            aria-label="Add a new poll option"
+          >
             Add option
           </button>
           <span className="poll-total-votes" aria-live="polite">
             {totalVotes} {totalVotes === 1 ? "vote" : "votes"} total
-            {!isAuthenticated ? (
-              <span className="poll-auth-hint"> · Sign in to vote</span>
-            ) : null}
+            {!isAuthenticated ? <span className="poll-auth-hint"> · Sign in to vote</span> : null}
           </span>
         </div>
       </div>

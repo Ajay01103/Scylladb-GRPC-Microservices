@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState } from "react"
 import {
   ChevronDownIcon,
   CodeIcon,
@@ -7,25 +7,26 @@ import {
   SigmaIcon,
   Strikethrough,
   Underline,
-} from 'lucide-react';
-import { Blocks, Marks, useYooptaEditor } from '@yoopta/editor';
-import { MathInlineCommands } from '@yoopta/math';
-import { Editor, Range } from 'slate';
-import { FloatingToolbar } from '@yoopta/ui/floating-toolbar';
-import { HighlightColorPicker } from '@yoopta/ui/highlight-color-picker';
-import { HighlighterIcon } from 'lucide-react';
-import { YooptaActionMenuList } from './yoopta-action-menu-list';
+} from "lucide-react"
+import { Blocks, Marks, useYooptaEditor } from "@yoopta/editor"
+import { MathInlineCommands } from "@yoopta/math"
+import { Editor, Range } from "slate"
+import { FloatingToolbar } from "@yoopta/ui/floating-toolbar"
+import { HighlightColorPicker } from "@yoopta/ui/highlight-color-picker"
+import { HighlighterIcon } from "lucide-react"
+import { YooptaActionMenuList } from "./yoopta-action-menu-list"
 
 export const YooptaToolbar = () => {
-  const editor = useYooptaEditor();
-  const turnIntoRef = useRef<HTMLButtonElement>(null);
-  const [actionMenuOpen, setActionMenuOpen] = useState(false);
+  const editor = useYooptaEditor()
+  const turnIntoRef = useRef<HTMLButtonElement>(null)
+  const [actionMenuOpen, setActionMenuOpen] = useState(false)
 
   const highlightValue = (() => {
     try {
-      return Marks.getValue(editor, { type: 'highlight' }) as
-        | { color?: string; backgroundColor?: string }
-        | null;
+      return Marks.getValue(editor, { type: "highlight" }) as {
+        color?: string
+        backgroundColor?: string
+      } | null
     } catch {
       // Marks.getValue walks the current Slate selection path. When the
       // selection is inside a nested block type (e.g. Tabs → tabs-item-heading),
@@ -33,32 +34,32 @@ export const YooptaToolbar = () => {
       // document tree that Marks.getValue traverses, causing a Slate invariant
       // violation ("Cannot find a descendant at path [...]"). Returning null
       // is safe — the highlight button falls back to its inactive appearance.
-      return null;
+      return null
     }
-  })();
+  })()
 
   const onTurnIntoClick = () => {
-    setActionMenuOpen(true);
-  };
+    setActionMenuOpen(true)
+  }
 
   const onInsertMath = () => {
-    if (editor.path.current === null) return;
+    if (editor.path.current === null) return
 
     const currentBlockId = Object.keys(editor.children).find((id) => {
-      return editor.children[id]?.meta.order === editor.path.current;
-    });
-    if (!currentBlockId) return;
+      return editor.children[id]?.meta.order === editor.path.current
+    })
+    if (!currentBlockId) return
 
-    const slate = Blocks.getBlockSlate(editor, { id: currentBlockId });
-    if (!slate || !slate.selection) return;
+    const slate = Blocks.getBlockSlate(editor, { id: currentBlockId })
+    if (!slate || !slate.selection) return
 
     // Use selected text as the LaTeX expression, otherwise fall back to placeholder
     const selectedText = !Range.isCollapsed(slate.selection)
       ? Editor.string(slate, slate.selection)
-      : '';
+      : ""
 
-    MathInlineCommands.insertMathInline(editor, selectedText || 'E = mc^2', { slate });
-  };
+    MathInlineCommands.insertMathInline(editor, selectedText || "E = mc^2", { slate })
+  }
 
   return (
     <>
@@ -74,8 +75,8 @@ export const YooptaToolbar = () => {
           <FloatingToolbar.Group>
             {editor.formats.bold && (
               <FloatingToolbar.Button
-                onClick={() => Marks.toggle(editor, { type: 'bold' })}
-                active={Marks.isActive(editor, { type: 'bold' })}
+                onClick={() => Marks.toggle(editor, { type: "bold" })}
+                active={Marks.isActive(editor, { type: "bold" })}
                 title="Bold"
               >
                 <BoldIcon />
@@ -83,8 +84,8 @@ export const YooptaToolbar = () => {
             )}
             {editor.formats.italic && (
               <FloatingToolbar.Button
-                onClick={() => Marks.toggle(editor, { type: 'italic' })}
-                active={Marks.isActive(editor, { type: 'italic' })}
+                onClick={() => Marks.toggle(editor, { type: "italic" })}
+                active={Marks.isActive(editor, { type: "italic" })}
                 title="Italic"
               >
                 <ItalicIcon />
@@ -92,8 +93,8 @@ export const YooptaToolbar = () => {
             )}
             {editor.formats.underline && (
               <FloatingToolbar.Button
-                onClick={() => Marks.toggle(editor, { type: 'underline' })}
-                active={Marks.isActive(editor, { type: 'underline' })}
+                onClick={() => Marks.toggle(editor, { type: "underline" })}
+                active={Marks.isActive(editor, { type: "underline" })}
                 title="Underline"
               >
                 <Underline />
@@ -101,8 +102,8 @@ export const YooptaToolbar = () => {
             )}
             {editor.formats.strike && (
               <FloatingToolbar.Button
-                onClick={() => Marks.toggle(editor, { type: 'strike' })}
-                active={Marks.isActive(editor, { type: 'strike' })}
+                onClick={() => Marks.toggle(editor, { type: "strike" })}
+                active={Marks.isActive(editor, { type: "strike" })}
                 title="Strikethrough"
               >
                 <Strikethrough />
@@ -110,8 +111,8 @@ export const YooptaToolbar = () => {
             )}
             {editor.formats.code && (
               <FloatingToolbar.Button
-                onClick={() => Marks.toggle(editor, { type: 'code' })}
-                active={Marks.isActive(editor, { type: 'code' })}
+                onClick={() => Marks.toggle(editor, { type: "code" })}
+                active={Marks.isActive(editor, { type: "code" })}
                 title="Code"
               >
                 <CodeIcon />
@@ -121,37 +122,41 @@ export const YooptaToolbar = () => {
               <HighlightColorPicker
                 value={highlightValue ?? {}}
                 presets={[
-                  '#FFFF00',
-                  '#FFE066',
-                  '#FFCC99',
-                  '#FF9999',
-                  '#99CCFF',
-                  '#99FF99',
-                  '#FF99FF',
-                  '#000000',
+                  "#FFFF00",
+                  "#FFE066",
+                  "#FFCC99",
+                  "#FF9999",
+                  "#99CCFF",
+                  "#99FF99",
+                  "#FF99FF",
+                  "#000000",
                 ]}
                 onChange={(values) => {
                   Marks.add(editor, {
-                    type: 'highlight',
+                    type: "highlight",
                     value: {
                       color: values.color,
                       backgroundColor: values.backgroundColor,
                     },
-                  });
+                  })
                 }}
               >
                 <FloatingToolbar.Button
-                  active={Marks.isActive(editor, { type: 'highlight' })}
+                  active={Marks.isActive(editor, { type: "highlight" })}
                   title="Highlight"
                   onContextMenu={(e) => {
-                    e.preventDefault();
-                    if (Marks.isActive(editor, { type: 'highlight' })) {
-                      Marks.remove(editor, { type: 'highlight' });
+                    e.preventDefault()
+                    if (Marks.isActive(editor, { type: "highlight" })) {
+                      Marks.remove(editor, { type: "highlight" })
                     }
                   }}
                   style={{
-                    backgroundColor: Marks.isActive(editor, { type: 'highlight' }) ? highlightValue?.backgroundColor : undefined,
-                    color: Marks.isActive(editor, { type: 'highlight' }) ? highlightValue?.color : undefined,
+                    backgroundColor: Marks.isActive(editor, { type: "highlight" })
+                      ? highlightValue?.backgroundColor
+                      : undefined,
+                    color: Marks.isActive(editor, { type: "highlight" })
+                      ? highlightValue?.color
+                      : undefined,
                   }}
                 >
                   <HighlighterIcon />
@@ -163,10 +168,7 @@ export const YooptaToolbar = () => {
             <>
               <FloatingToolbar.Separator />
               <FloatingToolbar.Group>
-                <FloatingToolbar.Button
-                  onClick={onInsertMath}
-                  title="Insert Math"
-                >
+                <FloatingToolbar.Button onClick={onInsertMath} title="Insert Math">
                   <SigmaIcon />
                 </FloatingToolbar.Button>
               </FloatingToolbar.Group>
@@ -179,8 +181,8 @@ export const YooptaToolbar = () => {
         open={actionMenuOpen}
         onOpenChange={setActionMenuOpen}
         anchor={turnIntoRef.current}
-        placement='bottom-start'
+        placement="bottom-start"
       />
     </>
-  );
-};
+  )
+}

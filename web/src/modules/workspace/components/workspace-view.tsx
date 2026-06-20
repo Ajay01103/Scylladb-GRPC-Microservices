@@ -129,9 +129,7 @@ export function WorkspaceView({ workspace }: WorkspaceViewProps) {
                 (activeTab === "notes" && createNoteMutation.isPending)
               }
               onClick={() =>
-                activeTab === "notes"
-                  ? void handleCreateNote()
-                  : void handleCreateWhiteboard()
+                activeTab === "notes" ? void handleCreateNote() : void handleCreateWhiteboard()
               }
               size="sm"
               variant="outline"

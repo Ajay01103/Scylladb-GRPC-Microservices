@@ -16,7 +16,12 @@ import {
 
 import { useAuth } from "@/lib/auth-context"
 import { requestWhiteboardWsTicket } from "@/modules/whiteboard/api/ws-ticket"
-import { connectRoom, disconnectRoom, addMessageListener, sendRoomMessage } from "@/lib/board-socket-manager"
+import {
+  connectRoom,
+  disconnectRoom,
+  addMessageListener,
+  sendRoomMessage,
+} from "@/lib/board-socket-manager"
 import { MermaidDialogHost, MermaidToolbarButton } from "./mermaid-button"
 import { insertMermaidDiagram } from "./mermaid-utils"
 
@@ -138,8 +143,12 @@ export function WhiteboardCanvas({ boardId, workspaceId, slug }: WhiteboardCanva
   // once) still has fresh values via the closure.
   const boardIdRef = useRef(boardId)
   const workspaceIdRef = useRef(workspaceId)
-  useEffect(() => { boardIdRef.current = boardId }, [boardId])
-  useEffect(() => { workspaceIdRef.current = workspaceId }, [workspaceId])
+  useEffect(() => {
+    boardIdRef.current = boardId
+  }, [boardId])
+  useEffect(() => {
+    workspaceIdRef.current = workspaceId
+  }, [workspaceId])
 
   const [store] = useState(() =>
     createTLStore({
@@ -159,7 +168,11 @@ export function WhiteboardCanvas({ boardId, workspaceId, slug }: WhiteboardCanva
         },
         resolve(asset: TLAsset) {
           const src = asset.props.src
-          if (src && typeof src === "string" && (src.startsWith("http") || src.startsWith("/uploads/"))) {
+          if (
+            src &&
+            typeof src === "string" &&
+            (src.startsWith("http") || src.startsWith("/uploads/"))
+          ) {
             // Check cache first
             const cachedBlobUrl = blobUrlCacheRef.current.get(asset.id)
             if (cachedBlobUrl) {
@@ -175,42 +188,44 @@ export function WhiteboardCanvas({ boardId, workspaceId, slug }: WhiteboardCanva
               const s3Key = match ? match[1] : null
 
               if (s3Key) {
-                downloadAssetAction(s3Key).then((res) => {
-                  if (res.success && res.base64 && res.mimeType) {
-                    const byteCharacters = atob(res.base64)
-                    const byteNumbers = new Array(byteCharacters.length)
-                    for (let i = 0; i < byteCharacters.length; i++) {
-                      byteNumbers[i] = byteCharacters.charCodeAt(i)
-                    }
-                    const byteArray = new Uint8Array(byteNumbers)
-                    const blob = new Blob([byteArray], { type: res.mimeType })
-                    const blobUrl = URL.createObjectURL(blob)
+                downloadAssetAction(s3Key)
+                  .then((res) => {
+                    if (res.success && res.base64 && res.mimeType) {
+                      const byteCharacters = atob(res.base64)
+                      const byteNumbers = new Array(byteCharacters.length)
+                      for (let i = 0; i < byteCharacters.length; i++) {
+                        byteNumbers[i] = byteCharacters.charCodeAt(i)
+                      }
+                      const byteArray = new Uint8Array(byteNumbers)
+                      const blob = new Blob([byteArray], { type: res.mimeType })
+                      const blobUrl = URL.createObjectURL(blob)
 
-                    blobUrlCacheRef.current.set(asset.id, blobUrl)
+                      blobUrlCacheRef.current.set(asset.id, blobUrl)
 
-                    // Update the asset's metadata in the store to trigger a re-resolve & redraw.
-                    if (editorRef.current) {
-                      editorRef.current.updateAssets([
-                        {
-                          ...asset,
-                          meta: {
-                            ...asset.meta,
-                            resolvedAt: Date.now(),
+                      // Update the asset's metadata in the store to trigger a re-resolve & redraw.
+                      if (editorRef.current) {
+                        editorRef.current.updateAssets([
+                          {
+                            ...asset,
+                            meta: {
+                              ...asset.meta,
+                              resolvedAt: Date.now(),
+                            },
                           },
-                        },
-                      ])
+                        ])
+                      }
                     }
-                  }
-                }).catch((err) => {
-                  console.error("Failed to load asset via server action:", err)
-                })
+                  })
+                  .catch((err) => {
+                    console.error("Failed to load asset via server action:", err)
+                  })
               }
             }
           }
           return src ?? null
         },
       },
-    })
+    }),
   )
 
   useEffect(() => {
@@ -305,14 +320,16 @@ export function WhiteboardCanvas({ boardId, workspaceId, slug }: WhiteboardCanva
   return (
     <div
       className="h-svh w-full overflow-hidden bg-background text-foreground"
-      data-whiteboard-slug={slug}>
+      data-whiteboard-slug={slug}
+    >
       <div className="h-full w-full">
         <Tldraw
           onMount={(mountedEditor) => {
             setEditor(mountedEditor)
           }}
           components={{ Toolbar: WhiteboardToolbar }}
-          store={store}>
+          store={store}
+        >
           <MermaidPasteHandler />
         </Tldraw>
       </div>

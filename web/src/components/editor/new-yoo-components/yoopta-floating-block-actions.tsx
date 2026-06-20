@@ -1,36 +1,36 @@
-import { useRef, useState } from 'react';
-import { GripVertical, PlusIcon } from 'lucide-react';
-import { Blocks, useYooptaEditor } from '@yoopta/editor';
-import { FloatingBlockActions } from '@yoopta/ui/floating-block-actions';
-import { DragHandle } from '@yoopta/ui/block-dnd';
+import { useRef, useState } from "react"
+import { GripVertical, PlusIcon } from "lucide-react"
+import { Blocks, useYooptaEditor } from "@yoopta/editor"
+import { FloatingBlockActions } from "@yoopta/ui/floating-block-actions"
+import { DragHandle } from "@yoopta/ui/block-dnd"
 
-import { YooptaBlockOptions } from './yoopta-block-options';
+import { YooptaBlockOptions } from "./yoopta-block-options"
 
 export const YooptaFloatingBlockActions = () => {
-  const editor = useYooptaEditor();
-  const dragHandleRef = useRef<HTMLButtonElement>(null);
-  const [blockOptionsOpen, setBlockOptionsOpen] = useState(false);
+  const editor = useYooptaEditor()
+  const dragHandleRef = useRef<HTMLButtonElement>(null)
+  const [blockOptionsOpen, setBlockOptionsOpen] = useState(false)
 
   const onPlusClick = (blockId: string | null) => {
-    if (!blockId) return;
-    const floatingBlock = Blocks.getBlock(editor, { id: blockId });
-    if (!floatingBlock) return;
+    if (!blockId) return
+    const floatingBlock = Blocks.getBlock(editor, { id: blockId })
+    if (!floatingBlock) return
 
-    const nextOrder = floatingBlock.meta.order + 1;
-    editor.insertBlock('Paragraph', { at: nextOrder, focus: true });
-  };
+    const nextOrder = floatingBlock.meta.order + 1
+    editor.insertBlock("Paragraph", { at: nextOrder, focus: true })
+  }
 
   const onDragClick = (blockId: string | null) => {
-    if (!blockId) return;
-    const block = Blocks.getBlock(editor, { id: blockId });
-    if (!block) return;
-    editor.setPath({ current: block.meta.order });
-    setBlockOptionsOpen(true);
-  };
+    if (!blockId) return
+    const block = Blocks.getBlock(editor, { id: blockId })
+    if (!block) return
+    editor.setPath({ current: block.meta.order })
+    setBlockOptionsOpen(true)
+  }
 
   const onBlockOptionsChange = (open: boolean) => {
-    setBlockOptionsOpen(open);
-  };
+    setBlockOptionsOpen(open)
+  }
 
   return (
     <FloatingBlockActions frozen={blockOptionsOpen}>
@@ -40,7 +40,10 @@ export const YooptaFloatingBlockActions = () => {
             <PlusIcon />
           </FloatingBlockActions.Button>
           <DragHandle blockId={blockId} ref={dragHandleRef} asChild>
-            <FloatingBlockActions.Button onClick={() => onDragClick(blockId)} title="Drag to reorder">
+            <FloatingBlockActions.Button
+              onClick={() => onDragClick(blockId)}
+              title="Drag to reorder"
+            >
               <GripVertical />
             </FloatingBlockActions.Button>
           </DragHandle>
@@ -54,5 +57,5 @@ export const YooptaFloatingBlockActions = () => {
         </>
       )}
     </FloatingBlockActions>
-  );
-};
+  )
+}

@@ -2,7 +2,13 @@
 
 import { create } from "@bufbuild/protobuf"
 import { useMemo } from "react"
-import { useMutation, useQueries, useQuery, useQueryClient, type UseQueryResult } from "@tanstack/react-query"
+import {
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+  type UseQueryResult,
+} from "@tanstack/react-query"
 import { generateSlug } from "random-word-slugs"
 
 import { CreateNoteRequestSchema, type Note } from "@/gen/pb/notes/notes_pb"
@@ -79,7 +85,11 @@ export function useNoteBySlug(slug?: string) {
       // shapes in the same cache entry causes "Objects are not valid as React child" when
       // the Timestamp protobuf object lands in the table's updatedAt cell.
       queryKey: [...workspaceLibraryQueryKey, workspaceId, "notes-raw"],
-      enabled: safeSlug.length > 0 && workspaceId.length > 0 && !workspacesQuery.isLoading && !isLoadingAuth,
+      enabled:
+        safeSlug.length > 0 &&
+        workspaceId.length > 0 &&
+        !workspacesQuery.isLoading &&
+        !isLoadingAuth,
       staleTime: 60 * 1000,
       gcTime: 10 * 60 * 1000,
       refetchOnWindowFocus: false,

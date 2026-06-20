@@ -137,7 +137,10 @@ export function NoteView({ slug }: NoteViewProps) {
       currentIds.length !== newIds.length ||
       currentIds.some((id) => !value[id]) ||
       newIds.some((id) => !currentValue[id]) ||
-      newIds.some((id) => currentValue[id]?.type !== value[id]?.type)
+      newIds.some((id) => currentValue[id]?.type !== value[id]?.type) ||
+      newIds.some(
+        (id) => JSON.stringify(currentValue[id]?.meta) !== JSON.stringify(value[id]?.meta),
+      )
 
     if (hasStructuralChange) {
       editor.setEditorValue(value)
@@ -145,9 +148,7 @@ export function NoteView({ slug }: NoteViewProps) {
       // Text-only fast path: push changes directly into each Slate editor
       // instance so Slate v0.71+'s "value is initial-only" constraint is
       // bypassed — setEditorValue won't update existing instances.
-      const blockEditors =
-        (editor as any).blockEditorsMap ??
-        (editor as any).editorBlocksMap
+      const blockEditors = (editor as any).blockEditorsMap ?? (editor as any).editorBlocksMap
 
       for (const [blockId, newBlock] of Object.entries(value)) {
         const oldBlock = currentValue[blockId]
@@ -226,32 +227,35 @@ export function NoteView({ slug }: NoteViewProps) {
   // ── Route a decoded incoming message to applyRemoteValue ─────────────────
   // Extracted so both the live listener and the queue drain share the same
   // logic path (Bug-4).
-  const applyIncomingMessage = useCallback((msg: IncomingMessage) => {
-    if (msg.type === "init" && msg.value) {
-      // Full snapshot on join — reset the diff baseline to the full document.
-      // This is the authoritative state; all subsequent patches are relative to it.
-      prevValueRef.current = msg.value
-      lastRemoteSnapshotRef.current = JSON.stringify(msg.value)
-      applyRemoteValue(msg.value)
-    } else if (msg.type === "patch") {
-      // Merge patch onto the current local snapshot.
-      // prevValueRef MUST already be populated from the init message before
-      // any patch arrives — the server sends init before forwarding patches
-      // from peers. If prevValueRef is still empty (race), merging onto {}
-      // would produce a document with only the patched blocks, losing all
-      // prior content. Guard against this: skip the patch if we don't have
-      // a baseline yet (the init is still in-flight or queued).
-      if (Object.keys(prevValueRef.current).length === 0) {
-        // No baseline yet — queue the patch so it can be replayed after
-        // the init arrives and sets prevValueRef.
-        pendingMessages.current.push(msg)
-        return
+  const applyIncomingMessage = useCallback(
+    (msg: IncomingMessage) => {
+      if (msg.type === "init" && msg.value) {
+        // Full snapshot on join — reset the diff baseline to the full document.
+        // This is the authoritative state; all subsequent patches are relative to it.
+        prevValueRef.current = msg.value
+        lastRemoteSnapshotRef.current = JSON.stringify(msg.value)
+        applyRemoteValue(msg.value)
+      } else if (msg.type === "patch") {
+        // Merge patch onto the current local snapshot.
+        // prevValueRef MUST already be populated from the init message before
+        // any patch arrives — the server sends init before forwarding patches
+        // from peers. If prevValueRef is still empty (race), merging onto {}
+        // would produce a document with only the patched blocks, losing all
+        // prior content. Guard against this: skip the patch if we don't have
+        // a baseline yet (the init is still in-flight or queued).
+        if (Object.keys(prevValueRef.current).length === 0) {
+          // No baseline yet — queue the patch so it can be replayed after
+          // the init arrives and sets prevValueRef.
+          pendingMessages.current.push(msg)
+          return
+        }
+        const merged = applyPatch(prevValueRef.current, msg)
+        prevValueRef.current = merged
+        applyRemoteValue(merged)
       }
-      const merged = applyPatch(prevValueRef.current, msg)
-      prevValueRef.current = merged
-      applyRemoteValue(merged)
-    }
-  }, [applyRemoteValue])
+    },
+    [applyRemoteValue],
+  )
 
   // ── WebSocket message + state listeners (separate, stable lifecycle) ──────
   useEffect(() => {
@@ -298,63 +302,66 @@ export function NoteView({ slug }: NoteViewProps) {
     editor: YooEditor
     handler: (payload: any) => void
   } | null>(null)
-  const handleEditorReady = useCallback((editor: YooEditor | null) => {
-    // Unsubscribe previous handler (StrictMode double-mount safety).
-    const prev = changeSubRef.current
-    if (prev) {
-      prev.editor.off("change", prev.handler)
-      changeSubRef.current = null
-    }
+  const handleEditorReady = useCallback(
+    (editor: YooEditor | null) => {
+      // Unsubscribe previous handler (StrictMode double-mount safety).
+      const prev = changeSubRef.current
+      if (prev) {
+        prev.editor.off("change", prev.handler)
+        changeSubRef.current = null
+      }
 
-    editorRef.current = editor
+      editorRef.current = editor
 
-    if (!editor) {
-      // Editor unmounted — mark not ready so incoming messages queue again.
-      editorReadyRef.current = false
-      return
-    }
-
-    const onChange = (value: YooptaContentValue) => {
-      // Bug-1: check counter > 0 (not boolean) so Slate's deferred onChange
-      // callbacks are still suppressed after the initial microtask would have
-      // cleared a boolean flag.
-      if (applyingRemote.current > 0) return
-
-      // Bug-3: compare against the stored wire string, not a re-read snapshot.
-      if (
-        lastRemoteSnapshotRef.current &&
-        JSON.stringify(value) === lastRemoteSnapshotRef.current
-      ) {
+      if (!editor) {
+        // Editor unmounted — mark not ready so incoming messages queue again.
+        editorReadyRef.current = false
         return
       }
 
-      const id = noteIdRef.current
-      if (!id) return
+      const onChange = (value: YooptaContentValue) => {
+        // Bug-1: check counter > 0 (not boolean) so Slate's deferred onChange
+        // callbacks are still suppressed after the initial microtask would have
+        // cleared a boolean flag.
+        if (applyingRemote.current > 0) return
 
-      const patch = diffBlocks(prevValueRef.current, value)
-      if (Object.keys(patch.upserted).length === 0 && patch.deleted.length === 0) return
+        // Bug-3: compare against the stored wire string, not a re-read snapshot.
+        if (
+          lastRemoteSnapshotRef.current &&
+          JSON.stringify(value) === lastRemoteSnapshotRef.current
+        ) {
+          return
+        }
 
-      prevValueRef.current = value
-      sendRoomMessage(id, JSON.stringify(patch))
-    }
+        const id = noteIdRef.current
+        if (!id) return
 
-    const handler = (payload: any) => {
-      if (!payload?.value) return
-      onChange(payload.value)
-    }
+        const patch = diffBlocks(prevValueRef.current, value)
+        if (Object.keys(patch.upserted).length === 0 && patch.deleted.length === 0) return
 
-    editor.on("change", handler)
-    changeSubRef.current = { editor, handler }
+        prevValueRef.current = value
+        sendRoomMessage(id, JSON.stringify(patch))
+      }
 
-    // Bug-4: mark the editor ready and drain the full ordered queue.
-    // Apply every queued message in arrival order — not just the last one.
-    // Intermediate structural changes (add/delete block) must not be skipped.
-    editorReadyRef.current = true
-    const queue = pendingMessages.current.splice(0)
-    for (const msg of queue) {
-      applyIncomingMessage(msg)
-    }
-  }, [applyIncomingMessage]) // applyIncomingMessage is stable (depends only on applyRemoteValue which is also stable)
+      const handler = (payload: any) => {
+        if (!payload?.value) return
+        onChange(payload.value)
+      }
+
+      editor.on("change", handler)
+      changeSubRef.current = { editor, handler }
+
+      // Bug-4: mark the editor ready and drain the full ordered queue.
+      // Apply every queued message in arrival order — not just the last one.
+      // Intermediate structural changes (add/delete block) must not be skipped.
+      editorReadyRef.current = true
+      const queue = pendingMessages.current.splice(0)
+      for (const msg of queue) {
+        applyIncomingMessage(msg)
+      }
+    },
+    [applyIncomingMessage],
+  ) // applyIncomingMessage is stable (depends only on applyRemoteValue which is also stable)
 
   const isConnecting = socketState === "connecting"
   const isErr = socketState === "error"
@@ -396,7 +403,8 @@ export function NoteView({ slug }: NoteViewProps) {
                 : isErr
                   ? "bg-rose-500/10 text-rose-600 dark:text-rose-400"
                   : "bg-muted text-muted-foreground",
-          ].join(" ")}>
+          ].join(" ")}
+        >
           <span
             className={[
               "size-1.5 rounded-full",
@@ -421,10 +429,7 @@ export function NoteView({ slug }: NoteViewProps) {
 
       {/* ── Editor ────────────────────────────────────────────────────────── */}
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-8 sm:px-8 lg:px-16">
-        <FullSetupEditor
-          editorRef={editorRef}
-          onEditorReady={handleEditorReady}
-        />
+        <FullSetupEditor editorRef={editorRef} onEditorReady={handleEditorReady} />
       </div>
     </div>
   )

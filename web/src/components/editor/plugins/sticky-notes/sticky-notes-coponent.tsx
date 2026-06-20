@@ -252,7 +252,14 @@ export function StickyNoteComponent({
         aria-label={isVisible ? "Hide sticky note" : "Show sticky note"}
       >
         📝
-        <span style={{ maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <span
+          style={{
+            maxWidth: 120,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
           {text || "Sticky Note"}
         </span>
       </div>

@@ -1,4 +1,4 @@
-@import '@yoopta/themes-shadcn/variables.css';
+@import "@yoopta/themes-shadcn/variables.css";
 
 .poll-container {
   --poll-accent: #0075de;

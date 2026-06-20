@@ -67,9 +67,7 @@ export const PollPlugin = new YooptaPlugin({
           if (!el.classList.contains("yoopta-poll")) return undefined
 
           const questionEl = el.querySelector(".yoopta-poll__question")
-          const optionEls = Array.from(
-            el.querySelectorAll(".yoopta-poll__option"),
-          )
+          const optionEls = Array.from(el.querySelectorAll(".yoopta-poll__option"))
 
           return editor.y("poll", {
             props: {
@@ -93,9 +91,7 @@ export const PollPlugin = new YooptaPlugin({
           options: Array<{ text: string; votes: string[] }>
         }
 
-        const lines = options
-          .map((o) => `- [ ] ${o.text || "Untitled option"}`)
-          .join("\n")
+        const lines = options.map((o) => `- [ ] ${o.text || "Untitled option"}`).join("\n")
 
         return `**Poll: ${question}**\n\n${lines}\n`
       },

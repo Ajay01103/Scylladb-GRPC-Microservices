@@ -58,7 +58,7 @@ export async function uploadAssetAction(formData: FormData) {
         Key: s3Key,
         Body: buffer,
         ContentType: file.type,
-      })
+      }),
     )
 
     // 2. Register asset in whiteboard database via gRPC

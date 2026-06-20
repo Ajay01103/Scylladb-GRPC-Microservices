@@ -2,17 +2,19 @@
 // @generated from file whiteboard.proto (package whiteboard, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
-import type { EmptySchema, Timestamp } from "@bufbuild/protobuf/wkt";
-import { file_google_protobuf_empty, file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
-import type { Message } from "@bufbuild/protobuf";
+import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2"
+import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2"
+import type { EmptySchema, Timestamp } from "@bufbuild/protobuf/wkt"
+import { file_google_protobuf_empty, file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt"
+import type { Message } from "@bufbuild/protobuf"
 
 /**
  * Describes the file whiteboard.proto.
  */
-export const file_whiteboard: GenFile = /*@__PURE__*/
-  fileDesc("ChB3aGl0ZWJvYXJkLnByb3RvEgp3aGl0ZWJvYXJkIsABCgVCb2FyZBIKCgJpZBgBIAEoCRIUCgx3b3Jrc3BhY2VfaWQYAiABKAkSDQoFdGl0bGUYAyABKAkSEgoKY3JlYXRlZF9ieRgEIAEoCRISCgppc19wcml2YXRlGAUgASgIEi4KCmNyZWF0ZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIk0KEkNyZWF0ZUJvYXJkUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkSDQoFdGl0bGUYAiABKAkSEgoKaXNfcHJpdmF0ZRgDIAEoCCIjCg9HZXRCb2FyZFJlcXVlc3QSEAoIYm9hcmRfaWQYASABKAkiMgoaTGlzdFdvcmtzcGFjZUJvYXJkc1JlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJIkAKG0xpc3RXb3Jrc3BhY2VCb2FyZHNSZXNwb25zZRIhCgZib2FyZHMYASADKAsyES53aGl0ZWJvYXJkLkJvYXJkIkoKFEFwcGVuZEJvYXJkT3BSZXF1ZXN0EhAKCGJvYXJkX2lkGAEgASgJEg8KB29wX3R5cGUYAiABKAkSDwoHcmVjb3JkcxgDIAEoDCKVAQoUUmVnaXN0ZXJBc3NldFJlcXVlc3QSEAoIYXNzZXRfaWQYASABKAkSEAoIYm9hcmRfaWQYAiABKAkSFAoMd29ya3NwYWNlX2lkGAMgASgJEgwKBG5hbWUYBCABKAkSEQoJbWltZV90eXBlGAUgASgJEhIKCnNpemVfYnl0ZXMYBiABKAMSDgoGczNfa2V5GAcgASgJIjkKFVJlZ2lzdGVyQXNzZXRSZXNwb25zZRIQCghhc3NldF9pZBgBIAEoCRIOCgZzM19rZXkYAiABKAkymgMKEVdoaXRlYm9hcmRTZXJ2aWNlEkAKC0NyZWF0ZUJvYXJkEh4ud2hpdGVib2FyZC5DcmVhdGVCb2FyZFJlcXVlc3QaES53aGl0ZWJvYXJkLkJvYXJkEjoKCEdldEJvYXJkEhsud2hpdGVib2FyZC5HZXRCb2FyZFJlcXVlc3QaES53aGl0ZWJvYXJkLkJvYXJkEmYKE0xpc3RXb3Jrc3BhY2VCb2FyZHMSJi53aGl0ZWJvYXJkLkxpc3RXb3Jrc3BhY2VCb2FyZHNSZXF1ZXN0Gicud2hpdGVib2FyZC5MaXN0V29ya3NwYWNlQm9hcmRzUmVzcG9uc2USSQoNQXBwZW5kQm9hcmRPcBIgLndoaXRlYm9hcmQuQXBwZW5kQm9hcmRPcFJlcXVlc3QaFi5nb29nbGUucHJvdG9idWYuRW1wdHkSVAoNUmVnaXN0ZXJBc3NldBIgLndoaXRlYm9hcmQuUmVnaXN0ZXJBc3NldFJlcXVlc3QaIS53aGl0ZWJvYXJkLlJlZ2lzdGVyQXNzZXRSZXNwb25zZUI1WjNnaXRodWIuY29tL0FqYXkwMTEwMy9nby1ub3Rpb24vd2hpdGVib2FyZC9nZW4vcGI7cGJiBnByb3RvMw", [file_google_protobuf_empty, file_google_protobuf_timestamp]);
+export const file_whiteboard: GenFile /*@__PURE__*/ = fileDesc(
+  "ChB3aGl0ZWJvYXJkLnByb3RvEgp3aGl0ZWJvYXJkIsABCgVCb2FyZBIKCgJpZBgBIAEoCRIUCgx3b3Jrc3BhY2VfaWQYAiABKAkSDQoFdGl0bGUYAyABKAkSEgoKY3JlYXRlZF9ieRgEIAEoCRISCgppc19wcml2YXRlGAUgASgIEi4KCmNyZWF0ZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIk0KEkNyZWF0ZUJvYXJkUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkSDQoFdGl0bGUYAiABKAkSEgoKaXNfcHJpdmF0ZRgDIAEoCCIjCg9HZXRCb2FyZFJlcXVlc3QSEAoIYm9hcmRfaWQYASABKAkiMgoaTGlzdFdvcmtzcGFjZUJvYXJkc1JlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJIkAKG0xpc3RXb3Jrc3BhY2VCb2FyZHNSZXNwb25zZRIhCgZib2FyZHMYASADKAsyES53aGl0ZWJvYXJkLkJvYXJkIkoKFEFwcGVuZEJvYXJkT3BSZXF1ZXN0EhAKCGJvYXJkX2lkGAEgASgJEg8KB29wX3R5cGUYAiABKAkSDwoHcmVjb3JkcxgDIAEoDCKVAQoUUmVnaXN0ZXJBc3NldFJlcXVlc3QSEAoIYXNzZXRfaWQYASABKAkSEAoIYm9hcmRfaWQYAiABKAkSFAoMd29ya3NwYWNlX2lkGAMgASgJEgwKBG5hbWUYBCABKAkSEQoJbWltZV90eXBlGAUgASgJEhIKCnNpemVfYnl0ZXMYBiABKAMSDgoGczNfa2V5GAcgASgJIjkKFVJlZ2lzdGVyQXNzZXRSZXNwb25zZRIQCghhc3NldF9pZBgBIAEoCRIOCgZzM19rZXkYAiABKAkymgMKEVdoaXRlYm9hcmRTZXJ2aWNlEkAKC0NyZWF0ZUJvYXJkEh4ud2hpdGVib2FyZC5DcmVhdGVCb2FyZFJlcXVlc3QaES53aGl0ZWJvYXJkLkJvYXJkEjoKCEdldEJvYXJkEhsud2hpdGVib2FyZC5HZXRCb2FyZFJlcXVlc3QaES53aGl0ZWJvYXJkLkJvYXJkEmYKE0xpc3RXb3Jrc3BhY2VCb2FyZHMSJi53aGl0ZWJvYXJkLkxpc3RXb3Jrc3BhY2VCb2FyZHNSZXF1ZXN0Gicud2hpdGVib2FyZC5MaXN0V29ya3NwYWNlQm9hcmRzUmVzcG9uc2USSQoNQXBwZW5kQm9hcmRPcBIgLndoaXRlYm9hcmQuQXBwZW5kQm9hcmRPcFJlcXVlc3QaFi5nb29nbGUucHJvdG9idWYuRW1wdHkSVAoNUmVnaXN0ZXJBc3NldBIgLndoaXRlYm9hcmQuUmVnaXN0ZXJBc3NldFJlcXVlc3QaIS53aGl0ZWJvYXJkLlJlZ2lzdGVyQXNzZXRSZXNwb25zZUI1WjNnaXRodWIuY29tL0FqYXkwMTEwMy9nby1ub3Rpb24vd2hpdGVib2FyZC9nZW4vcGI7cGJiBnByb3RvMw",
+  [file_google_protobuf_empty, file_google_protobuf_timestamp],
+)
 
 /**
  * @generated from message whiteboard.Board
@@ -21,45 +23,44 @@ export type Board = Message<"whiteboard.Board"> & {
   /**
    * @generated from field: string id = 1;
    */
-  id: string;
+  id: string
 
   /**
    * @generated from field: string workspace_id = 2;
    */
-  workspaceId: string;
+  workspaceId: string
 
   /**
    * @generated from field: string title = 3;
    */
-  title: string;
+  title: string
 
   /**
    * @generated from field: string created_by = 4;
    */
-  createdBy: string;
+  createdBy: string
 
   /**
    * @generated from field: bool is_private = 5;
    */
-  isPrivate: boolean;
+  isPrivate: boolean
 
   /**
    * @generated from field: google.protobuf.Timestamp created_at = 6;
    */
-  createdAt?: Timestamp | undefined;
+  createdAt?: Timestamp | undefined
 
   /**
    * @generated from field: google.protobuf.Timestamp updated_at = 7;
    */
-  updatedAt?: Timestamp | undefined;
-};
+  updatedAt?: Timestamp | undefined
+}
 
 /**
  * Describes the message whiteboard.Board.
  * Use `create(BoardSchema)` to create a new message.
  */
-export const BoardSchema: GenMessage<Board> = /*@__PURE__*/
-  messageDesc(file_whiteboard, 0);
+export const BoardSchema: GenMessage<Board> /*@__PURE__*/ = messageDesc(file_whiteboard, 0)
 
 /**
  * @generated from message whiteboard.CreateBoardRequest
@@ -68,25 +69,27 @@ export type CreateBoardRequest = Message<"whiteboard.CreateBoardRequest"> & {
   /**
    * @generated from field: string workspace_id = 1;
    */
-  workspaceId: string;
+  workspaceId: string
 
   /**
    * @generated from field: string title = 2;
    */
-  title: string;
+  title: string
 
   /**
    * @generated from field: bool is_private = 3;
    */
-  isPrivate: boolean;
-};
+  isPrivate: boolean
+}
 
 /**
  * Describes the message whiteboard.CreateBoardRequest.
  * Use `create(CreateBoardRequestSchema)` to create a new message.
  */
-export const CreateBoardRequestSchema: GenMessage<CreateBoardRequest> = /*@__PURE__*/
-  messageDesc(file_whiteboard, 1);
+export const CreateBoardRequestSchema: GenMessage<CreateBoardRequest> /*@__PURE__*/ = messageDesc(
+  file_whiteboard,
+  1,
+)
 
 /**
  * @generated from message whiteboard.GetBoardRequest
@@ -95,15 +98,17 @@ export type GetBoardRequest = Message<"whiteboard.GetBoardRequest"> & {
   /**
    * @generated from field: string board_id = 1;
    */
-  boardId: string;
-};
+  boardId: string
+}
 
 /**
  * Describes the message whiteboard.GetBoardRequest.
  * Use `create(GetBoardRequestSchema)` to create a new message.
  */
-export const GetBoardRequestSchema: GenMessage<GetBoardRequest> = /*@__PURE__*/
-  messageDesc(file_whiteboard, 2);
+export const GetBoardRequestSchema: GenMessage<GetBoardRequest> /*@__PURE__*/ = messageDesc(
+  file_whiteboard,
+  2,
+)
 
 /**
  * @generated from message whiteboard.ListWorkspaceBoardsRequest
@@ -112,15 +117,15 @@ export type ListWorkspaceBoardsRequest = Message<"whiteboard.ListWorkspaceBoards
   /**
    * @generated from field: string workspace_id = 1;
    */
-  workspaceId: string;
-};
+  workspaceId: string
+}
 
 /**
  * Describes the message whiteboard.ListWorkspaceBoardsRequest.
  * Use `create(ListWorkspaceBoardsRequestSchema)` to create a new message.
  */
-export const ListWorkspaceBoardsRequestSchema: GenMessage<ListWorkspaceBoardsRequest> = /*@__PURE__*/
-  messageDesc(file_whiteboard, 3);
+export const ListWorkspaceBoardsRequestSchema: GenMessage<ListWorkspaceBoardsRequest> /*@__PURE__*/ =
+  messageDesc(file_whiteboard, 3)
 
 /**
  * @generated from message whiteboard.ListWorkspaceBoardsResponse
@@ -129,15 +134,15 @@ export type ListWorkspaceBoardsResponse = Message<"whiteboard.ListWorkspaceBoard
   /**
    * @generated from field: repeated whiteboard.Board boards = 1;
    */
-  boards: Board[];
-};
+  boards: Board[]
+}
 
 /**
  * Describes the message whiteboard.ListWorkspaceBoardsResponse.
  * Use `create(ListWorkspaceBoardsResponseSchema)` to create a new message.
  */
-export const ListWorkspaceBoardsResponseSchema: GenMessage<ListWorkspaceBoardsResponse> = /*@__PURE__*/
-  messageDesc(file_whiteboard, 4);
+export const ListWorkspaceBoardsResponseSchema: GenMessage<ListWorkspaceBoardsResponse> /*@__PURE__*/ =
+  messageDesc(file_whiteboard, 4)
 
 /**
  * @generated from message whiteboard.AppendBoardOpRequest
@@ -146,25 +151,25 @@ export type AppendBoardOpRequest = Message<"whiteboard.AppendBoardOpRequest"> & 
   /**
    * @generated from field: string board_id = 1;
    */
-  boardId: string;
+  boardId: string
 
   /**
    * @generated from field: string op_type = 2;
    */
-  opType: string;
+  opType: string
 
   /**
    * @generated from field: bytes records = 3;
    */
-  records: Uint8Array;
-};
+  records: Uint8Array
+}
 
 /**
  * Describes the message whiteboard.AppendBoardOpRequest.
  * Use `create(AppendBoardOpRequestSchema)` to create a new message.
  */
-export const AppendBoardOpRequestSchema: GenMessage<AppendBoardOpRequest> = /*@__PURE__*/
-  messageDesc(file_whiteboard, 5);
+export const AppendBoardOpRequestSchema: GenMessage<AppendBoardOpRequest> /*@__PURE__*/ =
+  messageDesc(file_whiteboard, 5)
 
 /**
  * @generated from message whiteboard.RegisterAssetRequest
@@ -173,45 +178,45 @@ export type RegisterAssetRequest = Message<"whiteboard.RegisterAssetRequest"> & 
   /**
    * @generated from field: string asset_id = 1;
    */
-  assetId: string;
+  assetId: string
 
   /**
    * @generated from field: string board_id = 2;
    */
-  boardId: string;
+  boardId: string
 
   /**
    * @generated from field: string workspace_id = 3;
    */
-  workspaceId: string;
+  workspaceId: string
 
   /**
    * @generated from field: string name = 4;
    */
-  name: string;
+  name: string
 
   /**
    * @generated from field: string mime_type = 5;
    */
-  mimeType: string;
+  mimeType: string
 
   /**
    * @generated from field: int64 size_bytes = 6;
    */
-  sizeBytes: bigint;
+  sizeBytes: bigint
 
   /**
    * @generated from field: string s3_key = 7;
    */
-  s3Key: string;
-};
+  s3Key: string
+}
 
 /**
  * Describes the message whiteboard.RegisterAssetRequest.
  * Use `create(RegisterAssetRequestSchema)` to create a new message.
  */
-export const RegisterAssetRequestSchema: GenMessage<RegisterAssetRequest> = /*@__PURE__*/
-  messageDesc(file_whiteboard, 6);
+export const RegisterAssetRequestSchema: GenMessage<RegisterAssetRequest> /*@__PURE__*/ =
+  messageDesc(file_whiteboard, 6)
 
 /**
  * @generated from message whiteboard.RegisterAssetResponse
@@ -220,20 +225,20 @@ export type RegisterAssetResponse = Message<"whiteboard.RegisterAssetResponse"> 
   /**
    * @generated from field: string asset_id = 1;
    */
-  assetId: string;
+  assetId: string
 
   /**
    * @generated from field: string s3_key = 2;
    */
-  s3Key: string;
-};
+  s3Key: string
+}
 
 /**
  * Describes the message whiteboard.RegisterAssetResponse.
  * Use `create(RegisterAssetResponseSchema)` to create a new message.
  */
-export const RegisterAssetResponseSchema: GenMessage<RegisterAssetResponse> = /*@__PURE__*/
-  messageDesc(file_whiteboard, 7);
+export const RegisterAssetResponseSchema: GenMessage<RegisterAssetResponse> /*@__PURE__*/ =
+  messageDesc(file_whiteboard, 7)
 
 /**
  * @generated from service whiteboard.WhiteboardService
@@ -243,42 +248,40 @@ export const WhiteboardService: GenService<{
    * @generated from rpc whiteboard.WhiteboardService.CreateBoard
    */
   createBoard: {
-    methodKind: "unary";
-    input: typeof CreateBoardRequestSchema;
-    output: typeof BoardSchema;
-  },
+    methodKind: "unary"
+    input: typeof CreateBoardRequestSchema
+    output: typeof BoardSchema
+  }
   /**
    * @generated from rpc whiteboard.WhiteboardService.GetBoard
    */
   getBoard: {
-    methodKind: "unary";
-    input: typeof GetBoardRequestSchema;
-    output: typeof BoardSchema;
-  },
+    methodKind: "unary"
+    input: typeof GetBoardRequestSchema
+    output: typeof BoardSchema
+  }
   /**
    * @generated from rpc whiteboard.WhiteboardService.ListWorkspaceBoards
    */
   listWorkspaceBoards: {
-    methodKind: "unary";
-    input: typeof ListWorkspaceBoardsRequestSchema;
-    output: typeof ListWorkspaceBoardsResponseSchema;
-  },
+    methodKind: "unary"
+    input: typeof ListWorkspaceBoardsRequestSchema
+    output: typeof ListWorkspaceBoardsResponseSchema
+  }
   /**
    * @generated from rpc whiteboard.WhiteboardService.AppendBoardOp
    */
   appendBoardOp: {
-    methodKind: "unary";
-    input: typeof AppendBoardOpRequestSchema;
-    output: typeof EmptySchema;
-  },
+    methodKind: "unary"
+    input: typeof AppendBoardOpRequestSchema
+    output: typeof EmptySchema
+  }
   /**
    * @generated from rpc whiteboard.WhiteboardService.RegisterAsset
    */
   registerAsset: {
-    methodKind: "unary";
-    input: typeof RegisterAssetRequestSchema;
-    output: typeof RegisterAssetResponseSchema;
-  },
-}> = /*@__PURE__*/
-  serviceDesc(file_whiteboard, 0);
-
+    methodKind: "unary"
+    input: typeof RegisterAssetRequestSchema
+    output: typeof RegisterAssetResponseSchema
+  }
+}> /*@__PURE__*/ = serviceDesc(file_whiteboard, 0)

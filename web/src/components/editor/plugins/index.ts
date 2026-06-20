@@ -112,9 +112,7 @@ export const YOOPTA_PLUGINS = [
     options: {
       onSearch: async (query, trigger) => {
         if (trigger.type === "page") {
-          const response = await fetch(
-            `https://jsonplaceholder.typicode.com/posts?q=${query}`,
-          )
+          const response = await fetch(`https://jsonplaceholder.typicode.com/posts?q=${query}`)
           const data = (await response.json()) as Array<{
             id: string
             title: string
@@ -127,9 +125,7 @@ export const YOOPTA_PLUGINS = [
           }))
         }
 
-        const response = await fetch(
-          `https://jsonplaceholder.typicode.com/users?q=${query}`,
-        )
+        const response = await fetch(`https://jsonplaceholder.typicode.com/users?q=${query}`)
         const data = (await response.json()) as Array<{
           id: string
           name: string

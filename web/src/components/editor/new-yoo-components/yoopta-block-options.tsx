@@ -1,47 +1,52 @@
-import { useRef, useState } from 'react';
-import { BlockOptions, useBlockActions } from '@yoopta/ui/block-options';
-import { YooptaActionMenuList } from './yoopta-action-menu-list';
+import { useRef, useState } from "react"
+import { BlockOptions, useBlockActions } from "@yoopta/ui/block-options"
+import { YooptaActionMenuList } from "./yoopta-action-menu-list"
 
 type YooptaBlockOptionsProps = {
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-  blockId: string | null;
-  anchor?: HTMLButtonElement | null;
-};
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  blockId: string | null
+  anchor?: HTMLButtonElement | null
+}
 
-export const YooptaBlockOptions = ({ open, onOpenChange, blockId, anchor }: YooptaBlockOptionsProps) => {
-  const { duplicateBlock, copyBlockLink, deleteBlock } = useBlockActions();
-  const turnIntoRef = useRef<HTMLButtonElement>(null);
-  const [actionMenuOpen, setActionMenuOpen] = useState(false);
+export const YooptaBlockOptions = ({
+  open,
+  onOpenChange,
+  blockId,
+  anchor,
+}: YooptaBlockOptionsProps) => {
+  const { duplicateBlock, copyBlockLink, deleteBlock } = useBlockActions()
+  const turnIntoRef = useRef<HTMLButtonElement>(null)
+  const [actionMenuOpen, setActionMenuOpen] = useState(false)
 
   const onTurnInto = () => {
-    setActionMenuOpen(true);
-  };
+    setActionMenuOpen(true)
+  }
 
   const onActionMenuClose = (menuOpen: boolean) => {
-    setActionMenuOpen(menuOpen);
+    setActionMenuOpen(menuOpen)
     if (!menuOpen) {
-      onOpenChange?.(false);
+      onOpenChange?.(false)
     }
-  };
+  }
 
   const onDuplicate = () => {
-    if (!blockId) return;
-    duplicateBlock(blockId);
-    onOpenChange?.(false);
-  };
+    if (!blockId) return
+    duplicateBlock(blockId)
+    onOpenChange?.(false)
+  }
 
   const onCopyLink = () => {
-    if (!blockId) return;
-    copyBlockLink(blockId);
-    onOpenChange?.(false);
-  };
+    if (!blockId) return
+    copyBlockLink(blockId)
+    onOpenChange?.(false)
+  }
 
   const onDelete = () => {
-    if (!blockId) return;
-    deleteBlock(blockId);
-    onOpenChange?.(false);
-  };
+    if (!blockId) return
+    deleteBlock(blockId)
+    onOpenChange?.(false)
+  }
 
   return (
     <>
@@ -62,7 +67,12 @@ export const YooptaBlockOptions = ({ open, onOpenChange, blockId, anchor }: Yoop
           </BlockOptions.Group>
         </BlockOptions.Content>
       </BlockOptions>
-      <YooptaActionMenuList placement='right-start' open={actionMenuOpen} onOpenChange={onActionMenuClose} anchor={turnIntoRef.current} />
+      <YooptaActionMenuList
+        placement="right-start"
+        open={actionMenuOpen}
+        onOpenChange={onActionMenuClose}
+        anchor={turnIntoRef.current}
+      />
     </>
-  );
-};
+  )
+}
