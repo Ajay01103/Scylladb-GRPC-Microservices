@@ -29,6 +29,9 @@ type client struct {
 	conn   *websocket.Conn
 	send   chan []byte
 	userID uuid.UUID
+	name   string
+	color  string
+	avatar string
 }
 
 // roomMessage carries a raw JSON frame from one client to be broadcast to peers.
@@ -84,6 +87,43 @@ type patchMessage struct {
 	Type     string                     `json:"type"`
 	Upserted map[string]json.RawMessage `json:"upserted"`
 	Deleted  []string                   `json:"deleted"`
+}
+
+// ── Presence / cursor message types ──────────────────────────────────────────
+
+type identifyMessage struct {
+	Type   string `json:"type"`
+	Name   string `json:"name"`
+	Color  string `json:"color"`
+	Avatar string `json:"avatar,omitempty"`
+}
+
+type presenceMessage struct {
+	Type   string `json:"type"`
+	UserID string `json:"userId"`
+	Name   string `json:"name"`
+	Color  string `json:"color"`
+	Avatar string `json:"avatar,omitempty"`
+	Joined bool   `json:"joined"`
+}
+
+type userPresenceInfo struct {
+	UserID string `json:"userId"`
+	Name   string `json:"name"`
+	Color  string `json:"color"`
+	Avatar string `json:"avatar,omitempty"`
+}
+
+type presenceListMessage struct {
+	Type  string             `json:"type"`
+	Users []userPresenceInfo `json:"users"`
+}
+
+type cursorMessage struct {
+	Type   string  `json:"type"`
+	UserID string  `json:"userId"`
+	X      float64 `json:"x"`
+	Y      float64 `json:"y"`
 }
 
 // mergeSnapshot applies a patch onto an existing full-document snapshot stored
@@ -263,14 +303,66 @@ func (r *room) run() {
 			)
 			r.sendInitialState(c)
 
+			// Send existing room members to the new client.
+			users := make([]userPresenceInfo, 0)
+			for other := range r.clients {
+				if other == c || other.name == "" {
+					continue
+				}
+				users = append(users, userPresenceInfo{
+					UserID: other.userID.String(),
+					Name:   other.name,
+					Color:  other.color,
+					Avatar: other.avatar,
+				})
+			}
+			listMsg, err := json.Marshal(presenceListMessage{Type: "presence_list", Users: users})
+			if err == nil {
+				c.send <- listMsg
+			}
+
 		case c := <-r.leave:
 			if _, ok := r.clients[c]; !ok {
 				// Already removed (slow-client drop). Ignore — don't trigger onEmpty.
 				continue
 			}
+
+			// If the client identified, broadcast their leave to remaining clients.
+			if c.name != "" {
+				leaveMsg, err := json.Marshal(presenceMessage{
+					Type:   "presence",
+					UserID: c.userID.String(),
+					Name:   c.name,
+					Color:  c.color,
+					Avatar: c.avatar,
+					Joined: false,
+				})
+				if err == nil {
+					for other := range r.clients {
+						if other == c {
+							continue
+						}
+						select {
+						case other.send <- leaveMsg:
+						default:
+							// Slow client — drop it.
+							r.logger.Warn("note ws: dropping slow client",
+								zap.String("note_id", r.noteID.String()),
+								zap.String("user_id", other.userID.String()),
+							)
+							delete(r.clients, other)
+							close(other.send)
+							_ = other.conn.Close()
+						}
+					}
+				}
+			}
+
 			delete(r.clients, c)
 			close(c.send)
-			_ = c.conn.Close()
+			if c.conn != nil {
+				_ = c.conn.Close()
+			}
 			r.logger.Info("websocket client left note room",
 				zap.String("note_id", r.noteID.String()),
 				zap.String("user_id", c.userID.String()),
@@ -301,6 +393,9 @@ func (r *room) run() {
 			// Structural changes flush immediately (Bug-3 option A) rather
 			// than waiting for the debounce timer.
 			isStructural := false
+			// identify, cursor, and presence messages are handled privately
+			// and should not fall through to the raw-data fan-out.
+			handledPrivately := false
 
 			switch envelope.Type {
 			case "patch":
@@ -385,6 +480,75 @@ func (r *room) run() {
 						r.flush(context.Background())
 					}
 				}
+
+			case "identify":
+				handledPrivately = true
+				var idMsg identifyMessage
+				if err := json.Unmarshal(msg.data, &idMsg); err == nil {
+					msg.sender.name = idMsg.Name
+					msg.sender.color = idMsg.Color
+					msg.sender.avatar = idMsg.Avatar
+
+					pr := presenceMessage{
+						Type:   "presence",
+						UserID: msg.sender.userID.String(),
+						Name:   msg.sender.name,
+						Color:  msg.sender.color,
+						Avatar: msg.sender.avatar,
+						Joined: true,
+					}
+					prBytes, err := json.Marshal(pr)
+					if err == nil {
+						for other := range r.clients {
+							if other == msg.sender {
+								continue
+							}
+							select {
+							case other.send <- prBytes:
+							default:
+								// Slow client — drop it.
+								r.logger.Warn("note ws: dropping slow client",
+									zap.String("note_id", r.noteID.String()),
+									zap.String("user_id", other.userID.String()),
+								)
+								delete(r.clients, other)
+								close(other.send)
+								_ = other.conn.Close()
+							}
+						}
+					}
+				}
+
+			case "cursor":
+				handledPrivately = true
+				var cur cursorMessage
+				if err := json.Unmarshal(msg.data, &cur); err == nil {
+					cur.UserID = msg.sender.userID.String()
+					curBytes, err := json.Marshal(cur)
+					if err == nil {
+						for other := range r.clients {
+							if other == msg.sender {
+								continue
+							}
+							select {
+							case other.send <- curBytes:
+							default:
+								// Slow client — drop it.
+								r.logger.Warn("note ws: dropping slow client",
+									zap.String("note_id", r.noteID.String()),
+									zap.String("user_id", other.userID.String()),
+								)
+								delete(r.clients, other)
+								close(other.send)
+								_ = other.conn.Close()
+							}
+						}
+					}
+				}
+			}
+
+			if handledPrivately {
+				continue
 			}
 
 			// Broadcast the raw frame to all OTHER clients immediately.

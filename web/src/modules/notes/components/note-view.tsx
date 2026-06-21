@@ -14,8 +14,12 @@ import {
   type SocketState,
 } from "@/lib/board-socket-manager"
 import { requestNotesWsTicket } from "@/modules/notes/api/ws-ticket"
+import { useCurrentUser } from "@/modules/auth/api/use-current-user"
 import { useNoteBySlug } from "@/modules/notes/api/use-notes"
 import { FullSetupEditor } from "@/components/editor"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { AvatarStack } from "@/components/ui/avatar-stack"
+import { Cursor, CursorPointer, CursorBody, CursorName } from "@/components/ui/cursor"
 
 const NOTES_WS_URL = process.env.NEXT_PUBLIC_NOTES_WS_URL ?? "ws://localhost:9092"
 
@@ -35,7 +39,37 @@ type PatchMessage = {
 }
 
 type InitMessage = { type: "init"; value?: YooptaContentValue | null }
-type IncomingMessage = InitMessage | PatchMessage
+
+type PresenceListMessage = {
+  type: "presence_list"
+  users: Array<{ userId: string; name: string; color: string; avatar?: string }>
+}
+
+type PresenceMessage = {
+  type: "presence"
+  userId: string
+  name: string
+  color: string
+  avatar?: string
+  joined: boolean
+}
+
+type CursorMessage = {
+  type: "cursor"
+  userId: string
+  x: number
+  y: number
+}
+
+type IncomingMessage =
+  | InitMessage
+  | PatchMessage
+  | PresenceListMessage
+  | PresenceMessage
+  | CursorMessage
+
+type UserInfo = { userId: string; name: string; color: string; avatar?: string }
+type CursorInfo = { x: number; y: number; name: string; color: string }
 
 /**
  * Compute a block-level diff between two Yoopta document snapshots.
@@ -65,6 +99,15 @@ function applyPatch(local: YooptaContentValue, patch: PatchMessage): YooptaConte
   const next = { ...local, ...patch.upserted }
   for (const id of patch.deleted) delete next[id]
   return next
+}
+
+function hashColor(str: string): string {
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  const c = (hash & 0x00ffffff).toString(16).padStart(6, "0")
+  return `#${c}`
 }
 
 type NoteViewProps = { slug: string }
@@ -102,6 +145,13 @@ export function NoteView({ slug }: NoteViewProps) {
 
   // noteId as a ref so the WS callbacks always see the latest value without
   // being listed as useEffect / useCallback deps.
+  const { data: currentUser } = useCurrentUser()
+  const userRef = useRef(currentUser)
+  userRef.current = currentUser
+
+  const lastCursorSendRef = useRef(0)
+  const editorContainerRef = useRef<HTMLDivElement>(null)
+
   const noteIdRef = useRef<string | undefined>(undefined)
   noteIdRef.current = note?.id
 
@@ -110,6 +160,11 @@ export function NoteView({ slug }: NoteViewProps) {
   const prevValueRef = useRef<YooptaContentValue>({})
 
   const [socketState, setSocketState] = useState<SocketState>("closed")
+  const [activeUsers, setActiveUsers] = useState<Record<string, UserInfo>>({})
+  const [cursors, setCursors] = useState<Record<string, CursorInfo>>({})
+
+  const activeUsersRef = useRef(activeUsers)
+  activeUsersRef.current = activeUsers
 
   // ── Push a remote Yoopta value into the editor ─────────────────────────────
   const applyRemoteValue = useCallback((value: YooptaContentValue) => {
@@ -139,7 +194,8 @@ export function NoteView({ slug }: NoteViewProps) {
       newIds.some((id) => !currentValue[id]) ||
       newIds.some((id) => currentValue[id]?.type !== value[id]?.type) ||
       newIds.some(
-        (id) => JSON.stringify(currentValue[id]?.meta) !== JSON.stringify(value[id]?.meta),
+        (id) =>
+          JSON.stringify(currentValue[id]?.meta) !== JSON.stringify(value[id]?.meta),
       )
 
     if (hasStructuralChange) {
@@ -148,7 +204,8 @@ export function NoteView({ slug }: NoteViewProps) {
       // Text-only fast path: push changes directly into each Slate editor
       // instance so Slate v0.71+'s "value is initial-only" constraint is
       // bypassed — setEditorValue won't update existing instances.
-      const blockEditors = (editor as any).blockEditorsMap ?? (editor as any).editorBlocksMap
+      const blockEditors =
+        (editor as any).blockEditorsMap ?? (editor as any).editorBlocksMap
 
       for (const [blockId, newBlock] of Object.entries(value)) {
         const oldBlock = currentValue[blockId]
@@ -224,6 +281,27 @@ export function NoteView({ slug }: NoteViewProps) {
     }
   }, [note?.id])
 
+  // ── Throttled cursor send on mouse move within editor area ────────────────
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      const noteId = noteIdRef.current
+      if (!noteId) return
+      const now = performance.now()
+      if (now - lastCursorSendRef.current < 50) return
+      lastCursorSendRef.current = now
+      const el = editorContainerRef.current
+      if (!el) return
+      const rect = el.getBoundingClientRect()
+      sendRoomMessage(
+        noteId,
+        JSON.stringify({ type: "cursor", x: e.clientX - rect.left, y: e.clientY - rect.top }),
+      )
+    }
+
+    window.addEventListener("mousemove", handleMouseMove)
+    return () => window.removeEventListener("mousemove", handleMouseMove)
+  }, [])
+
   // ── Route a decoded incoming message to applyRemoteValue ─────────────────
   // Extracted so both the live listener and the queue drain share the same
   // logic path (Bug-4).
@@ -275,6 +353,66 @@ export function NoteView({ slug }: NoteViewProps) {
 
         const msg = JSON.parse(raw) as IncomingMessage
 
+        if (msg.type === "presence_list") {
+          if (!Array.isArray(msg.users)) {
+            msg.users = []
+          }
+          const next: Record<string, UserInfo> = {}
+          for (const u of msg.users) {
+            if (!u?.userId) continue
+            next[u.userId] = {
+              userId: u.userId,
+              name: u.name ?? "Unknown",
+              color: u.color ?? "#6366f1",
+              avatar: u.avatar,
+            }
+          }
+          setActiveUsers(next)
+          return
+        }
+
+        if (msg.type === "presence") {
+          if (!msg.userId) return
+          if (msg.joined) {
+            setActiveUsers((prev) => ({
+              ...prev,
+              [msg.userId]: {
+                userId: msg.userId,
+                name: msg.name,
+                color: msg.color,
+                avatar: msg.avatar,
+              },
+            }))
+          } else {
+            setActiveUsers((prev) => {
+              const next = { ...prev }
+              delete next[msg.userId]
+              return next
+            })
+            setCursors((prev) => {
+              const next = { ...prev }
+              delete next[msg.userId]
+              return next
+            })
+          }
+          return
+        }
+
+        if (msg.type === "cursor") {
+          if (msg.userId == null || msg.x == null || msg.y == null) return
+          const user = activeUsersRef.current[msg.userId]
+          setCursors((prev) => ({
+            ...prev,
+            [msg.userId]: {
+              x: msg.x,
+              y: msg.y,
+              name: user?.name ?? msg.userId,
+              color: user?.color ?? "#6366f1",
+            },
+          }))
+          return
+        }
+
         // Bug-4: if the editor hasn't mounted yet, queue the full message
         // (not just the value) so nothing is discarded and order is preserved.
         if (!editorReadyRef.current) {
@@ -288,7 +426,22 @@ export function NoteView({ slug }: NoteViewProps) {
       }
     })
 
-    const removeState = addStateListener(noteId, setSocketState)
+    const removeState = addStateListener(noteId, (state) => {
+      setSocketState(state)
+      if (state === "open") {
+        const id = noteIdRef.current
+        const u = userRef.current
+        if (!id) return
+        sendRoomMessage(
+          id,
+          JSON.stringify({
+            type: "identify",
+            name: u?.name ?? u?.email ?? "User",
+            color: u ? hashColor(u.userId) : "#6366f1",
+          }),
+        )
+      }
+    })
 
     return () => {
       removeMsg()
@@ -393,43 +546,77 @@ export function NoteView({ slug }: NoteViewProps) {
           {note.title ?? "Untitled note"}
         </h1>
 
-        <span
-          className={[
-            "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
-            socketState === "open"
-              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-              : isConnecting
-                ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                : isErr
-                  ? "bg-rose-500/10 text-rose-600 dark:text-rose-400"
-                  : "bg-muted text-muted-foreground",
-          ].join(" ")}
-        >
+        <div className="flex items-center gap-3">
+          <AvatarStack size={28}>
+            {Object.values(activeUsers).map((u) => (
+              <Avatar key={u.userId} style={{ borderColor: u.color }} className="border-2">
+                {u.avatar ? (
+                  <AvatarImage src={u.avatar} alt={u.name} />
+                ) : (
+                  <AvatarFallback style={{ backgroundColor: u.color, color: "#fff" }}>
+                    {u.name.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                )}
+              </Avatar>
+            ))}
+          </AvatarStack>
+
           <span
             className={[
-              "size-1.5 rounded-full",
+              "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
               socketState === "open"
-                ? "animate-pulse bg-emerald-500"
+                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                 : isConnecting
-                  ? "animate-ping bg-amber-500"
+                  ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
                   : isErr
-                    ? "bg-rose-500"
-                    : "bg-muted-foreground",
-            ].join(" ")}
-          />
-          {socketState === "open"
-            ? "Live"
-            : isConnecting
-              ? "Connecting…"
-              : isErr
-                ? "Disconnected"
-                : "Offline"}
-        </span>
+                    ? "bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                    : "bg-muted text-muted-foreground",
+            ].join(" ")}>
+            <span
+              className={[
+                "size-1.5 rounded-full",
+                socketState === "open"
+                  ? "animate-pulse bg-emerald-500"
+                  : isConnecting
+                    ? "animate-ping bg-amber-500"
+                    : isErr
+                      ? "bg-rose-500"
+                      : "bg-muted-foreground",
+              ].join(" ")}
+            />
+            {socketState === "open"
+              ? "Live"
+              : isConnecting
+                ? "Connecting…"
+                : isErr
+                  ? "Disconnected"
+                  : "Offline"}
+          </span>
+        </div>
       </header>
 
       {/* ── Editor ────────────────────────────────────────────────────────── */}
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-8 sm:px-8 lg:px-16">
-        <FullSetupEditor editorRef={editorRef} onEditorReady={handleEditorReady} />
+      <div
+        ref={editorContainerRef}
+        className="relative min-h-0 flex-1 overflow-y-auto px-4 py-8 sm:px-8 lg:px-16">
+        <FullSetupEditor
+          editorRef={editorRef}
+          onEditorReady={handleEditorReady}
+        />
+
+        {/* Remote cursors */}
+        {Object.entries(cursors).map(([userId, cur]) => (
+          <Cursor
+            key={userId}
+            className="absolute z-50 transition-transform duration-100 ease-out"
+            style={{ left: cur.x, top: cur.y, color: cur.color }}
+          >
+            <CursorPointer />
+            <CursorBody>
+              <CursorName>{cur.name}</CursorName>
+            </CursorBody>
+          </Cursor>
+        ))}
       </div>
     </div>
   )
