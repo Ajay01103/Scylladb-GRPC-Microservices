@@ -32,7 +32,10 @@ const authInterceptor: Interceptor = (next) => async (req) => {
 function createTransport(baseUrl: string, authenticated = false) {
   return createConnectTransport({
     baseUrl,
-    // useBinaryFormat: true,
+    // Protobuf-over-the-wire binary. ~5–10x smaller payloads and cheaper
+    // parsing than JSON. Both client and the Go services (ConnectRPC
+    // defaults to binary on both ends) support this.
+    useBinaryFormat: true,
     ...(authenticated && { interceptors: [authInterceptor] }),
   })
 }

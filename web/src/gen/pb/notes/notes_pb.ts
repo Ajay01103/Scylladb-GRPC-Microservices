@@ -2,19 +2,17 @@
 // @generated from file notes.proto (package notes, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2"
-import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2"
-import type { EmptySchema, Timestamp } from "@bufbuild/protobuf/wkt"
-import { file_google_protobuf_empty, file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt"
-import type { Message } from "@bufbuild/protobuf"
+import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { EmptySchema, Timestamp } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_empty, file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
+import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file notes.proto.
  */
-export const file_notes: GenFile /*@__PURE__*/ = fileDesc(
-  "Cgtub3Rlcy5wcm90bxIFbm90ZXMivwEKBE5vdGUSCgoCaWQYASABKAkSFAoMd29ya3NwYWNlX2lkGAIgASgJEg0KBXRpdGxlGAMgASgJEhIKCmNyZWF0ZWRfYnkYBCABKAkSEgoKaXNfcHJpdmF0ZRgFIAEoCBIuCgpjcmVhdGVkX2F0GAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgp1cGRhdGVkX2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJMChFDcmVhdGVOb3RlUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkSDQoFdGl0bGUYAiABKAkSEgoKaXNfcHJpdmF0ZRgDIAEoCCIhCg5HZXROb3RlUmVxdWVzdBIPCgdub3RlX2lkGAEgASgJIjEKGUxpc3RXb3Jrc3BhY2VOb3Rlc1JlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJIjgKGkxpc3RXb3Jrc3BhY2VOb3Rlc1Jlc3BvbnNlEhoKBW5vdGVzGAEgAygLMgsubm90ZXMuTm90ZSI4ChdBcHBlbmROb3RlVXBkYXRlUmVxdWVzdBIPCgdub3RlX2lkGAEgASgJEgwKBGRhdGEYAiABKAwymQIKDE5vdGVzU2VydmljZRIzCgpDcmVhdGVOb3RlEhgubm90ZXMuQ3JlYXRlTm90ZVJlcXVlc3QaCy5ub3Rlcy5Ob3RlEi0KB0dldE5vdGUSFS5ub3Rlcy5HZXROb3RlUmVxdWVzdBoLLm5vdGVzLk5vdGUSWQoSTGlzdFdvcmtzcGFjZU5vdGVzEiAubm90ZXMuTGlzdFdvcmtzcGFjZU5vdGVzUmVxdWVzdBohLm5vdGVzLkxpc3RXb3Jrc3BhY2VOb3Rlc1Jlc3BvbnNlEkoKEEFwcGVuZE5vdGVVcGRhdGUSHi5ub3Rlcy5BcHBlbmROb3RlVXBkYXRlUmVxdWVzdBoWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eUIwWi5naXRodWIuY29tL0FqYXkwMTEwMy9nby1ub3Rpb24vbm90ZXMvZ2VuL3BiO3BiYgZwcm90bzM",
-  [file_google_protobuf_empty, file_google_protobuf_timestamp],
-)
+export const file_notes: GenFile = /*@__PURE__*/
+  fileDesc("Cgtub3Rlcy5wcm90bxIFbm90ZXMivwEKBE5vdGUSCgoCaWQYASABKAkSFAoMd29ya3NwYWNlX2lkGAIgASgJEg0KBXRpdGxlGAMgASgJEhIKCmNyZWF0ZWRfYnkYBCABKAkSEgoKaXNfcHJpdmF0ZRgFIAEoCBIuCgpjcmVhdGVkX2F0GAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgp1cGRhdGVkX2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJMChFDcmVhdGVOb3RlUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkSDQoFdGl0bGUYAiABKAkSEgoKaXNfcHJpdmF0ZRgDIAEoCCIhCg5HZXROb3RlUmVxdWVzdBIPCgdub3RlX2lkGAEgASgJIjEKGUxpc3RXb3Jrc3BhY2VOb3Rlc1JlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJIjgKGkxpc3RXb3Jrc3BhY2VOb3Rlc1Jlc3BvbnNlEhoKBW5vdGVzGAEgAygLMgsubm90ZXMuTm90ZSI4ChdBcHBlbmROb3RlVXBkYXRlUmVxdWVzdBIPCgdub3RlX2lkGAEgASgJEgwKBGRhdGEYAiABKAwiZQodR2VuZXJhdGVBc3NldFVwbG9hZFVybFJlcXVlc3QSDwoHbm90ZV9pZBgBIAEoCRIMCgRuYW1lGAIgASgJEhEKCW1pbWVfdHlwZRgDIAEoCRISCgpzaXplX2J5dGVzGAQgASgDImUKFFByZXNpZ25lZFVybFJlc3BvbnNlEhAKCGFzc2V0X2lkGAEgASgJEg4KBnMzX2tleRgCIAEoCRISCgp1cGxvYWRfdXJsGAMgASgJEhcKD2V4cGlyZXNfYXRfdW5peBgEIAEoAyKCAQoYUmVnaXN0ZXJOb3RlQXNzZXRSZXF1ZXN0EhAKCGFzc2V0X2lkGAEgASgJEg8KB25vdGVfaWQYAiABKAkSDAoEbmFtZRgDIAEoCRIRCgltaW1lX3R5cGUYBCABKAkSEgoKc2l6ZV9ieXRlcxgFIAEoAxIOCgZzM19rZXkYBiABKAkiOQoVUmVnaXN0ZXJBc3NldFJlc3BvbnNlEhAKCGFzc2V0X2lkGAEgASgJEg4KBnMzX2tleRgCIAEoCSIuChpHZXRBc3NldERvd25sb2FkVXJsUmVxdWVzdBIQCghhc3NldF9pZBgBIAEoCSKgAQoYQXNzZXREb3dubG9hZFVybFJlc3BvbnNlEhAKCGFzc2V0X2lkGAEgASgJEg4KBnMzX2tleRgCIAEoCRIMCgRuYW1lGAMgASgJEhEKCW1pbWVfdHlwZRgEIAEoCRISCgpzaXplX2J5dGVzGAUgASgDEhQKDGRvd25sb2FkX3VybBgGIAEoCRIXCg9leHBpcmVzX2F0X3VuaXgYByABKAMypQQKDE5vdGVzU2VydmljZRIzCgpDcmVhdGVOb3RlEhgubm90ZXMuQ3JlYXRlTm90ZVJlcXVlc3QaCy5ub3Rlcy5Ob3RlEi0KB0dldE5vdGUSFS5ub3Rlcy5HZXROb3RlUmVxdWVzdBoLLm5vdGVzLk5vdGUSWQoSTGlzdFdvcmtzcGFjZU5vdGVzEiAubm90ZXMuTGlzdFdvcmtzcGFjZU5vdGVzUmVxdWVzdBohLm5vdGVzLkxpc3RXb3Jrc3BhY2VOb3Rlc1Jlc3BvbnNlEkoKEEFwcGVuZE5vdGVVcGRhdGUSHi5ub3Rlcy5BcHBlbmROb3RlVXBkYXRlUmVxdWVzdBoWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRJbChZHZW5lcmF0ZUFzc2V0VXBsb2FkVXJsEiQubm90ZXMuR2VuZXJhdGVBc3NldFVwbG9hZFVybFJlcXVlc3QaGy5ub3Rlcy5QcmVzaWduZWRVcmxSZXNwb25zZRJSChFSZWdpc3Rlck5vdGVBc3NldBIfLm5vdGVzLlJlZ2lzdGVyTm90ZUFzc2V0UmVxdWVzdBocLm5vdGVzLlJlZ2lzdGVyQXNzZXRSZXNwb25zZRJZChNHZXRBc3NldERvd25sb2FkVXJsEiEubm90ZXMuR2V0QXNzZXREb3dubG9hZFVybFJlcXVlc3QaHy5ub3Rlcy5Bc3NldERvd25sb2FkVXJsUmVzcG9uc2VCMFouZ2l0aHViLmNvbS9BamF5MDExMDMvZ28tbm90aW9uL25vdGVzL2dlbi9wYjtwYmIGcHJvdG8z", [file_google_protobuf_empty, file_google_protobuf_timestamp]);
 
 /**
  * @generated from message notes.Note
@@ -23,44 +21,45 @@ export type Note = Message<"notes.Note"> & {
   /**
    * @generated from field: string id = 1;
    */
-  id: string
+  id: string;
 
   /**
    * @generated from field: string workspace_id = 2;
    */
-  workspaceId: string
+  workspaceId: string;
 
   /**
    * @generated from field: string title = 3;
    */
-  title: string
+  title: string;
 
   /**
    * @generated from field: string created_by = 4;
    */
-  createdBy: string
+  createdBy: string;
 
   /**
    * @generated from field: bool is_private = 5;
    */
-  isPrivate: boolean
+  isPrivate: boolean;
 
   /**
    * @generated from field: google.protobuf.Timestamp created_at = 6;
    */
-  createdAt?: Timestamp | undefined
+  createdAt?: Timestamp | undefined;
 
   /**
    * @generated from field: google.protobuf.Timestamp updated_at = 7;
    */
-  updatedAt?: Timestamp | undefined
-}
+  updatedAt?: Timestamp | undefined;
+};
 
 /**
  * Describes the message notes.Note.
  * Use `create(NoteSchema)` to create a new message.
  */
-export const NoteSchema: GenMessage<Note> /*@__PURE__*/ = messageDesc(file_notes, 0)
+export const NoteSchema: GenMessage<Note> = /*@__PURE__*/
+  messageDesc(file_notes, 0);
 
 /**
  * @generated from message notes.CreateNoteRequest
@@ -69,27 +68,25 @@ export type CreateNoteRequest = Message<"notes.CreateNoteRequest"> & {
   /**
    * @generated from field: string workspace_id = 1;
    */
-  workspaceId: string
+  workspaceId: string;
 
   /**
    * @generated from field: string title = 2;
    */
-  title: string
+  title: string;
 
   /**
    * @generated from field: bool is_private = 3;
    */
-  isPrivate: boolean
-}
+  isPrivate: boolean;
+};
 
 /**
  * Describes the message notes.CreateNoteRequest.
  * Use `create(CreateNoteRequestSchema)` to create a new message.
  */
-export const CreateNoteRequestSchema: GenMessage<CreateNoteRequest> /*@__PURE__*/ = messageDesc(
-  file_notes,
-  1,
-)
+export const CreateNoteRequestSchema: GenMessage<CreateNoteRequest> = /*@__PURE__*/
+  messageDesc(file_notes, 1);
 
 /**
  * @generated from message notes.GetNoteRequest
@@ -98,17 +95,15 @@ export type GetNoteRequest = Message<"notes.GetNoteRequest"> & {
   /**
    * @generated from field: string note_id = 1;
    */
-  noteId: string
-}
+  noteId: string;
+};
 
 /**
  * Describes the message notes.GetNoteRequest.
  * Use `create(GetNoteRequestSchema)` to create a new message.
  */
-export const GetNoteRequestSchema: GenMessage<GetNoteRequest> /*@__PURE__*/ = messageDesc(
-  file_notes,
-  2,
-)
+export const GetNoteRequestSchema: GenMessage<GetNoteRequest> = /*@__PURE__*/
+  messageDesc(file_notes, 2);
 
 /**
  * @generated from message notes.ListWorkspaceNotesRequest
@@ -117,15 +112,15 @@ export type ListWorkspaceNotesRequest = Message<"notes.ListWorkspaceNotesRequest
   /**
    * @generated from field: string workspace_id = 1;
    */
-  workspaceId: string
-}
+  workspaceId: string;
+};
 
 /**
  * Describes the message notes.ListWorkspaceNotesRequest.
  * Use `create(ListWorkspaceNotesRequestSchema)` to create a new message.
  */
-export const ListWorkspaceNotesRequestSchema: GenMessage<ListWorkspaceNotesRequest> /*@__PURE__*/ =
-  messageDesc(file_notes, 3)
+export const ListWorkspaceNotesRequestSchema: GenMessage<ListWorkspaceNotesRequest> = /*@__PURE__*/
+  messageDesc(file_notes, 3);
 
 /**
  * @generated from message notes.ListWorkspaceNotesResponse
@@ -134,15 +129,15 @@ export type ListWorkspaceNotesResponse = Message<"notes.ListWorkspaceNotesRespon
   /**
    * @generated from field: repeated notes.Note notes = 1;
    */
-  notes: Note[]
-}
+  notes: Note[];
+};
 
 /**
  * Describes the message notes.ListWorkspaceNotesResponse.
  * Use `create(ListWorkspaceNotesResponseSchema)` to create a new message.
  */
-export const ListWorkspaceNotesResponseSchema: GenMessage<ListWorkspaceNotesResponse> /*@__PURE__*/ =
-  messageDesc(file_notes, 4)
+export const ListWorkspaceNotesResponseSchema: GenMessage<ListWorkspaceNotesResponse> = /*@__PURE__*/
+  messageDesc(file_notes, 4);
 
 /**
  * @generated from message notes.AppendNoteUpdateRequest
@@ -151,20 +146,218 @@ export type AppendNoteUpdateRequest = Message<"notes.AppendNoteUpdateRequest"> &
   /**
    * @generated from field: string note_id = 1;
    */
-  noteId: string
+  noteId: string;
 
   /**
    * @generated from field: bytes data = 2;
    */
-  data: Uint8Array
-}
+  data: Uint8Array;
+};
 
 /**
  * Describes the message notes.AppendNoteUpdateRequest.
  * Use `create(AppendNoteUpdateRequestSchema)` to create a new message.
  */
-export const AppendNoteUpdateRequestSchema: GenMessage<AppendNoteUpdateRequest> /*@__PURE__*/ =
-  messageDesc(file_notes, 5)
+export const AppendNoteUpdateRequestSchema: GenMessage<AppendNoteUpdateRequest> = /*@__PURE__*/
+  messageDesc(file_notes, 5);
+
+/**
+ * @generated from message notes.GenerateAssetUploadUrlRequest
+ */
+export type GenerateAssetUploadUrlRequest = Message<"notes.GenerateAssetUploadUrlRequest"> & {
+  /**
+   * @generated from field: string note_id = 1;
+   */
+  noteId: string;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string mime_type = 3;
+   */
+  mimeType: string;
+
+  /**
+   * @generated from field: int64 size_bytes = 4;
+   */
+  sizeBytes: bigint;
+};
+
+/**
+ * Describes the message notes.GenerateAssetUploadUrlRequest.
+ * Use `create(GenerateAssetUploadUrlRequestSchema)` to create a new message.
+ */
+export const GenerateAssetUploadUrlRequestSchema: GenMessage<GenerateAssetUploadUrlRequest> = /*@__PURE__*/
+  messageDesc(file_notes, 6);
+
+/**
+ * @generated from message notes.PresignedUrlResponse
+ */
+export type PresignedUrlResponse = Message<"notes.PresignedUrlResponse"> & {
+  /**
+   * @generated from field: string asset_id = 1;
+   */
+  assetId: string;
+
+  /**
+   * @generated from field: string s3_key = 2;
+   */
+  s3Key: string;
+
+  /**
+   * presigned PUT (15 min TTL)
+   *
+   * @generated from field: string upload_url = 3;
+   */
+  uploadUrl: string;
+
+  /**
+   * server time when URL becomes invalid
+   *
+   * @generated from field: int64 expires_at_unix = 4;
+   */
+  expiresAtUnix: bigint;
+};
+
+/**
+ * Describes the message notes.PresignedUrlResponse.
+ * Use `create(PresignedUrlResponseSchema)` to create a new message.
+ */
+export const PresignedUrlResponseSchema: GenMessage<PresignedUrlResponse> = /*@__PURE__*/
+  messageDesc(file_notes, 7);
+
+/**
+ * @generated from message notes.RegisterNoteAssetRequest
+ */
+export type RegisterNoteAssetRequest = Message<"notes.RegisterNoteAssetRequest"> & {
+  /**
+   * @generated from field: string asset_id = 1;
+   */
+  assetId: string;
+
+  /**
+   * @generated from field: string note_id = 2;
+   */
+  noteId: string;
+
+  /**
+   * @generated from field: string name = 3;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string mime_type = 4;
+   */
+  mimeType: string;
+
+  /**
+   * @generated from field: int64 size_bytes = 5;
+   */
+  sizeBytes: bigint;
+
+  /**
+   * @generated from field: string s3_key = 6;
+   */
+  s3Key: string;
+};
+
+/**
+ * Describes the message notes.RegisterNoteAssetRequest.
+ * Use `create(RegisterNoteAssetRequestSchema)` to create a new message.
+ */
+export const RegisterNoteAssetRequestSchema: GenMessage<RegisterNoteAssetRequest> = /*@__PURE__*/
+  messageDesc(file_notes, 8);
+
+/**
+ * @generated from message notes.RegisterAssetResponse
+ */
+export type RegisterAssetResponse = Message<"notes.RegisterAssetResponse"> & {
+  /**
+   * @generated from field: string asset_id = 1;
+   */
+  assetId: string;
+
+  /**
+   * @generated from field: string s3_key = 2;
+   */
+  s3Key: string;
+};
+
+/**
+ * Describes the message notes.RegisterAssetResponse.
+ * Use `create(RegisterAssetResponseSchema)` to create a new message.
+ */
+export const RegisterAssetResponseSchema: GenMessage<RegisterAssetResponse> = /*@__PURE__*/
+  messageDesc(file_notes, 9);
+
+/**
+ * @generated from message notes.GetAssetDownloadUrlRequest
+ */
+export type GetAssetDownloadUrlRequest = Message<"notes.GetAssetDownloadUrlRequest"> & {
+  /**
+   * @generated from field: string asset_id = 1;
+   */
+  assetId: string;
+};
+
+/**
+ * Describes the message notes.GetAssetDownloadUrlRequest.
+ * Use `create(GetAssetDownloadUrlRequestSchema)` to create a new message.
+ */
+export const GetAssetDownloadUrlRequestSchema: GenMessage<GetAssetDownloadUrlRequest> = /*@__PURE__*/
+  messageDesc(file_notes, 10);
+
+/**
+ * @generated from message notes.AssetDownloadUrlResponse
+ */
+export type AssetDownloadUrlResponse = Message<"notes.AssetDownloadUrlResponse"> & {
+  /**
+   * @generated from field: string asset_id = 1;
+   */
+  assetId: string;
+
+  /**
+   * @generated from field: string s3_key = 2;
+   */
+  s3Key: string;
+
+  /**
+   * @generated from field: string name = 3;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string mime_type = 4;
+   */
+  mimeType: string;
+
+  /**
+   * @generated from field: int64 size_bytes = 5;
+   */
+  sizeBytes: bigint;
+
+  /**
+   * presigned GET (1 hour TTL)
+   *
+   * @generated from field: string download_url = 6;
+   */
+  downloadUrl: string;
+
+  /**
+   * @generated from field: int64 expires_at_unix = 7;
+   */
+  expiresAtUnix: bigint;
+};
+
+/**
+ * Describes the message notes.AssetDownloadUrlResponse.
+ * Use `create(AssetDownloadUrlResponseSchema)` to create a new message.
+ */
+export const AssetDownloadUrlResponseSchema: GenMessage<AssetDownloadUrlResponse> = /*@__PURE__*/
+  messageDesc(file_notes, 11);
 
 /**
  * @generated from service notes.NotesService
@@ -174,32 +367,58 @@ export const NotesService: GenService<{
    * @generated from rpc notes.NotesService.CreateNote
    */
   createNote: {
-    methodKind: "unary"
-    input: typeof CreateNoteRequestSchema
-    output: typeof NoteSchema
-  }
+    methodKind: "unary";
+    input: typeof CreateNoteRequestSchema;
+    output: typeof NoteSchema;
+  },
   /**
    * @generated from rpc notes.NotesService.GetNote
    */
   getNote: {
-    methodKind: "unary"
-    input: typeof GetNoteRequestSchema
-    output: typeof NoteSchema
-  }
+    methodKind: "unary";
+    input: typeof GetNoteRequestSchema;
+    output: typeof NoteSchema;
+  },
   /**
    * @generated from rpc notes.NotesService.ListWorkspaceNotes
    */
   listWorkspaceNotes: {
-    methodKind: "unary"
-    input: typeof ListWorkspaceNotesRequestSchema
-    output: typeof ListWorkspaceNotesResponseSchema
-  }
+    methodKind: "unary";
+    input: typeof ListWorkspaceNotesRequestSchema;
+    output: typeof ListWorkspaceNotesResponseSchema;
+  },
   /**
    * @generated from rpc notes.NotesService.AppendNoteUpdate
    */
   appendNoteUpdate: {
-    methodKind: "unary"
-    input: typeof AppendNoteUpdateRequestSchema
-    output: typeof EmptySchema
-  }
-}> /*@__PURE__*/ = serviceDesc(file_notes, 0)
+    methodKind: "unary";
+    input: typeof AppendNoteUpdateRequestSchema;
+    output: typeof EmptySchema;
+  },
+  /**
+   * @generated from rpc notes.NotesService.GenerateAssetUploadUrl
+   */
+  generateAssetUploadUrl: {
+    methodKind: "unary";
+    input: typeof GenerateAssetUploadUrlRequestSchema;
+    output: typeof PresignedUrlResponseSchema;
+  },
+  /**
+   * @generated from rpc notes.NotesService.RegisterNoteAsset
+   */
+  registerNoteAsset: {
+    methodKind: "unary";
+    input: typeof RegisterNoteAssetRequestSchema;
+    output: typeof RegisterAssetResponseSchema;
+  },
+  /**
+   * @generated from rpc notes.NotesService.GetAssetDownloadUrl
+   */
+  getAssetDownloadUrl: {
+    methodKind: "unary";
+    input: typeof GetAssetDownloadUrlRequestSchema;
+    output: typeof AssetDownloadUrlResponseSchema;
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_notes, 0);
+

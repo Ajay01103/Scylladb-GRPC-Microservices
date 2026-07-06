@@ -12,6 +12,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	pb "github.com/Ajay01103/go-notion/notes/gen/pb"
+	"github.com/Ajay01103/go-notion/notes/internal/s3"
 )
 
 type BufferedUpdate struct {
@@ -20,8 +21,9 @@ type BufferedUpdate struct {
 }
 
 type Service struct {
-	session *gocql.Session
-	logger  *zap.Logger
+	session   *gocql.Session
+	logger    *zap.Logger
+	presigner *s3.Presigner
 }
 
 func toGocqlUUID(id uuid.UUID) gocql.UUID {
@@ -32,8 +34,8 @@ func fromGocqlUUID(id gocql.UUID) uuid.UUID {
 	return uuid.UUID(id)
 }
 
-func New(session *gocql.Session, logger *zap.Logger) *Service {
-	return &Service{session: session, logger: logger}
+func New(session *gocql.Session, logger *zap.Logger, presigner *s3.Presigner) *Service {
+	return &Service{session: session, logger: logger, presigner: presigner}
 }
 
 func (s *Service) CreateNote(ctx context.Context, workspaceID, userID uuid.UUID, title string, isPrivate bool) (*pb.Note, error) {
@@ -273,4 +275,113 @@ func (s *Service) getNoteByID(ctx context.Context, noteID uuid.UUID) (uuid.UUID,
 	}
 
 	return fromGocqlUUID(workspaceID), title, fromGocqlUUID(createdBy), isPrivate, createdAt, updatedAt, nil
+}
+
+const (
+	assetUploadURLTTL   = 15 * time.Minute
+	assetDownloadURLTTL = 1 * time.Hour
+)
+
+func (s *Service) GenerateAssetUploadUrl(ctx context.Context, noteID uuid.UUID, userID uuid.UUID, name, mimeType string, sizeBytes int64) (*pb.PresignedUrlResponse, error) {
+	if ok, err := s.CanAccessNote(ctx, noteID, userID); err != nil || !ok {
+		if err != nil {
+			return nil, err
+		}
+		return nil, errors.New("access denied")
+	}
+
+	workspaceID, _, _, _, _, _, err := s.getNoteByID(ctx, noteID)
+	if err != nil {
+		return nil, err
+	}
+
+	assetID := uuid.New().String()
+	s3Key := fmt.Sprintf("workspaces/%s/notes/%s/assets/%s_%s", workspaceID.String(), noteID.String(), assetID, name)
+
+	uploadURL, expiresAt, err := s.presigner.PutObject(ctx, s3Key, assetUploadURLTTL)
+	if err != nil {
+		return nil, fmt.Errorf("generate upload url: %w", err)
+	}
+
+	return &pb.PresignedUrlResponse{
+		AssetId:       assetID,
+		S3Key:         s3Key,
+		UploadUrl:     uploadURL,
+		ExpiresAtUnix: expiresAt,
+	}, nil
+}
+
+func (s *Service) RegisterNoteAsset(ctx context.Context, assetID string, noteID, userID uuid.UUID, name, mimeType string, sizeBytes int64, s3Key string) (*pb.RegisterAssetResponse, error) {
+	if ok, err := s.CanAccessNote(ctx, noteID, userID); err != nil || !ok {
+		if err != nil {
+			return nil, err
+		}
+		return nil, errors.New("access denied")
+	}
+
+	workspaceID, _, _, _, _, _, err := s.getNoteByID(ctx, noteID)
+	if err != nil {
+		return nil, err
+	}
+
+	now := time.Now().UTC()
+	err = s.session.Query(
+		`INSERT INTO note_assets (asset_id, note_id, workspace_id, name, mime_type, size_bytes, s3_key, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		assetID, toGocqlUUID(noteID), toGocqlUUID(workspaceID), name, mimeType, sizeBytes, s3Key, now,
+	).WithContext(ctx).Exec()
+	if err != nil {
+		return nil, fmt.Errorf("register note asset: %w", err)
+	}
+
+	return &pb.RegisterAssetResponse{
+		AssetId: assetID,
+		S3Key:   s3Key,
+	}, nil
+}
+
+type noteAssetRow struct {
+	AssetID     string
+	NoteID      gocql.UUID
+	WorkspaceID gocql.UUID
+	Name        string
+	MimeType    string
+	SizeBytes   int64
+	S3Key       string
+}
+
+func (s *Service) GetAssetDownloadUrl(ctx context.Context, assetID string, userID uuid.UUID) (*pb.AssetDownloadUrlResponse, error) {
+	var row noteAssetRow
+	err := s.session.Query(
+		`SELECT asset_id, note_id, workspace_id, name, mime_type, size_bytes, s3_key FROM note_assets WHERE asset_id = ?`,
+		assetID,
+	).WithContext(ctx).Scan(&row.AssetID, &row.NoteID, &row.WorkspaceID, &row.Name, &row.MimeType, &row.SizeBytes, &row.S3Key)
+	if err == gocql.ErrNotFound {
+		return nil, errors.New("asset not found")
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get asset: %w", err)
+	}
+
+	noteID := fromGocqlUUID(row.NoteID)
+	if ok, err := s.CanAccessNote(ctx, noteID, userID); err != nil || !ok {
+		if err != nil {
+			return nil, err
+		}
+		return nil, errors.New("access denied")
+	}
+
+	downloadURL, expiresAt, err := s.presigner.GetObject(ctx, row.S3Key, assetDownloadURLTTL)
+	if err != nil {
+		return nil, fmt.Errorf("generate download url: %w", err)
+	}
+
+	return &pb.AssetDownloadUrlResponse{
+		AssetId:       row.AssetID,
+		S3Key:         row.S3Key,
+		Name:          row.Name,
+		MimeType:      row.MimeType,
+		SizeBytes:     row.SizeBytes,
+		DownloadUrl:   downloadURL,
+		ExpiresAtUnix: expiresAt,
+	}, nil
 }

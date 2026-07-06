@@ -40,9 +40,71 @@ message AppendNoteUpdateRequest {
   bytes data = 2;
 }
 
+// ── Asset (file upload) RPCs ────────────────────────────────────────────────
+//
+// Flow:
+//   1. Browser calls GenerateAssetUploadUrl with (note_id, name, mime_type,
+//      size_bytes) → server checks note access, mints a presigned PUT URL,
+//      and returns the URL + the asset_id + the future s3_key.
+//   2. Browser PUTs the raw bytes DIRECTLY to RustFS using the presigned URL
+//      (does NOT proxy through the Next.js server — saves bandwidth and CPU).
+//   3. Browser calls RegisterNoteAsset with (asset_id, note_id, ...) to
+//      persist the metadata in ScyllaDB. Idempotent: re-registering an
+//      existing asset_id is a no-op (so retries are safe).
+//   4. To display the asset, browser calls GetAssetDownloadUrl(asset_id) →
+//      returns a short-lived presigned GET URL (default TTL 1 hour).
+//
+// Bucket stays private. No public S3 access required.
+
+message GenerateAssetUploadUrlRequest {
+  string note_id = 1;
+  string name = 2;
+  string mime_type = 3;
+  int64 size_bytes = 4;
+}
+
+message PresignedUrlResponse {
+  string asset_id = 1;
+  string s3_key = 2;
+  string upload_url = 3;     // presigned PUT (15 min TTL)
+  int64 expires_at_unix = 4; // server time when URL becomes invalid
+}
+
+message RegisterNoteAssetRequest {
+  string asset_id = 1;
+  string note_id = 2;
+  string name = 3;
+  string mime_type = 4;
+  int64 size_bytes = 5;
+  string s3_key = 6;
+}
+
+message RegisterAssetResponse {
+  string asset_id = 1;
+  string s3_key = 2;
+}
+
+message GetAssetDownloadUrlRequest {
+  string asset_id = 1;
+}
+
+message AssetDownloadUrlResponse {
+  string asset_id = 1;
+  string s3_key = 2;
+  string name = 3;
+  string mime_type = 4;
+  int64 size_bytes = 5;
+  string download_url = 6;  // presigned GET (1 hour TTL)
+  int64 expires_at_unix = 7;
+}
+
 service NotesService {
   rpc CreateNote(CreateNoteRequest) returns (Note);
   rpc GetNote(GetNoteRequest) returns (Note);
   rpc ListWorkspaceNotes(ListWorkspaceNotesRequest) returns (ListWorkspaceNotesResponse);
   rpc AppendNoteUpdate(AppendNoteUpdateRequest) returns (google.protobuf.Empty);
+
+  rpc GenerateAssetUploadUrl(GenerateAssetUploadUrlRequest) returns (PresignedUrlResponse);
+  rpc RegisterNoteAsset(RegisterNoteAssetRequest) returns (RegisterAssetResponse);
+  rpc GetAssetDownloadUrl(GetAssetDownloadUrlRequest) returns (AssetDownloadUrlResponse);
 }

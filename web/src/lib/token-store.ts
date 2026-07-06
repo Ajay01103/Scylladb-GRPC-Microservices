@@ -1,7 +1,9 @@
-"use client"
+// Pure, React-free auth token store. Owns the in-memory access token, JWT
+// expiry scheduling, cross-tab sync, and refresh dedup. React layers
+// (`auth-context.tsx`) subscribe to it via the external-store primitives
+// exposed at the bottom of this file.
 
 import { refreshAccessTokenAction } from "@/actions/auth"
-import { useSyncExternalStore } from "react"
 
 type Listener = () => void
 
@@ -81,6 +83,11 @@ if (typeof window !== "undefined") {
 }
 
 export const tokenStore = {
+  /**
+   * Synchronous accessor used by the RPC interceptor and React
+   * subscriptions. Prefer `tokenStore.ensureValidAccessToken()` inside RPC
+   * flows so an expiring token is refreshed before the request.
+   */
   getSnapshot: () => accessToken,
   getIsLoading: () => !initialized,
 
@@ -98,7 +105,7 @@ export const tokenStore = {
     emit()
   },
 
-  // Reset store state on logout across tabs
+  /** Reset store state on logout across tabs. */
   reset() {
     accessToken = null
     initialized = false
@@ -106,12 +113,6 @@ export const tokenStore = {
     try {
       channel?.postMessage({ type: "logout" })
     } catch {}
-    emit()
-  },
-
-  setInitialized() {
-    if (initialized) return
-    initialized = true
     emit()
   },
 
@@ -155,12 +156,4 @@ export const tokenStore = {
     }
     return accessToken
   },
-}
-
-export function useAccessToken() {
-  return useSyncExternalStore(tokenStore.subscribe, tokenStore.getSnapshot, () => null)
-}
-
-export function useIsLoadingAuth() {
-  return useSyncExternalStore(tokenStore.subscribe, tokenStore.getIsLoading, () => true)
 }

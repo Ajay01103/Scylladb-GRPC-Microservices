@@ -1,12 +1,12 @@
 "use client"
 
 import { create } from "@bufbuild/protobuf"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { notesRpcClient } from "@/lib/rpc"
 import { workspaceRpcClient } from "@/lib/rpc"
 import { whiteboardRpcClient } from "@/lib/rpc"
-import { useIsLoadingAuth } from "@/lib/token-store"
+import { useAuth } from "@/lib/auth-context"
 import type { Board } from "@/gen/pb/whiteboard/whiteboard_pb"
 import type { Note } from "@/gen/pb/notes/notes_pb"
 import {
@@ -19,6 +19,45 @@ import {
 export const workspaceQueryKey = ["myWorkspaces"] as const
 export const workspaceLibraryQueryKey = ["workspaceLibrary"] as const
 
+export const workspacesQueryOptions = queryOptions({
+  queryKey: workspaceQueryKey,
+  staleTime: 5 * 60 * 1000,
+  gcTime: 30 * 60 * 1000,
+  retry: 1,
+  queryFn: async (): Promise<Workspace[]> => {
+    const response = await workspaceRpcClient.listMyWorkspaces({
+      pageSize: 100,
+      pageToken: "",
+    })
+    return response.workspaces
+  },
+})
+
+export function workspaceQueryOptions(workspaceId: string) {
+  return queryOptions({
+    queryKey: [...workspaceQueryKey, workspaceId],
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    retry: 1,
+    queryFn: async (): Promise<Workspace> => {
+      return workspaceRpcClient.getWorkspace({ workspaceId })
+    },
+  })
+}
+
+export function workspaceMembersQueryOptions(workspaceId: string) {
+  return queryOptions({
+    queryKey: [...workspaceQueryKey, workspaceId, "members"],
+    staleTime: 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    retry: 1,
+    queryFn: async (): Promise<WorkspaceMember[]> => {
+      const response = await workspaceRpcClient.listMembers({ workspaceId })
+      return response.members
+    },
+  })
+}
+
 export function buildWorkspaceSlug(name: string) {
   const normalized = name
     .trim()
@@ -30,65 +69,36 @@ export function buildWorkspaceSlug(name: string) {
 }
 
 export function useMyWorkspaces() {
-  const isLoadingAuth = useIsLoadingAuth()
+  const { isLoadingAuth } = useAuth()
 
   return useQuery({
-    queryKey: workspaceQueryKey,
+    ...workspacesQueryOptions,
     enabled: !isLoadingAuth,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
-    retry: 1,
-    queryFn: async (): Promise<Workspace[]> => {
-      const response = await workspaceRpcClient.listMyWorkspaces({
-        pageSize: 100,
-        pageToken: "",
-      })
-
-      return response.workspaces
-    },
   })
 }
 
 export function useWorkspace(workspaceId: string) {
-  const isLoadingAuth = useIsLoadingAuth()
+  const { isLoadingAuth } = useAuth()
 
   return useQuery({
-    queryKey: [...workspaceQueryKey, workspaceId],
+    ...workspaceQueryOptions(workspaceId),
     enabled: !isLoadingAuth && workspaceId.length > 0,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
-    retry: 1,
-    queryFn: async (): Promise<Workspace> => {
-      return workspaceRpcClient.getWorkspace({
-        workspaceId,
-      })
-    },
   })
 }
 
 export function useWorkspaceMembers(workspaceId: string, enabled = true) {
-  const isLoadingAuth = useIsLoadingAuth()
+  const { isLoadingAuth } = useAuth()
 
   return useQuery({
-    queryKey: [...workspaceQueryKey, workspaceId, "members"],
+    ...workspaceMembersQueryOptions(workspaceId),
     enabled: enabled && !isLoadingAuth && workspaceId.length > 0,
-    staleTime: 60 * 1000,
-    gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
-    retry: 1,
-    queryFn: async (): Promise<WorkspaceMember[]> => {
-      const response = await workspaceRpcClient.listMembers({
-        workspaceId,
-      })
-
-      return response.members
-    },
   })
 }
 
-function formatWorkspaceLibraryTimestamp(timestamp?: {
+export function formatWorkspaceLibraryTimestamp(timestamp?: {
   seconds?: bigint | number | string
   nanos?: number
   toDate?: () => Date
@@ -128,21 +138,14 @@ export type WorkspaceLibraryItem = {
   updatedAt: string
 }
 
-export function useWorkspaceNotes(workspaceId: string, enabled = true) {
-  const isLoadingAuth = useIsLoadingAuth()
-
-  return useQuery({
+export function workspaceNotesQueryOptions(workspaceId: string) {
+  return queryOptions({
     queryKey: [...workspaceLibraryQueryKey, workspaceId, "notes"],
-    enabled: enabled && !isLoadingAuth && workspaceId.length > 0,
     staleTime: 60 * 1000,
     gcTime: 10 * 60 * 1000,
-    refetchOnWindowFocus: false,
     retry: 1,
     queryFn: async (): Promise<WorkspaceLibraryItem[]> => {
-      const response = await notesRpcClient.listWorkspaceNotes({
-        workspaceId,
-      })
-
+      const response = await notesRpcClient.listWorkspaceNotes({ workspaceId })
       return response.notes.map((note: Note) => ({
         id: note.id,
         title: note.title || "Untitled note",
@@ -154,21 +157,14 @@ export function useWorkspaceNotes(workspaceId: string, enabled = true) {
   })
 }
 
-export function useWorkspaceBoards(workspaceId: string, enabled = true) {
-  const isLoadingAuth = useIsLoadingAuth()
-
-  return useQuery({
+export function workspaceBoardsQueryOptions(workspaceId: string) {
+  return queryOptions({
     queryKey: [...workspaceLibraryQueryKey, workspaceId, "boards"],
-    enabled: enabled && !isLoadingAuth && workspaceId.length > 0,
     staleTime: 60 * 1000,
     gcTime: 10 * 60 * 1000,
-    refetchOnWindowFocus: false,
     retry: 1,
     queryFn: async (): Promise<WorkspaceLibraryItem[]> => {
-      const response = await whiteboardRpcClient.listWorkspaceBoards({
-        workspaceId,
-      })
-
+      const response = await whiteboardRpcClient.listWorkspaceBoards({ workspaceId })
       return response.boards.map((board: Board) => ({
         id: board.id,
         title: board.title || "Untitled board",
@@ -177,6 +173,26 @@ export function useWorkspaceBoards(workspaceId: string, enabled = true) {
         updatedAt: formatWorkspaceLibraryTimestamp(board.updatedAt),
       }))
     },
+  })
+}
+
+export function useWorkspaceNotes(workspaceId: string, enabled = true) {
+  const { isLoadingAuth } = useAuth()
+
+  return useQuery({
+    ...workspaceNotesQueryOptions(workspaceId),
+    enabled: enabled && !isLoadingAuth && workspaceId.length > 0,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useWorkspaceBoards(workspaceId: string, enabled = true) {
+  const { isLoadingAuth } = useAuth()
+
+  return useQuery({
+    ...workspaceBoardsQueryOptions(workspaceId),
+    enabled: enabled && !isLoadingAuth && workspaceId.length > 0,
+    refetchOnWindowFocus: false,
   })
 }
 

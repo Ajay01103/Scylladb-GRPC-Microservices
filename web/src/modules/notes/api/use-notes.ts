@@ -13,7 +13,7 @@ import { generateSlug } from "random-word-slugs"
 
 import { CreateNoteRequestSchema, type Note } from "@/gen/pb/notes/notes_pb"
 import { notesRpcClient } from "@/lib/rpc"
-import { useIsLoadingAuth } from "@/lib/token-store"
+import { useAuth } from "@/lib/auth-context"
 import { useMyWorkspaces, workspaceLibraryQueryKey } from "@/modules/workspace/api/use-workspaces"
 
 export const notesQueryKey = ["notes"] as const
@@ -44,7 +44,7 @@ export function useCreateNote() {
 }
 
 export function useNote(noteId: string) {
-  const isLoadingAuth = useIsLoadingAuth()
+  const { isLoadingAuth } = useAuth()
 
   return useQuery({
     queryKey: [...notesQueryKey, noteId],
@@ -71,7 +71,7 @@ type NoteMatch = {
 export function useNoteBySlug(slug?: string) {
   const safeSlug = slug ?? ""
   const workspacesQuery = useMyWorkspaces()
-  const isLoadingAuth = useIsLoadingAuth()
+  const { isLoadingAuth } = useAuth()
 
   const workspaceIds = useMemo(
     () => (workspacesQuery.data ?? []).map((w) => w.id),

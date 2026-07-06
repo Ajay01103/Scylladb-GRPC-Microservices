@@ -14,16 +14,21 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gocql/gocql"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 
-	"github.com/Ajay01103/go-notion/notes/config"
+	notesconfig "github.com/Ajay01103/go-notion/notes/config"
 	"github.com/Ajay01103/go-notion/notes/db"
 	"github.com/Ajay01103/go-notion/notes/gen/pb/pbconnect"
 	"github.com/Ajay01103/go-notion/notes/internal/realtime"
+	s3svc "github.com/Ajay01103/go-notion/notes/internal/s3"
 	"github.com/Ajay01103/go-notion/notes/internal/service"
 	"github.com/Ajay01103/go-notion/notes/server"
 	"github.com/Ajay01103/go-notion/pkg/interceptor"
@@ -103,7 +108,7 @@ func run() error {
 	undo := zap.ReplaceGlobals(logger)
 	defer undo()
 
-	cfg, err := config.Load()
+	cfg, err := notesconfig.Load()
 	if err != nil {
 		return fmt.Errorf("load config: %w", err)
 	}
@@ -149,7 +154,24 @@ func run() error {
 	}
 	jwksVerifier := jwks.NewVerifier(jwksCache, "")
 
-	notesSvc := service.New(session, logger)
+	s3awscfg, err := config.LoadDefaultConfig(context.Background(),
+		config.WithRegion(cfg.S3Region),
+		config.WithEndpointResolverWithOptions(aws.EndpointResolverWithOptionsFunc(
+			func(service, region string, options ...any) (aws.Endpoint, error) {
+				return aws.Endpoint{URL: cfg.S3Endpoint, HostnameImmutable: true}, nil
+			},
+		)),
+		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(cfg.S3AccessKeyID, cfg.S3SecretAccessKey, "")),
+	)
+	if err != nil {
+		return fmt.Errorf("load s3 config: %w", err)
+	}
+	s3client := s3.NewFromConfig(s3awscfg, func(o *s3.Options) {
+		o.UsePathStyle = true
+	})
+	s3Presigner := s3svc.New(s3client, cfg.S3Bucket)
+
+	notesSvc := service.New(session, logger, s3Presigner)
 	notesServer := server.New(notesSvc)
 	notesHub := realtime.NewHub(notesSvc, logger)
 	ticketLimiter := newTicketRateLimiter()

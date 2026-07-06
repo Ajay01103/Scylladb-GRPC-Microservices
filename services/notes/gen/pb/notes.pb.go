@@ -359,6 +359,414 @@ func (x *AppendNoteUpdateRequest) GetData() []byte {
 	return nil
 }
 
+type GenerateAssetUploadUrlRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	NoteId        string                 `protobuf:"bytes,1,opt,name=note_id,json=noteId,proto3" json:"note_id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	MimeType      string                 `protobuf:"bytes,3,opt,name=mime_type,json=mimeType,proto3" json:"mime_type,omitempty"`
+	SizeBytes     int64                  `protobuf:"varint,4,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GenerateAssetUploadUrlRequest) Reset() {
+	*x = GenerateAssetUploadUrlRequest{}
+	mi := &file_notes_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GenerateAssetUploadUrlRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GenerateAssetUploadUrlRequest) ProtoMessage() {}
+
+func (x *GenerateAssetUploadUrlRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_notes_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GenerateAssetUploadUrlRequest.ProtoReflect.Descriptor instead.
+func (*GenerateAssetUploadUrlRequest) Descriptor() ([]byte, []int) {
+	return file_notes_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *GenerateAssetUploadUrlRequest) GetNoteId() string {
+	if x != nil {
+		return x.NoteId
+	}
+	return ""
+}
+
+func (x *GenerateAssetUploadUrlRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *GenerateAssetUploadUrlRequest) GetMimeType() string {
+	if x != nil {
+		return x.MimeType
+	}
+	return ""
+}
+
+func (x *GenerateAssetUploadUrlRequest) GetSizeBytes() int64 {
+	if x != nil {
+		return x.SizeBytes
+	}
+	return 0
+}
+
+type PresignedUrlResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AssetId       string                 `protobuf:"bytes,1,opt,name=asset_id,json=assetId,proto3" json:"asset_id,omitempty"`
+	S3Key         string                 `protobuf:"bytes,2,opt,name=s3_key,json=s3Key,proto3" json:"s3_key,omitempty"`
+	UploadUrl     string                 `protobuf:"bytes,3,opt,name=upload_url,json=uploadUrl,proto3" json:"upload_url,omitempty"`                // presigned PUT (15 min TTL)
+	ExpiresAtUnix int64                  `protobuf:"varint,4,opt,name=expires_at_unix,json=expiresAtUnix,proto3" json:"expires_at_unix,omitempty"` // server time when URL becomes invalid
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PresignedUrlResponse) Reset() {
+	*x = PresignedUrlResponse{}
+	mi := &file_notes_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PresignedUrlResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PresignedUrlResponse) ProtoMessage() {}
+
+func (x *PresignedUrlResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_notes_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PresignedUrlResponse.ProtoReflect.Descriptor instead.
+func (*PresignedUrlResponse) Descriptor() ([]byte, []int) {
+	return file_notes_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *PresignedUrlResponse) GetAssetId() string {
+	if x != nil {
+		return x.AssetId
+	}
+	return ""
+}
+
+func (x *PresignedUrlResponse) GetS3Key() string {
+	if x != nil {
+		return x.S3Key
+	}
+	return ""
+}
+
+func (x *PresignedUrlResponse) GetUploadUrl() string {
+	if x != nil {
+		return x.UploadUrl
+	}
+	return ""
+}
+
+func (x *PresignedUrlResponse) GetExpiresAtUnix() int64 {
+	if x != nil {
+		return x.ExpiresAtUnix
+	}
+	return 0
+}
+
+type RegisterNoteAssetRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AssetId       string                 `protobuf:"bytes,1,opt,name=asset_id,json=assetId,proto3" json:"asset_id,omitempty"`
+	NoteId        string                 `protobuf:"bytes,2,opt,name=note_id,json=noteId,proto3" json:"note_id,omitempty"`
+	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	MimeType      string                 `protobuf:"bytes,4,opt,name=mime_type,json=mimeType,proto3" json:"mime_type,omitempty"`
+	SizeBytes     int64                  `protobuf:"varint,5,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
+	S3Key         string                 `protobuf:"bytes,6,opt,name=s3_key,json=s3Key,proto3" json:"s3_key,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RegisterNoteAssetRequest) Reset() {
+	*x = RegisterNoteAssetRequest{}
+	mi := &file_notes_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RegisterNoteAssetRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterNoteAssetRequest) ProtoMessage() {}
+
+func (x *RegisterNoteAssetRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_notes_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegisterNoteAssetRequest.ProtoReflect.Descriptor instead.
+func (*RegisterNoteAssetRequest) Descriptor() ([]byte, []int) {
+	return file_notes_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *RegisterNoteAssetRequest) GetAssetId() string {
+	if x != nil {
+		return x.AssetId
+	}
+	return ""
+}
+
+func (x *RegisterNoteAssetRequest) GetNoteId() string {
+	if x != nil {
+		return x.NoteId
+	}
+	return ""
+}
+
+func (x *RegisterNoteAssetRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *RegisterNoteAssetRequest) GetMimeType() string {
+	if x != nil {
+		return x.MimeType
+	}
+	return ""
+}
+
+func (x *RegisterNoteAssetRequest) GetSizeBytes() int64 {
+	if x != nil {
+		return x.SizeBytes
+	}
+	return 0
+}
+
+func (x *RegisterNoteAssetRequest) GetS3Key() string {
+	if x != nil {
+		return x.S3Key
+	}
+	return ""
+}
+
+type RegisterAssetResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AssetId       string                 `protobuf:"bytes,1,opt,name=asset_id,json=assetId,proto3" json:"asset_id,omitempty"`
+	S3Key         string                 `protobuf:"bytes,2,opt,name=s3_key,json=s3Key,proto3" json:"s3_key,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RegisterAssetResponse) Reset() {
+	*x = RegisterAssetResponse{}
+	mi := &file_notes_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RegisterAssetResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterAssetResponse) ProtoMessage() {}
+
+func (x *RegisterAssetResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_notes_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegisterAssetResponse.ProtoReflect.Descriptor instead.
+func (*RegisterAssetResponse) Descriptor() ([]byte, []int) {
+	return file_notes_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *RegisterAssetResponse) GetAssetId() string {
+	if x != nil {
+		return x.AssetId
+	}
+	return ""
+}
+
+func (x *RegisterAssetResponse) GetS3Key() string {
+	if x != nil {
+		return x.S3Key
+	}
+	return ""
+}
+
+type GetAssetDownloadUrlRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AssetId       string                 `protobuf:"bytes,1,opt,name=asset_id,json=assetId,proto3" json:"asset_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAssetDownloadUrlRequest) Reset() {
+	*x = GetAssetDownloadUrlRequest{}
+	mi := &file_notes_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAssetDownloadUrlRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAssetDownloadUrlRequest) ProtoMessage() {}
+
+func (x *GetAssetDownloadUrlRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_notes_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAssetDownloadUrlRequest.ProtoReflect.Descriptor instead.
+func (*GetAssetDownloadUrlRequest) Descriptor() ([]byte, []int) {
+	return file_notes_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *GetAssetDownloadUrlRequest) GetAssetId() string {
+	if x != nil {
+		return x.AssetId
+	}
+	return ""
+}
+
+type AssetDownloadUrlResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AssetId       string                 `protobuf:"bytes,1,opt,name=asset_id,json=assetId,proto3" json:"asset_id,omitempty"`
+	S3Key         string                 `protobuf:"bytes,2,opt,name=s3_key,json=s3Key,proto3" json:"s3_key,omitempty"`
+	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	MimeType      string                 `protobuf:"bytes,4,opt,name=mime_type,json=mimeType,proto3" json:"mime_type,omitempty"`
+	SizeBytes     int64                  `protobuf:"varint,5,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
+	DownloadUrl   string                 `protobuf:"bytes,6,opt,name=download_url,json=downloadUrl,proto3" json:"download_url,omitempty"` // presigned GET (1 hour TTL)
+	ExpiresAtUnix int64                  `protobuf:"varint,7,opt,name=expires_at_unix,json=expiresAtUnix,proto3" json:"expires_at_unix,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AssetDownloadUrlResponse) Reset() {
+	*x = AssetDownloadUrlResponse{}
+	mi := &file_notes_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AssetDownloadUrlResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AssetDownloadUrlResponse) ProtoMessage() {}
+
+func (x *AssetDownloadUrlResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_notes_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AssetDownloadUrlResponse.ProtoReflect.Descriptor instead.
+func (*AssetDownloadUrlResponse) Descriptor() ([]byte, []int) {
+	return file_notes_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *AssetDownloadUrlResponse) GetAssetId() string {
+	if x != nil {
+		return x.AssetId
+	}
+	return ""
+}
+
+func (x *AssetDownloadUrlResponse) GetS3Key() string {
+	if x != nil {
+		return x.S3Key
+	}
+	return ""
+}
+
+func (x *AssetDownloadUrlResponse) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *AssetDownloadUrlResponse) GetMimeType() string {
+	if x != nil {
+		return x.MimeType
+	}
+	return ""
+}
+
+func (x *AssetDownloadUrlResponse) GetSizeBytes() int64 {
+	if x != nil {
+		return x.SizeBytes
+	}
+	return 0
+}
+
+func (x *AssetDownloadUrlResponse) GetDownloadUrl() string {
+	if x != nil {
+		return x.DownloadUrl
+	}
+	return ""
+}
+
+func (x *AssetDownloadUrlResponse) GetExpiresAtUnix() int64 {
+	if x != nil {
+		return x.ExpiresAtUnix
+	}
+	return 0
+}
+
 var File_notes_proto protoreflect.FileDescriptor
 
 const file_notes_proto_rawDesc = "" +
@@ -389,13 +797,50 @@ const file_notes_proto_rawDesc = "" +
 	"\x05notes\x18\x01 \x03(\v2\v.notes.NoteR\x05notes\"F\n" +
 	"\x17AppendNoteUpdateRequest\x12\x17\n" +
 	"\anote_id\x18\x01 \x01(\tR\x06noteId\x12\x12\n" +
-	"\x04data\x18\x02 \x01(\fR\x04data2\x99\x02\n" +
+	"\x04data\x18\x02 \x01(\fR\x04data\"\x88\x01\n" +
+	"\x1dGenerateAssetUploadUrlRequest\x12\x17\n" +
+	"\anote_id\x18\x01 \x01(\tR\x06noteId\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1b\n" +
+	"\tmime_type\x18\x03 \x01(\tR\bmimeType\x12\x1d\n" +
+	"\n" +
+	"size_bytes\x18\x04 \x01(\x03R\tsizeBytes\"\x8f\x01\n" +
+	"\x14PresignedUrlResponse\x12\x19\n" +
+	"\basset_id\x18\x01 \x01(\tR\aassetId\x12\x15\n" +
+	"\x06s3_key\x18\x02 \x01(\tR\x05s3Key\x12\x1d\n" +
+	"\n" +
+	"upload_url\x18\x03 \x01(\tR\tuploadUrl\x12&\n" +
+	"\x0fexpires_at_unix\x18\x04 \x01(\x03R\rexpiresAtUnix\"\xb5\x01\n" +
+	"\x18RegisterNoteAssetRequest\x12\x19\n" +
+	"\basset_id\x18\x01 \x01(\tR\aassetId\x12\x17\n" +
+	"\anote_id\x18\x02 \x01(\tR\x06noteId\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12\x1b\n" +
+	"\tmime_type\x18\x04 \x01(\tR\bmimeType\x12\x1d\n" +
+	"\n" +
+	"size_bytes\x18\x05 \x01(\x03R\tsizeBytes\x12\x15\n" +
+	"\x06s3_key\x18\x06 \x01(\tR\x05s3Key\"I\n" +
+	"\x15RegisterAssetResponse\x12\x19\n" +
+	"\basset_id\x18\x01 \x01(\tR\aassetId\x12\x15\n" +
+	"\x06s3_key\x18\x02 \x01(\tR\x05s3Key\"7\n" +
+	"\x1aGetAssetDownloadUrlRequest\x12\x19\n" +
+	"\basset_id\x18\x01 \x01(\tR\aassetId\"\xe7\x01\n" +
+	"\x18AssetDownloadUrlResponse\x12\x19\n" +
+	"\basset_id\x18\x01 \x01(\tR\aassetId\x12\x15\n" +
+	"\x06s3_key\x18\x02 \x01(\tR\x05s3Key\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12\x1b\n" +
+	"\tmime_type\x18\x04 \x01(\tR\bmimeType\x12\x1d\n" +
+	"\n" +
+	"size_bytes\x18\x05 \x01(\x03R\tsizeBytes\x12!\n" +
+	"\fdownload_url\x18\x06 \x01(\tR\vdownloadUrl\x12&\n" +
+	"\x0fexpires_at_unix\x18\a \x01(\x03R\rexpiresAtUnix2\xa5\x04\n" +
 	"\fNotesService\x123\n" +
 	"\n" +
 	"CreateNote\x12\x18.notes.CreateNoteRequest\x1a\v.notes.Note\x12-\n" +
 	"\aGetNote\x12\x15.notes.GetNoteRequest\x1a\v.notes.Note\x12Y\n" +
 	"\x12ListWorkspaceNotes\x12 .notes.ListWorkspaceNotesRequest\x1a!.notes.ListWorkspaceNotesResponse\x12J\n" +
-	"\x10AppendNoteUpdate\x12\x1e.notes.AppendNoteUpdateRequest\x1a\x16.google.protobuf.EmptyB0Z.github.com/Ajay01103/go-notion/notes/gen/pb;pbb\x06proto3"
+	"\x10AppendNoteUpdate\x12\x1e.notes.AppendNoteUpdateRequest\x1a\x16.google.protobuf.Empty\x12[\n" +
+	"\x16GenerateAssetUploadUrl\x12$.notes.GenerateAssetUploadUrlRequest\x1a\x1b.notes.PresignedUrlResponse\x12R\n" +
+	"\x11RegisterNoteAsset\x12\x1f.notes.RegisterNoteAssetRequest\x1a\x1c.notes.RegisterAssetResponse\x12Y\n" +
+	"\x13GetAssetDownloadUrl\x12!.notes.GetAssetDownloadUrlRequest\x1a\x1f.notes.AssetDownloadUrlResponseB0Z.github.com/Ajay01103/go-notion/notes/gen/pb;pbb\x06proto3"
 
 var (
 	file_notes_proto_rawDescOnce sync.Once
@@ -409,34 +854,46 @@ func file_notes_proto_rawDescGZIP() []byte {
 	return file_notes_proto_rawDescData
 }
 
-var file_notes_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_notes_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_notes_proto_goTypes = []any{
-	(*Note)(nil),                       // 0: notes.Note
-	(*CreateNoteRequest)(nil),          // 1: notes.CreateNoteRequest
-	(*GetNoteRequest)(nil),             // 2: notes.GetNoteRequest
-	(*ListWorkspaceNotesRequest)(nil),  // 3: notes.ListWorkspaceNotesRequest
-	(*ListWorkspaceNotesResponse)(nil), // 4: notes.ListWorkspaceNotesResponse
-	(*AppendNoteUpdateRequest)(nil),    // 5: notes.AppendNoteUpdateRequest
-	(*timestamppb.Timestamp)(nil),      // 6: google.protobuf.Timestamp
-	(*emptypb.Empty)(nil),              // 7: google.protobuf.Empty
+	(*Note)(nil),                          // 0: notes.Note
+	(*CreateNoteRequest)(nil),             // 1: notes.CreateNoteRequest
+	(*GetNoteRequest)(nil),                // 2: notes.GetNoteRequest
+	(*ListWorkspaceNotesRequest)(nil),     // 3: notes.ListWorkspaceNotesRequest
+	(*ListWorkspaceNotesResponse)(nil),    // 4: notes.ListWorkspaceNotesResponse
+	(*AppendNoteUpdateRequest)(nil),       // 5: notes.AppendNoteUpdateRequest
+	(*GenerateAssetUploadUrlRequest)(nil), // 6: notes.GenerateAssetUploadUrlRequest
+	(*PresignedUrlResponse)(nil),          // 7: notes.PresignedUrlResponse
+	(*RegisterNoteAssetRequest)(nil),      // 8: notes.RegisterNoteAssetRequest
+	(*RegisterAssetResponse)(nil),         // 9: notes.RegisterAssetResponse
+	(*GetAssetDownloadUrlRequest)(nil),    // 10: notes.GetAssetDownloadUrlRequest
+	(*AssetDownloadUrlResponse)(nil),      // 11: notes.AssetDownloadUrlResponse
+	(*timestamppb.Timestamp)(nil),         // 12: google.protobuf.Timestamp
+	(*emptypb.Empty)(nil),                 // 13: google.protobuf.Empty
 }
 var file_notes_proto_depIdxs = []int32{
-	6, // 0: notes.Note.created_at:type_name -> google.protobuf.Timestamp
-	6, // 1: notes.Note.updated_at:type_name -> google.protobuf.Timestamp
-	0, // 2: notes.ListWorkspaceNotesResponse.notes:type_name -> notes.Note
-	1, // 3: notes.NotesService.CreateNote:input_type -> notes.CreateNoteRequest
-	2, // 4: notes.NotesService.GetNote:input_type -> notes.GetNoteRequest
-	3, // 5: notes.NotesService.ListWorkspaceNotes:input_type -> notes.ListWorkspaceNotesRequest
-	5, // 6: notes.NotesService.AppendNoteUpdate:input_type -> notes.AppendNoteUpdateRequest
-	0, // 7: notes.NotesService.CreateNote:output_type -> notes.Note
-	0, // 8: notes.NotesService.GetNote:output_type -> notes.Note
-	4, // 9: notes.NotesService.ListWorkspaceNotes:output_type -> notes.ListWorkspaceNotesResponse
-	7, // 10: notes.NotesService.AppendNoteUpdate:output_type -> google.protobuf.Empty
-	7, // [7:11] is the sub-list for method output_type
-	3, // [3:7] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	12, // 0: notes.Note.created_at:type_name -> google.protobuf.Timestamp
+	12, // 1: notes.Note.updated_at:type_name -> google.protobuf.Timestamp
+	0,  // 2: notes.ListWorkspaceNotesResponse.notes:type_name -> notes.Note
+	1,  // 3: notes.NotesService.CreateNote:input_type -> notes.CreateNoteRequest
+	2,  // 4: notes.NotesService.GetNote:input_type -> notes.GetNoteRequest
+	3,  // 5: notes.NotesService.ListWorkspaceNotes:input_type -> notes.ListWorkspaceNotesRequest
+	5,  // 6: notes.NotesService.AppendNoteUpdate:input_type -> notes.AppendNoteUpdateRequest
+	6,  // 7: notes.NotesService.GenerateAssetUploadUrl:input_type -> notes.GenerateAssetUploadUrlRequest
+	8,  // 8: notes.NotesService.RegisterNoteAsset:input_type -> notes.RegisterNoteAssetRequest
+	10, // 9: notes.NotesService.GetAssetDownloadUrl:input_type -> notes.GetAssetDownloadUrlRequest
+	0,  // 10: notes.NotesService.CreateNote:output_type -> notes.Note
+	0,  // 11: notes.NotesService.GetNote:output_type -> notes.Note
+	4,  // 12: notes.NotesService.ListWorkspaceNotes:output_type -> notes.ListWorkspaceNotesResponse
+	13, // 13: notes.NotesService.AppendNoteUpdate:output_type -> google.protobuf.Empty
+	7,  // 14: notes.NotesService.GenerateAssetUploadUrl:output_type -> notes.PresignedUrlResponse
+	9,  // 15: notes.NotesService.RegisterNoteAsset:output_type -> notes.RegisterAssetResponse
+	11, // 16: notes.NotesService.GetAssetDownloadUrl:output_type -> notes.AssetDownloadUrlResponse
+	10, // [10:17] is the sub-list for method output_type
+	3,  // [3:10] is the sub-list for method input_type
+	3,  // [3:3] is the sub-list for extension type_name
+	3,  // [3:3] is the sub-list for extension extendee
+	0,  // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_notes_proto_init() }
@@ -450,7 +907,7 @@ func file_notes_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_notes_proto_rawDesc), len(file_notes_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"connectrpc.com/connect"
 	"github.com/Ajay01103/go-notion/pkg/interceptor"
@@ -100,4 +101,69 @@ func (s *NotesServer) AppendNoteUpdate(ctx context.Context, req *connect.Request
 		return nil, connect.NewError(connect.CodePermissionDenied, err)
 	}
 	return connect.NewResponse(&emptypb.Empty{}), nil
+}
+
+func (s *NotesServer) GenerateAssetUploadUrl(ctx context.Context, req *connect.Request[pb.GenerateAssetUploadUrlRequest]) (*connect.Response[pb.PresignedUrlResponse], error) {
+	if req.Msg.GetNoteId() == "" || req.Msg.GetName() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("note_id and name are required"))
+	}
+	noteID, err := uuid.Parse(req.Msg.GetNoteId())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	userID, err := interceptor.UserIDFromContext(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, err)
+	}
+
+	res, err := s.svc.GenerateAssetUploadUrl(ctx, noteID, userID, req.Msg.GetName(), req.Msg.GetMimeType(), req.Msg.GetSizeBytes())
+	if err != nil {
+		return nil, connect.NewError(connect.CodePermissionDenied, err)
+	}
+	return connect.NewResponse(res), nil
+}
+
+func (s *NotesServer) RegisterNoteAsset(ctx context.Context, req *connect.Request[pb.RegisterNoteAssetRequest]) (*connect.Response[pb.RegisterAssetResponse], error) {
+	if req.Msg.GetAssetId() == "" || req.Msg.GetNoteId() == "" || req.Msg.GetS3Key() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("asset_id, note_id and s3_key are required"))
+	}
+	noteID, err := uuid.Parse(req.Msg.GetNoteId())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid note_id: %w", err))
+	}
+	userID, err := interceptor.UserIDFromContext(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, err)
+	}
+
+	res, err := s.svc.RegisterNoteAsset(
+		ctx,
+		req.Msg.GetAssetId(),
+		noteID,
+		userID,
+		req.Msg.GetName(),
+		req.Msg.GetMimeType(),
+		req.Msg.GetSizeBytes(),
+		req.Msg.GetS3Key(),
+	)
+	if err != nil {
+		return nil, connect.NewError(connect.CodePermissionDenied, err)
+	}
+	return connect.NewResponse(res), nil
+}
+
+func (s *NotesServer) GetAssetDownloadUrl(ctx context.Context, req *connect.Request[pb.GetAssetDownloadUrlRequest]) (*connect.Response[pb.AssetDownloadUrlResponse], error) {
+	if req.Msg.GetAssetId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("asset_id is required"))
+	}
+	userID, err := interceptor.UserIDFromContext(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, err)
+	}
+
+	res, err := s.svc.GetAssetDownloadUrl(ctx, req.Msg.GetAssetId(), userID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodePermissionDenied, err)
+	}
+	return connect.NewResponse(res), nil
 }

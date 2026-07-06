@@ -22,21 +22,50 @@ import TableOfContents from "@yoopta/table-of-contents"
 
 import { PollPlugin } from "./poll"
 import { StickyNotePlugin } from "./sticky-notes"
+import { getNoteAssetContext } from "@/modules/notes/api/note-asset-context"
+import { uploadNoteAssetAction } from "@/actions/note-assets"
 
 import "katex/dist/katex.min.css"
+
+async function uploadToS3(file: File) {
+  const { noteId, workspaceId } = getNoteAssetContext()
+  if (!noteId || !workspaceId) {
+    return null
+  }
+
+  const formData = new FormData()
+  formData.append("file", file)
+  formData.append("noteId", noteId)
+  formData.append("workspaceId", workspaceId)
+  formData.append("assetId", crypto.randomUUID())
+
+  const res = await uploadNoteAssetAction(formData)
+  if (!res.success) {
+    return null
+  }
+
+  return res
+}
 
 const YImage = Image.extend({
   options: {
     upload: async (file: File) => {
+      const result = await uploadToS3(file)
+      if (result) {
+        return {
+          id: result.assetId,
+          src: result.src,
+          alt: file.name,
+          fit: "cover",
+          sizes: { width: file.size, height: file.size },
+        }
+      }
       return {
         id: file.name,
         src: URL.createObjectURL(file),
-        alt: "cloudinary",
+        alt: file.name,
         fit: "cover",
-        sizes: {
-          width: file.size,
-          height: file.size,
-        },
+        sizes: { width: file.size, height: file.size },
       }
     },
   },
@@ -47,6 +76,16 @@ export const YOOPTA_PLUGINS = [
   File.extend({
     options: {
       upload: async (file: File) => {
+        const result = await uploadToS3(file)
+        if (result) {
+          return {
+            id: result.assetId,
+            src: result.src,
+            name: file.name,
+            size: file.size,
+            format: file.name.split(".").pop(),
+          }
+        }
         return {
           id: file.name,
           src: URL.createObjectURL(file),
@@ -84,6 +123,16 @@ export const YOOPTA_PLUGINS = [
   Video.extend({
     options: {
       upload: async (file: File) => {
+        const result = await uploadToS3(file)
+        if (result) {
+          return {
+            id: result.assetId,
+            src: result.src,
+            name: file.name,
+            size: file.size,
+            format: file.name.split(".").pop(),
+          }
+        }
         return {
           id: file.name,
           src: URL.createObjectURL(file),

@@ -1,18 +1,20 @@
 "use client"
 
-import { useRef } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useState } from "react"
 import { useForm } from "@tanstack/react-form"
 import { useStore } from "@tanstack/react-form"
-import { useRouter } from "next/navigation"
 import { z } from "zod"
-import { Label } from "@/components/ui/label"
-import { AuthDivider, AuthShell, defaultRegisterContent, SocialGoogleButton } from "./auth"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
-import { authBrowserRpcClient } from "@/lib/rpc"
+
 import { setAuthCookies } from "@/actions/auth"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { useAuth } from "@/lib/auth-context"
+import { authBrowserRpcClient } from "@/lib/rpc"
+
+import { AuthDivider, AuthShell, defaultRegisterContent, SocialGoogleButton } from "./auth"
 
 const signUpSchema = z.object({
   name: z.string().min(2, "Enter your full name"),
@@ -20,14 +22,17 @@ const signUpSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
 })
 
-function getFirstErrorMessage(error: unknown) {
-  return typeof error === "string" ? error : "Invalid value"
+function zodFieldValidator<T>(schema: z.ZodType<T>) {
+  return ({ value }: { value: unknown }) => {
+    const result = schema.safeParse(value)
+    return result.success ? undefined : (result.error.issues[0]?.message ?? "Invalid value")
+  }
 }
 
 export function SignUpForm() {
   const router = useRouter()
   const { setAccessToken } = useAuth()
-  const submitErrorRef = useRef<string | null>(null)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   const form = useForm({
     defaultValues: {
@@ -36,28 +41,24 @@ export function SignUpForm() {
       password: "",
     },
     onSubmit: async ({ value }) => {
-      const parsed = signUpSchema.safeParse(value)
-
-      if (!parsed.success) {
-        return
-      }
-
-      submitErrorRef.current = null
-
+      setSubmitError(null)
       try {
-        const response = await authBrowserRpcClient.register(parsed.data)
+        const response = await authBrowserRpcClient.register(value)
         await setAuthCookies(response.refreshToken)
         setAccessToken(response.accessToken)
         router.replace("/workspace")
         router.refresh()
       } catch (error) {
-        submitErrorRef.current = error instanceof Error ? error.message : "Failed to create account"
+        setSubmitError(error instanceof Error ? error.message : "Failed to create account")
         throw error
       }
     },
   })
 
-  const isSubmitting = useStore(form.store, (state) => state.isSubmitting)
+  const { canSubmit, isSubmitting } = useStore(form.store, (state) => ({
+    canSubmit: state.canSubmit,
+    isSubmitting: state.isSubmitting,
+  }))
 
   return (
     <AuthShell
@@ -73,18 +74,8 @@ export function SignUpForm() {
       <form.Field
         name="name"
         validators={{
-          onBlur: ({ value }) => {
-            const result = signUpSchema.shape.name.safeParse(value)
-            return result.success
-              ? undefined
-              : getFirstErrorMessage(result.error.issues[0]?.message)
-          },
-          onChange: ({ value }) => {
-            const result = signUpSchema.shape.name.safeParse(value)
-            return result.success
-              ? undefined
-              : getFirstErrorMessage(result.error.issues[0]?.message)
-          },
+          onBlur: zodFieldValidator(signUpSchema.shape.name),
+          onChange: zodFieldValidator(signUpSchema.shape.name),
         }}
       >
         {(field) => (
@@ -112,18 +103,8 @@ export function SignUpForm() {
       <form.Field
         name="email"
         validators={{
-          onBlur: ({ value }) => {
-            const result = signUpSchema.shape.email.safeParse(value)
-            return result.success
-              ? undefined
-              : getFirstErrorMessage(result.error.issues[0]?.message)
-          },
-          onChange: ({ value }) => {
-            const result = signUpSchema.shape.email.safeParse(value)
-            return result.success
-              ? undefined
-              : getFirstErrorMessage(result.error.issues[0]?.message)
-          },
+          onBlur: zodFieldValidator(signUpSchema.shape.email),
+          onChange: zodFieldValidator(signUpSchema.shape.email),
         }}
       >
         {(field) => (
@@ -151,18 +132,8 @@ export function SignUpForm() {
       <form.Field
         name="password"
         validators={{
-          onBlur: ({ value }) => {
-            const result = signUpSchema.shape.password.safeParse(value)
-            return result.success
-              ? undefined
-              : getFirstErrorMessage(result.error.issues[0]?.message)
-          },
-          onChange: ({ value }) => {
-            const result = signUpSchema.shape.password.safeParse(value)
-            return result.success
-              ? undefined
-              : getFirstErrorMessage(result.error.issues[0]?.message)
-          },
+          onBlur: zodFieldValidator(signUpSchema.shape.password),
+          onChange: zodFieldValidator(signUpSchema.shape.password),
         }}
       >
         {(field) => (
@@ -191,14 +162,16 @@ export function SignUpForm() {
         <Button
           type="submit"
           variant="outline"
-          disabled={isSubmitting}
+          disabled={!canSubmit}
           className="h-11 w-full border-border bg-white text-sm font-medium text-foreground shadow-sm hover:bg-accent/40 disabled:opacity-70 sm:h-12"
         >
           {isSubmitting ? "Creating account..." : "Create Account"}
         </Button>
 
-        {submitErrorRef.current ? (
-          <p className="text-center text-sm text-destructive">{submitErrorRef.current}</p>
+        {submitError ? (
+          <p className="text-center text-sm text-destructive" role="alert">
+            {submitError}
+          </p>
         ) : null}
 
         <p className="text-center text-sm">

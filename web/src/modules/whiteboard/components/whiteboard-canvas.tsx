@@ -25,7 +25,7 @@ import {
 import { MermaidDialogHost, MermaidToolbarButton } from "./mermaid-button"
 import { insertMermaidDiagram } from "./mermaid-utils"
 
-import { uploadAssetAction, downloadAssetAction } from "@/actions/assets"
+import { uploadAssetAction, downloadAssetAction } from "@/actions/whiteboard-assets"
 
 type WhiteboardCanvasProps = {
   boardId: string
@@ -103,18 +103,22 @@ function MermaidPasteHandler() {
   return null
 }
 
-function WhiteboardToolbar(props: React.ComponentProps<typeof DefaultToolbar>) {
-  return (
-    <DefaultToolbar {...props}>
-      {props.children ?? <DefaultToolbarContent />}
-      <MermaidToolbarButton />
-    </DefaultToolbar>
-  )
-}
 
 export function WhiteboardCanvas({ boardId, workspaceId, slug }: WhiteboardCanvasProps) {
-  const { accessToken } = useAuth()
   const [editor, setEditor] = useState<Editor | null>(null)
+  const [mermaidDialogOpen, setMermaidDialogOpen] = useState(false)
+
+  function WhiteboardToolbar(props: React.ComponentProps<typeof DefaultToolbar>) {
+    return (
+      <DefaultToolbar {...props}>
+        {props.children ?? <DefaultToolbarContent />}
+        <MermaidToolbarButton onOpen={() => setMermaidDialogOpen(true)} />
+      </DefaultToolbar>
+    )
+  }
+
+  const { accessToken } = useAuth()
+
   const editorRef = useRef<Editor | null>(null)
   const pendingDocumentRef = useRef<unknown | null>(null)
   const loadedSnapshotRef = useRef(false)
@@ -333,7 +337,11 @@ export function WhiteboardCanvas({ boardId, workspaceId, slug }: WhiteboardCanva
           <MermaidPasteHandler />
         </Tldraw>
       </div>
-      <MermaidDialogHost editor={editor} />
+      <MermaidDialogHost
+        editor={editor}
+        open={mermaidDialogOpen}
+        onOpenChange={setMermaidDialogOpen}
+      />
     </div>
   )
 }

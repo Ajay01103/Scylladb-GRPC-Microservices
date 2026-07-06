@@ -44,6 +44,15 @@ const (
 	// NotesServiceAppendNoteUpdateProcedure is the fully-qualified name of the NotesService's
 	// AppendNoteUpdate RPC.
 	NotesServiceAppendNoteUpdateProcedure = "/notes.NotesService/AppendNoteUpdate"
+	// NotesServiceGenerateAssetUploadUrlProcedure is the fully-qualified name of the NotesService's
+	// GenerateAssetUploadUrl RPC.
+	NotesServiceGenerateAssetUploadUrlProcedure = "/notes.NotesService/GenerateAssetUploadUrl"
+	// NotesServiceRegisterNoteAssetProcedure is the fully-qualified name of the NotesService's
+	// RegisterNoteAsset RPC.
+	NotesServiceRegisterNoteAssetProcedure = "/notes.NotesService/RegisterNoteAsset"
+	// NotesServiceGetAssetDownloadUrlProcedure is the fully-qualified name of the NotesService's
+	// GetAssetDownloadUrl RPC.
+	NotesServiceGetAssetDownloadUrlProcedure = "/notes.NotesService/GetAssetDownloadUrl"
 )
 
 // NotesServiceClient is a client for the notes.NotesService service.
@@ -52,6 +61,9 @@ type NotesServiceClient interface {
 	GetNote(context.Context, *connect.Request[pb.GetNoteRequest]) (*connect.Response[pb.Note], error)
 	ListWorkspaceNotes(context.Context, *connect.Request[pb.ListWorkspaceNotesRequest]) (*connect.Response[pb.ListWorkspaceNotesResponse], error)
 	AppendNoteUpdate(context.Context, *connect.Request[pb.AppendNoteUpdateRequest]) (*connect.Response[emptypb.Empty], error)
+	GenerateAssetUploadUrl(context.Context, *connect.Request[pb.GenerateAssetUploadUrlRequest]) (*connect.Response[pb.PresignedUrlResponse], error)
+	RegisterNoteAsset(context.Context, *connect.Request[pb.RegisterNoteAssetRequest]) (*connect.Response[pb.RegisterAssetResponse], error)
+	GetAssetDownloadUrl(context.Context, *connect.Request[pb.GetAssetDownloadUrlRequest]) (*connect.Response[pb.AssetDownloadUrlResponse], error)
 }
 
 // NewNotesServiceClient constructs a client for the notes.NotesService service. By default, it uses
@@ -89,15 +101,36 @@ func NewNotesServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(notesServiceMethods.ByName("AppendNoteUpdate")),
 			connect.WithClientOptions(opts...),
 		),
+		generateAssetUploadUrl: connect.NewClient[pb.GenerateAssetUploadUrlRequest, pb.PresignedUrlResponse](
+			httpClient,
+			baseURL+NotesServiceGenerateAssetUploadUrlProcedure,
+			connect.WithSchema(notesServiceMethods.ByName("GenerateAssetUploadUrl")),
+			connect.WithClientOptions(opts...),
+		),
+		registerNoteAsset: connect.NewClient[pb.RegisterNoteAssetRequest, pb.RegisterAssetResponse](
+			httpClient,
+			baseURL+NotesServiceRegisterNoteAssetProcedure,
+			connect.WithSchema(notesServiceMethods.ByName("RegisterNoteAsset")),
+			connect.WithClientOptions(opts...),
+		),
+		getAssetDownloadUrl: connect.NewClient[pb.GetAssetDownloadUrlRequest, pb.AssetDownloadUrlResponse](
+			httpClient,
+			baseURL+NotesServiceGetAssetDownloadUrlProcedure,
+			connect.WithSchema(notesServiceMethods.ByName("GetAssetDownloadUrl")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // notesServiceClient implements NotesServiceClient.
 type notesServiceClient struct {
-	createNote         *connect.Client[pb.CreateNoteRequest, pb.Note]
-	getNote            *connect.Client[pb.GetNoteRequest, pb.Note]
-	listWorkspaceNotes *connect.Client[pb.ListWorkspaceNotesRequest, pb.ListWorkspaceNotesResponse]
-	appendNoteUpdate   *connect.Client[pb.AppendNoteUpdateRequest, emptypb.Empty]
+	createNote             *connect.Client[pb.CreateNoteRequest, pb.Note]
+	getNote                *connect.Client[pb.GetNoteRequest, pb.Note]
+	listWorkspaceNotes     *connect.Client[pb.ListWorkspaceNotesRequest, pb.ListWorkspaceNotesResponse]
+	appendNoteUpdate       *connect.Client[pb.AppendNoteUpdateRequest, emptypb.Empty]
+	generateAssetUploadUrl *connect.Client[pb.GenerateAssetUploadUrlRequest, pb.PresignedUrlResponse]
+	registerNoteAsset      *connect.Client[pb.RegisterNoteAssetRequest, pb.RegisterAssetResponse]
+	getAssetDownloadUrl    *connect.Client[pb.GetAssetDownloadUrlRequest, pb.AssetDownloadUrlResponse]
 }
 
 // CreateNote calls notes.NotesService.CreateNote.
@@ -120,12 +153,30 @@ func (c *notesServiceClient) AppendNoteUpdate(ctx context.Context, req *connect.
 	return c.appendNoteUpdate.CallUnary(ctx, req)
 }
 
+// GenerateAssetUploadUrl calls notes.NotesService.GenerateAssetUploadUrl.
+func (c *notesServiceClient) GenerateAssetUploadUrl(ctx context.Context, req *connect.Request[pb.GenerateAssetUploadUrlRequest]) (*connect.Response[pb.PresignedUrlResponse], error) {
+	return c.generateAssetUploadUrl.CallUnary(ctx, req)
+}
+
+// RegisterNoteAsset calls notes.NotesService.RegisterNoteAsset.
+func (c *notesServiceClient) RegisterNoteAsset(ctx context.Context, req *connect.Request[pb.RegisterNoteAssetRequest]) (*connect.Response[pb.RegisterAssetResponse], error) {
+	return c.registerNoteAsset.CallUnary(ctx, req)
+}
+
+// GetAssetDownloadUrl calls notes.NotesService.GetAssetDownloadUrl.
+func (c *notesServiceClient) GetAssetDownloadUrl(ctx context.Context, req *connect.Request[pb.GetAssetDownloadUrlRequest]) (*connect.Response[pb.AssetDownloadUrlResponse], error) {
+	return c.getAssetDownloadUrl.CallUnary(ctx, req)
+}
+
 // NotesServiceHandler is an implementation of the notes.NotesService service.
 type NotesServiceHandler interface {
 	CreateNote(context.Context, *connect.Request[pb.CreateNoteRequest]) (*connect.Response[pb.Note], error)
 	GetNote(context.Context, *connect.Request[pb.GetNoteRequest]) (*connect.Response[pb.Note], error)
 	ListWorkspaceNotes(context.Context, *connect.Request[pb.ListWorkspaceNotesRequest]) (*connect.Response[pb.ListWorkspaceNotesResponse], error)
 	AppendNoteUpdate(context.Context, *connect.Request[pb.AppendNoteUpdateRequest]) (*connect.Response[emptypb.Empty], error)
+	GenerateAssetUploadUrl(context.Context, *connect.Request[pb.GenerateAssetUploadUrlRequest]) (*connect.Response[pb.PresignedUrlResponse], error)
+	RegisterNoteAsset(context.Context, *connect.Request[pb.RegisterNoteAssetRequest]) (*connect.Response[pb.RegisterAssetResponse], error)
+	GetAssetDownloadUrl(context.Context, *connect.Request[pb.GetAssetDownloadUrlRequest]) (*connect.Response[pb.AssetDownloadUrlResponse], error)
 }
 
 // NewNotesServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -159,6 +210,24 @@ func NewNotesServiceHandler(svc NotesServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(notesServiceMethods.ByName("AppendNoteUpdate")),
 		connect.WithHandlerOptions(opts...),
 	)
+	notesServiceGenerateAssetUploadUrlHandler := connect.NewUnaryHandler(
+		NotesServiceGenerateAssetUploadUrlProcedure,
+		svc.GenerateAssetUploadUrl,
+		connect.WithSchema(notesServiceMethods.ByName("GenerateAssetUploadUrl")),
+		connect.WithHandlerOptions(opts...),
+	)
+	notesServiceRegisterNoteAssetHandler := connect.NewUnaryHandler(
+		NotesServiceRegisterNoteAssetProcedure,
+		svc.RegisterNoteAsset,
+		connect.WithSchema(notesServiceMethods.ByName("RegisterNoteAsset")),
+		connect.WithHandlerOptions(opts...),
+	)
+	notesServiceGetAssetDownloadUrlHandler := connect.NewUnaryHandler(
+		NotesServiceGetAssetDownloadUrlProcedure,
+		svc.GetAssetDownloadUrl,
+		connect.WithSchema(notesServiceMethods.ByName("GetAssetDownloadUrl")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/notes.NotesService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case NotesServiceCreateNoteProcedure:
@@ -169,6 +238,12 @@ func NewNotesServiceHandler(svc NotesServiceHandler, opts ...connect.HandlerOpti
 			notesServiceListWorkspaceNotesHandler.ServeHTTP(w, r)
 		case NotesServiceAppendNoteUpdateProcedure:
 			notesServiceAppendNoteUpdateHandler.ServeHTTP(w, r)
+		case NotesServiceGenerateAssetUploadUrlProcedure:
+			notesServiceGenerateAssetUploadUrlHandler.ServeHTTP(w, r)
+		case NotesServiceRegisterNoteAssetProcedure:
+			notesServiceRegisterNoteAssetHandler.ServeHTTP(w, r)
+		case NotesServiceGetAssetDownloadUrlProcedure:
+			notesServiceGetAssetDownloadUrlHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -192,4 +267,16 @@ func (UnimplementedNotesServiceHandler) ListWorkspaceNotes(context.Context, *con
 
 func (UnimplementedNotesServiceHandler) AppendNoteUpdate(context.Context, *connect.Request[pb.AppendNoteUpdateRequest]) (*connect.Response[emptypb.Empty], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("notes.NotesService.AppendNoteUpdate is not implemented"))
+}
+
+func (UnimplementedNotesServiceHandler) GenerateAssetUploadUrl(context.Context, *connect.Request[pb.GenerateAssetUploadUrlRequest]) (*connect.Response[pb.PresignedUrlResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("notes.NotesService.GenerateAssetUploadUrl is not implemented"))
+}
+
+func (UnimplementedNotesServiceHandler) RegisterNoteAsset(context.Context, *connect.Request[pb.RegisterNoteAssetRequest]) (*connect.Response[pb.RegisterAssetResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("notes.NotesService.RegisterNoteAsset is not implemented"))
+}
+
+func (UnimplementedNotesServiceHandler) GetAssetDownloadUrl(context.Context, *connect.Request[pb.GetAssetDownloadUrlRequest]) (*connect.Response[pb.AssetDownloadUrlResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("notes.NotesService.GetAssetDownloadUrl is not implemented"))
 }

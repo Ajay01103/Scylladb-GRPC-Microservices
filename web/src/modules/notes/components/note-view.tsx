@@ -16,6 +16,10 @@ import {
 import { requestNotesWsTicket } from "@/modules/notes/api/ws-ticket"
 import { useCurrentUser } from "@/modules/auth/api/use-current-user"
 import { useNoteBySlug } from "@/modules/notes/api/use-notes"
+import {
+  setNoteAssetContext,
+  clearNoteAssetContext,
+} from "@/modules/notes/api/note-asset-context"
 import { FullSetupEditor } from "@/components/editor"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { AvatarStack } from "@/components/ui/avatar-stack"
@@ -113,7 +117,7 @@ function hashColor(str: string): string {
 type NoteViewProps = { slug: string }
 
 export function NoteView({ slug }: NoteViewProps) {
-  const { note, isLoading: isLoadingNote, isError } = useNoteBySlug(slug)
+  const { note, workspaceId, isLoading: isLoadingNote, isError } = useNoteBySlug(slug)
 
   // Stable ref to the editor — never replaced after first assignment.
   const editorRef = useRef<YooEditor | null>(null)
@@ -154,6 +158,13 @@ export function NoteView({ slug }: NoteViewProps) {
 
   const noteIdRef = useRef<string | undefined>(undefined)
   noteIdRef.current = note?.id
+
+  useEffect(() => {
+    if (note?.id && workspaceId) {
+      setNoteAssetContext(note.id, workspaceId)
+    }
+    return () => clearNoteAssetContext()
+  }, [note?.id, workspaceId])
 
   // The last document snapshot we sent over the wire. Diffed against the next
   // onChange value to produce a block-level patch instead of a full snapshot.

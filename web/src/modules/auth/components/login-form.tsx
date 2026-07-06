@@ -1,32 +1,47 @@
 "use client"
 
-import { useRef } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useState } from "react"
 import { useForm } from "@tanstack/react-form"
 import { useStore } from "@tanstack/react-form"
-import { useRouter } from "next/navigation"
 import { z } from "zod"
-import { Label } from "@/components/ui/label"
-import { AuthDivider, AuthShell, defaultLoginContent, SocialGoogleButton } from "./auth"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
-import { authBrowserRpcClient } from "@/lib/rpc"
+
 import { setAuthCookies } from "@/actions/auth"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { useAuth } from "@/lib/auth-context"
+import { authBrowserRpcClient } from "@/lib/rpc"
+
+import { AuthDivider, AuthShell, defaultLoginContent, SocialGoogleButton } from "./auth"
 
 const loginSchema = z.object({
   email: z.string().min(1, "Email is required").email("Enter a valid email"),
   password: z.string().min(1, "Password is required"),
 })
 
-function getFirstErrorMessage(error: unknown) {
-  return typeof error === "string" ? error : "Invalid value"
+/**
+ * Wrap a Zod field schema into the `validators.onChange` / `validators.onBlur`
+ * shape TanStack Form expects. Returns the first issue's message, or
+ * `undefined` when valid — per the skill's rule "Return `undefined` (not
+ * `null`/`false`) for valid fields".
+ *
+ * Shared between login + sign-up so the behavior stays consistent.
+ */
+function zodFieldValidator<T>(schema: z.ZodType<T>) {
+  return ({ value }: { value: unknown }) => {
+    const result = schema.safeParse(value)
+    return result.success ? undefined : (result.error.issues[0]?.message ?? "Invalid value")
+  }
 }
 
 export function LoginForm() {
   const router = useRouter()
   const { setAccessToken } = useAuth()
-  const submitErrorRef = useRef<string | null>(null)
+  // `useState` (not `useRef`) — refs don't trigger re-renders, so the
+  // submit error would never display. This was a real UX bug.
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   const form = useForm({
     defaultValues: {
@@ -34,28 +49,28 @@ export function LoginForm() {
       password: "",
     },
     onSubmit: async ({ value }) => {
-      const parsed = loginSchema.safeParse(value)
-
-      if (!parsed.success) {
-        return
-      }
-
-      submitErrorRef.current = null
-
+      setSubmitError(null)
       try {
-        const response = await authBrowserRpcClient.login(parsed.data)
+        const response = await authBrowserRpcClient.login(value)
         await setAuthCookies(response.refreshToken)
         setAccessToken(response.accessToken)
         router.replace("/workspace")
         router.refresh()
       } catch (error) {
-        submitErrorRef.current = error instanceof Error ? error.message : "Failed to sign in"
+        setSubmitError(error instanceof Error ? error.message : "Failed to sign in")
+        // Re-throw so TanStack Form marks `isSubmitSuccessful = false` and
+        // surfaces the error in `state.errors` for any subscribed banner.
         throw error
       }
     },
   })
 
-  const isSubmitting = useStore(form.store, (state) => state.isSubmitting)
+  // canSubmit = isValid && !isSubmitting — disables the button when the form
+  // has invalid fields too, not just during in-flight requests.
+  const { canSubmit, isSubmitting } = useStore(form.store, (state) => ({
+    canSubmit: state.canSubmit,
+    isSubmitting: state.isSubmitting,
+  }))
 
   return (
     <AuthShell
@@ -71,18 +86,8 @@ export function LoginForm() {
       <form.Field
         name="email"
         validators={{
-          onBlur: ({ value }) => {
-            const result = loginSchema.shape.email.safeParse(value)
-            return result.success
-              ? undefined
-              : getFirstErrorMessage(result.error.issues[0]?.message)
-          },
-          onChange: ({ value }) => {
-            const result = loginSchema.shape.email.safeParse(value)
-            return result.success
-              ? undefined
-              : getFirstErrorMessage(result.error.issues[0]?.message)
-          },
+          onBlur: zodFieldValidator(loginSchema.shape.email),
+          onChange: zodFieldValidator(loginSchema.shape.email),
         }}
       >
         {(field) => (
@@ -110,18 +115,8 @@ export function LoginForm() {
       <form.Field
         name="password"
         validators={{
-          onBlur: ({ value }) => {
-            const result = loginSchema.shape.password.safeParse(value)
-            return result.success
-              ? undefined
-              : getFirstErrorMessage(result.error.issues[0]?.message)
-          },
-          onChange: ({ value }) => {
-            const result = loginSchema.shape.password.safeParse(value)
-            return result.success
-              ? undefined
-              : getFirstErrorMessage(result.error.issues[0]?.message)
-          },
+          onBlur: zodFieldValidator(loginSchema.shape.password),
+          onChange: zodFieldValidator(loginSchema.shape.password),
         }}
       >
         {(field) => (
@@ -150,14 +145,16 @@ export function LoginForm() {
         <Button
           type="submit"
           variant="outline"
-          disabled={isSubmitting}
+          disabled={!canSubmit}
           className="h-11 w-full border-border text-foreground shadow-sm hover:bg-accent/40 disabled:opacity-70 sm:h-12"
         >
           {isSubmitting ? "Signing in..." : "Sign In"}
         </Button>
 
-        {submitErrorRef.current ? (
-          <p className="text-center text-sm text-destructive">{submitErrorRef.current}</p>
+        {submitError ? (
+          <p className="text-center text-sm text-destructive" role="alert">
+            {submitError}
+          </p>
         ) : null}
 
         <p className="text-center text-sm">

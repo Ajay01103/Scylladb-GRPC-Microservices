@@ -5,7 +5,6 @@ import { createAvatar } from "@dicebear/core"
 import { initials } from "@dicebear/collection"
 import { LogOut, Mail, UserCircle2 } from "lucide-react"
 
-import { useCurrentUser } from "@/modules/auth/api/use-current-user"
 import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -20,7 +19,7 @@ function getInitials(name?: string) {
 }
 
 export function UserButton() {
-  const { data: user, isLoading } = useCurrentUser()
+  const { currentUser: user, isLoadingUser: isLoading } = useAuth()
   const logoutMutation = useLogout()
   const router = useRouter()
 
