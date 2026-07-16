@@ -1,10 +1,10 @@
 import { Sparkles } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import type { Workspace } from "@/gen/pb/workspace/workspace_pb"
+import type { PlainWorkspace } from "@/modules/workspace/api/workspace-queries"
 
 type WorkspaceHeaderProps = {
-  workspace: Workspace
+  workspace: Pick<PlainWorkspace, "id" | "name">
 }
 
 export function WorkspaceHeader({ workspace }: WorkspaceHeaderProps) {

@@ -1,18 +1,15 @@
 "use client"
 
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { useForm } from "@tanstack/react-form"
 import { useStore } from "@tanstack/react-form"
 import { z } from "zod"
 
-import { setAuthCookies } from "@/actions/auth"
+import { loginAction } from "@/actions/auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useAuth } from "@/lib/auth-context"
-import { authBrowserRpcClient } from "@/lib/rpc"
 
 import { AuthDivider, AuthShell, defaultLoginContent, SocialGoogleButton } from "./auth"
 
@@ -37,8 +34,6 @@ function zodFieldValidator<T>(schema: z.ZodType<T>) {
 }
 
 export function LoginForm() {
-  const router = useRouter()
-  const { setAccessToken } = useAuth()
   // `useState` (not `useRef`) — refs don't trigger re-renders, so the
   // submit error would never display. This was a real UX bug.
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -51,15 +46,15 @@ export function LoginForm() {
     onSubmit: async ({ value }) => {
       setSubmitError(null)
       try {
-        const response = await authBrowserRpcClient.login(value)
-        await setAuthCookies(response.refreshToken)
-        setAccessToken(response.accessToken)
-        router.replace("/workspace")
-        router.refresh()
+        // Server action sets the HttpOnly access + refresh token cookies.
+        await loginAction(value)
+        // Hard-navigate so the browser sends a fresh request through
+        // middleware, RSC layouts re-run, and the new cookies are visible.
+        // router.replace/push does a client-side transition that skips
+        // middleware and leaves RSC layouts stale.
+        window.location.href = "/workspace"
       } catch (error) {
         setSubmitError(error instanceof Error ? error.message : "Failed to sign in")
-        // Re-throw so TanStack Form marks `isSubmitSuccessful = false` and
-        // surfaces the error in `state.errors` for any subscribed banner.
         throw error
       }
     },

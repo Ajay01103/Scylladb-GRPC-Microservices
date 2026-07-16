@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { Loader2 } from "lucide-react"
 import { type YooEditor, type YooptaContentValue } from "@yoopta/editor"
 
-import { tokenStore } from "@/lib/token-store"
+import { requestNotesWsTicketAction } from "@/actions/ws-tickets"
 import {
   connectRoom,
   disconnectRoom,
@@ -13,13 +13,9 @@ import {
   addStateListener,
   type SocketState,
 } from "@/lib/board-socket-manager"
-import { requestNotesWsTicket } from "@/modules/notes/api/ws-ticket"
 import { useCurrentUser } from "@/modules/auth/api/use-current-user"
 import { useNoteBySlug } from "@/modules/notes/api/use-notes"
-import {
-  setNoteAssetContext,
-  clearNoteAssetContext,
-} from "@/modules/notes/api/note-asset-context"
+import { setNoteAssetContext, clearNoteAssetContext } from "@/modules/notes/api/note-asset-context"
 import { FullSetupEditor } from "@/components/editor"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { AvatarStack } from "@/components/ui/avatar-stack"
@@ -205,8 +201,7 @@ export function NoteView({ slug }: NoteViewProps) {
       newIds.some((id) => !currentValue[id]) ||
       newIds.some((id) => currentValue[id]?.type !== value[id]?.type) ||
       newIds.some(
-        (id) =>
-          JSON.stringify(currentValue[id]?.meta) !== JSON.stringify(value[id]?.meta),
+        (id) => JSON.stringify(currentValue[id]?.meta) !== JSON.stringify(value[id]?.meta),
       )
 
     if (hasStructuralChange) {
@@ -215,8 +210,7 @@ export function NoteView({ slug }: NoteViewProps) {
       // Text-only fast path: push changes directly into each Slate editor
       // instance so Slate v0.71+'s "value is initial-only" constraint is
       // bypassed — setEditorValue won't update existing instances.
-      const blockEditors =
-        (editor as any).blockEditorsMap ?? (editor as any).editorBlocksMap
+      const blockEditors = (editor as any).blockEditorsMap ?? (editor as any).editorBlocksMap
 
       for (const [blockId, newBlock] of Object.entries(value)) {
         const oldBlock = currentValue[blockId]
@@ -271,11 +265,7 @@ export function NoteView({ slug }: NoteViewProps) {
       // scheduleReconnect will therefore always use a fresh, non-expired token
       // even when the original JWT has long since expired.
       fetchTicket: async (signal) => {
-        const token = await tokenStore.ensureValidAccessToken()
-        if (!token) {
-          throw new Error("[note-view] fetchTicket: no access token")
-        }
-        return requestNotesWsTicket(token, signal).catch((err) => {
+        return requestNotesWsTicketAction().catch((err) => {
           if (!(err instanceof DOMException && err.name === "AbortError")) {
             console.error("[note-view] fetchTicket error:", err)
           }
@@ -582,7 +572,8 @@ export function NoteView({ slug }: NoteViewProps) {
                   : isErr
                     ? "bg-rose-500/10 text-rose-600 dark:text-rose-400"
                     : "bg-muted text-muted-foreground",
-            ].join(" ")}>
+            ].join(" ")}
+          >
             <span
               className={[
                 "size-1.5 rounded-full",
@@ -609,11 +600,9 @@ export function NoteView({ slug }: NoteViewProps) {
       {/* ── Editor ────────────────────────────────────────────────────────── */}
       <div
         ref={editorContainerRef}
-        className="relative min-h-0 flex-1 overflow-y-auto px-4 py-8 sm:px-8 lg:px-16">
-        <FullSetupEditor
-          editorRef={editorRef}
-          onEditorReady={handleEditorReady}
-        />
+        className="relative min-h-0 flex-1 overflow-y-auto px-4 py-8 sm:px-8 lg:px-16"
+      >
+        <FullSetupEditor editorRef={editorRef} onEditorReady={handleEditorReady} />
 
         {/* Remote cursors */}
         {Object.entries(cursors).map(([userId, cur]) => (

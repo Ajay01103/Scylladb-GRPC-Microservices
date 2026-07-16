@@ -29,8 +29,9 @@ import { UserButton } from "@/components/user-button"
 import {
   buildWorkspaceSlug,
   useCreateWorkspace,
-  useMyWorkspaces,
+  workspacesQueryOptions,
 } from "@/modules/workspace/api/use-workspaces"
+import { useSuspenseQuery } from "@tanstack/react-query"
 import { type LucideIcon, LayoutGrid, Settings, Headphones, Users } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
@@ -113,9 +114,9 @@ export const DashboardSidebar = () => {
   const [workspaceSearch, setWorkspaceSearch] = useState("")
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false)
 
-  const workspacesQuery = useMyWorkspaces()
+  const { data: workspaces } = useSuspenseQuery(workspacesQueryOptions)
   const createWorkspaceMutation = useCreateWorkspace()
-  const workspaces = workspacesQuery.data ?? []
+
   const workspaceOptions = useMemo(
     () =>
       workspaces.map((workspace) => ({
@@ -159,15 +160,10 @@ export const DashboardSidebar = () => {
       ]
     : []
 
-  const mainMenuItems: MenuItem[] = [
-    // main navigation intentionally minimal; dashboard-specific link removed
-  ]
-
   const othersMenuItems: MenuItem[] = [
     {
       title: "Settings",
       icon: Settings,
-      // onClick: () => clerk.openOrganizationProfile(),
     },
     {
       title: "Help and support",
@@ -287,7 +283,7 @@ export const DashboardSidebar = () => {
           {workspaceNavigationItems.length > 0 ? (
             <NavSection label="Workspace" items={workspaceNavigationItems} pathname={pathname} />
           ) : null}
-          <NavSection items={mainMenuItems} pathname={pathname} />
+          <NavSection items={[]} pathname={pathname} />
           <NavSection label="Others" items={othersMenuItems} pathname={pathname} />
         </SidebarContent>
         <div className="border-b border-dashed border-border" />

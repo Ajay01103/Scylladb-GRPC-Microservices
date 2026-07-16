@@ -1,12 +1,12 @@
-import { Children, type ReactNode } from "react";
-import { cn } from "@/lib/utils";
+import { Children, type ReactNode } from "react"
+import { cn } from "@/lib/utils"
 
 export type AvatarStackProps = {
-  children: ReactNode;
-  className?: string;
-  animate?: boolean;
-  size?: number;
-};
+  children: ReactNode
+  className?: string
+  animate?: boolean
+  size?: number
+}
 
 export const AvatarStack = ({
   children,
@@ -19,13 +19,13 @@ export const AvatarStack = ({
     className={cn(
       "-space-x-1 flex items-center",
       animate && "hover:space-x-0 [&>*]:transition-all",
-      className
+      className,
     )}
     {...props}
   >
     {Children.map(children, (child, index) => {
       if (!child) {
-        return null;
+        return null
       }
 
       return (
@@ -33,7 +33,7 @@ export const AvatarStack = ({
           className={cn(
             "size-full shrink-0 overflow-hidden rounded-full",
             '[&_[data-slot="avatar"]]:size-full',
-            className
+            className,
           )}
           style={{
             width: size,
@@ -45,7 +45,7 @@ export const AvatarStack = ({
         >
           {child}
         </div>
-      );
+      )
     })}
   </div>
-);
+)

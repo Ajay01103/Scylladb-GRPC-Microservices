@@ -4,7 +4,6 @@ import { FileText, LayoutGrid, Lock, Search, SlidersHorizontal } from "lucide-re
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
   TableBody,
@@ -22,7 +21,6 @@ type WorkspaceLibraryTableProps = {
   emptyState: string
   icon: "notes" | "whiteboards"
   items: WorkspaceLibraryItem[]
-  isLoading?: boolean
 }
 
 const iconByKind = {
@@ -36,7 +34,6 @@ export function WorkspaceLibraryTable({
   emptyState,
   icon,
   items,
-  isLoading = false,
 }: WorkspaceLibraryTableProps) {
   const ItemIcon = iconByKind[icon]
   const isWhiteboards = icon === "whiteboards"
@@ -88,27 +85,7 @@ export function WorkspaceLibraryTable({
         </TableHeader>
 
         <TableBody>
-          {isLoading ? (
-            Array.from({ length: 5 }).map((_, index) => (
-              <TableRow className="border-border/60 hover:bg-transparent" key={index}>
-                <TableCell className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <Skeleton className="size-8 rounded-lg" />
-                    <Skeleton className="h-4 w-48" />
-                  </div>
-                </TableCell>
-                <TableCell className="px-6 py-4">
-                  <Skeleton className="h-4 w-40" />
-                </TableCell>
-                <TableCell className="px-6 py-4">
-                  <Skeleton className="h-7 w-24 rounded-full" />
-                </TableCell>
-                <TableCell className="px-6 py-4">
-                  <Skeleton className="h-4 w-24" />
-                </TableCell>
-              </TableRow>
-            ))
-          ) : items.length > 0 ? (
+          {items.length > 0 ? (
             items.map((item) => {
               return (
                 <TableRow className="border-border/60 hover:bg-muted/30" key={item.id}>

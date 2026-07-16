@@ -1,18 +1,15 @@
-import { Children, type HTMLAttributes, type SVGProps } from "react";
-import { cn } from "@/lib/utils";
+import { Children, type HTMLAttributes, type SVGProps } from "react"
+import { cn } from "@/lib/utils"
 
-export type CursorProps = HTMLAttributes<HTMLSpanElement>;
+export type CursorProps = HTMLAttributes<HTMLSpanElement>
 
 export const Cursor = ({ className, children, ...props }: CursorProps) => (
-  <span
-    className={cn("pointer-events-none relative select-none", className)}
-    {...props}
-  >
+  <span className={cn("pointer-events-none relative select-none", className)} {...props}>
     {children}
   </span>
-);
+)
 
-export type CursorPointerProps = SVGProps<SVGSVGElement>;
+export type CursorPointerProps = SVGProps<SVGSVGElement>
 
 export const CursorPointer = ({ className, ...props }: CursorPointerProps) => (
   <svg
@@ -31,32 +28,28 @@ export const CursorPointer = ({ className, ...props }: CursorPointerProps) => (
       fill="currentColor"
     />
   </svg>
-);
+)
 
-export type CursorBodyProps = HTMLAttributes<HTMLSpanElement>;
+export type CursorBodyProps = HTMLAttributes<HTMLSpanElement>
 
-export const CursorBody = ({
-  children,
-  className,
-  ...props
-}: CursorBodyProps) => (
+export const CursorBody = ({ children, className, ...props }: CursorBodyProps) => (
   <span
     className={cn(
       "relative ml-3.5 flex flex-col whitespace-nowrap rounded-xl py-1 pr-3 pl-2.5 text-xs",
       Children.count(children) > 1 && "rounded-tl [&>:first-child]:opacity-70",
       "bg-secondary text-foreground",
-      className
+      className,
     )}
     {...props}
   >
     {children}
   </span>
-);
+)
 
-export type CursorNameProps = HTMLAttributes<HTMLSpanElement>;
+export type CursorNameProps = HTMLAttributes<HTMLSpanElement>
 
-export const CursorName = (props: CursorNameProps) => <span {...props} />;
+export const CursorName = (props: CursorNameProps) => <span {...props} />
 
-export type CursorMessageProps = HTMLAttributes<HTMLSpanElement>;
+export type CursorMessageProps = HTMLAttributes<HTMLSpanElement>
 
-export const CursorMessage = (props: CursorMessageProps) => <span {...props} />;
+export const CursorMessage = (props: CursorMessageProps) => <span {...props} />

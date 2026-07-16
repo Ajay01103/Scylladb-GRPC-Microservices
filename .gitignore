@@ -2,6 +2,15 @@
 .env
 *.env
 
+.kiro
+.cursor
+.claude
+
+cookie-auth-architecture.md
+go-notion-frontend-audit.md
+rpc-cookie-auth-analysis.md
+token-store.txt
+
 .venv
 graphify-out/manifest.json    # mtime-based, breaks after git clone
 graphify-out/cost.json        # local only

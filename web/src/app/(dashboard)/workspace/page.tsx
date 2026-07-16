@@ -1,32 +1,21 @@
-"use client"
+import { redirect } from "next/navigation"
 
-import { useEffect } from "react"
+import { getQueryClient } from "@/lib/get-query-client"
+import {
+  prefetchWorkspaces,
+} from "@/modules/workspace/api/workspace-server-queries"
 
-import { useRouter } from "next/navigation"
+export const dynamic = "force-dynamic"
 
-import { useMyWorkspaces } from "@/modules/workspace/api/use-workspaces"
+export default async function WorkspaceLandingPage() {
+  const queryClient = getQueryClient()
+  await prefetchWorkspaces(queryClient)
 
-export default function WorkspaceLandingPage() {
-  const router = useRouter()
-  const workspacesQuery = useMyWorkspaces()
+  const workspaces = queryClient.getQueryData(["myWorkspaces"]) as
+    | Array<{ id: string }>
+    | undefined
 
-  useEffect(() => {
-    const firstWorkspace = workspacesQuery.data?.[0]
-
-    if (firstWorkspace) {
-      router.replace(`/workspace/${firstWorkspace.id}`)
-    }
-  }, [router, workspacesQuery.data])
-
-  if (workspacesQuery.isLoading) {
-    return (
-      <div className="flex min-h-full flex-1 items-center justify-center text-sm text-muted-foreground">
-        Loading your workspaces...
-      </div>
-    )
-  }
-
-  if (!workspacesQuery.data?.length) {
+  if (!workspaces || workspaces.length === 0) {
     return (
       <div className="flex min-h-full flex-1 items-center justify-center p-6">
         <div className="max-w-md rounded-2xl border border-dashed bg-card p-6 text-center shadow-sm">
@@ -42,5 +31,5 @@ export default function WorkspaceLandingPage() {
     )
   }
 
-  return null
+  redirect(`/workspace/${workspaces[0].id}`)
 }

@@ -216,10 +216,9 @@ function SortableHeader({ title, onClick }: { title: string; onClick: () => void
 
 type WorkspaceMembersTableProps = {
   members: WorkspaceMember[]
-  isLoading?: boolean
 }
 
-export function WorkspaceMembersTable({ members, isLoading = false }: WorkspaceMembersTableProps) {
+export function WorkspaceMembersTable({ members }: WorkspaceMembersTableProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [roleFilter, setRoleFilter] = useState<(typeof roleOptions)[number]>("all")
   const [statusFilter, setStatusFilter] = useState<(typeof statusOptions)[number]>("all")
@@ -540,9 +539,7 @@ export function WorkspaceMembersTable({ members, isLoading = false }: WorkspaceM
           <span className="font-medium text-foreground">{totalCount}</span> members
         </p>
         <p className="hidden sm:block">
-          {isLoading
-            ? "Loading latest members..."
-            : "Sort any column, filter by role or status, and page through the list."}
+          Sort any column, filter by role or status, and page through the list.
         </p>
       </div>
 
@@ -566,16 +563,7 @@ export function WorkspaceMembersTable({ members, isLoading = false }: WorkspaceM
           </TableHeader>
 
           <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell
-                  className="h-28 px-4 text-center text-sm text-muted-foreground"
-                  colSpan={columns.length}
-                >
-                  Loading members...
-                </TableCell>
-              </TableRow>
-            ) : table.getRowModel().rows.length ? (
+            {table.getRowModel().rows.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow className="border-border/60 hover:bg-muted/30" key={row.id}>
                   {row.getVisibleCells().map((cell) => (

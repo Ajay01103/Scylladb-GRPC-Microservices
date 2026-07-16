@@ -1,72 +1,57 @@
 "use client"
 
 import { create } from "@bufbuild/protobuf"
-import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
 
-import { notesRpcClient } from "@/lib/rpc"
-import { workspaceRpcClient } from "@/lib/rpc"
-import { whiteboardRpcClient } from "@/lib/rpc"
+import { notesRpcClient, workspaceRpcClient, whiteboardRpcClient } from "@/lib/rpc"
 import { useAuth } from "@/lib/auth-context"
-import type { Board } from "@/gen/pb/whiteboard/whiteboard_pb"
-import type { Note } from "@/gen/pb/notes/notes_pb"
+import {
+  workspaceQueryKey,
+  workspaceLibraryQueryKey,
+  makeWorkspacesQueryOptions,
+  makeWorkspaceQueryOptions,
+  makeWorkspaceMembersQueryOptions,
+  makeWorkspaceNotesQueryOptions,
+  makeWorkspaceBoardsQueryOptions,
+  formatWorkspaceLibraryTimestamp,
+  type WorkspaceLibraryItem,
+  type PlainWorkspace,
+} from "@/modules/workspace/api/workspace-queries"
 import {
   CreateWorkspaceRequestSchema,
   WorkspaceRole,
-  type WorkspaceMember,
   type Workspace,
 } from "@/gen/pb/workspace/workspace_pb"
 
-export const workspaceQueryKey = ["myWorkspaces"] as const
-export const workspaceLibraryQueryKey = ["workspaceLibrary"] as const
+// ─── Browser-bound clients ────────────────────────────────────────────────────
+// Passed into the shared query-option factories so the same queryKey + queryFn
+// shape is used by both client hooks and server prefetchQuery calls.
+// Server-side prefetch uses rpc-server.ts clients instead.
 
-export const workspacesQueryOptions = queryOptions({
-  queryKey: workspaceQueryKey,
-  staleTime: 5 * 60 * 1000,
-  gcTime: 30 * 60 * 1000,
-  retry: 1,
-  queryFn: async (): Promise<Workspace[]> => {
-    const response = await workspaceRpcClient.listMyWorkspaces({
-      pageSize: 100,
-      pageToken: "",
-    })
-    return response.workspaces
-  },
-})
+const browserClients = { workspaceRpcClient, notesRpcClient, whiteboardRpcClient }
 
-export function workspaceQueryOptions(workspaceId: string) {
-  return queryOptions({
-    queryKey: [...workspaceQueryKey, workspaceId],
-    staleTime: 5 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
-    retry: 1,
-    queryFn: async (): Promise<Workspace> => {
-      return workspaceRpcClient.getWorkspace({ workspaceId })
-    },
-  })
-}
+// ─── Query options (re-exported for use in prefetchQuery / HydrationBoundary) ─
 
-export function workspaceMembersQueryOptions(workspaceId: string) {
-  return queryOptions({
-    queryKey: [...workspaceQueryKey, workspaceId, "members"],
-    staleTime: 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-    retry: 1,
-    queryFn: async (): Promise<WorkspaceMember[]> => {
-      const response = await workspaceRpcClient.listMembers({ workspaceId })
-      return response.members
-    },
-  })
-}
+export const workspacesQueryOptions = makeWorkspacesQueryOptions(browserClients)
 
-export function buildWorkspaceSlug(name: string) {
-  const normalized = name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
+export const workspaceQueryOptions = (workspaceId: string) =>
+  makeWorkspaceQueryOptions(browserClients, workspaceId)
 
-  return normalized || "workspace"
-}
+export const workspaceMembersQueryOptions = (workspaceId: string) =>
+  makeWorkspaceMembersQueryOptions(browserClients, workspaceId)
+
+export const workspaceNotesQueryOptions = (workspaceId: string) =>
+  makeWorkspaceNotesQueryOptions(browserClients, workspaceId)
+
+export const workspaceBoardsQueryOptions = (workspaceId: string) =>
+  makeWorkspaceBoardsQueryOptions(browserClients, workspaceId)
+
+// ─── Re-exports from workspace-queries (shared between client + server) ───────
+
+export { workspaceQueryKey, workspaceLibraryQueryKey, formatWorkspaceLibraryTimestamp }
+export type { WorkspaceLibraryItem, PlainWorkspace }
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
 
 export function useMyWorkspaces() {
   const { isLoadingAuth } = useAuth()
@@ -88,6 +73,15 @@ export function useWorkspace(workspaceId: string) {
   })
 }
 
+/**
+ * Suspense variant for workspace detail.
+ * Only use inside a component wrapped in a <Suspense> boundary
+ * (e.g. fed by HydrationBoundary from a server prefetch).
+ */
+export function useSuspenseWorkspace(workspaceId: string) {
+  return useSuspenseQuery(workspaceQueryOptions(workspaceId))
+}
+
 export function useWorkspaceMembers(workspaceId: string, enabled = true) {
   const { isLoadingAuth } = useAuth()
 
@@ -95,84 +89,6 @@ export function useWorkspaceMembers(workspaceId: string, enabled = true) {
     ...workspaceMembersQueryOptions(workspaceId),
     enabled: enabled && !isLoadingAuth && workspaceId.length > 0,
     refetchOnWindowFocus: false,
-  })
-}
-
-export function formatWorkspaceLibraryTimestamp(timestamp?: {
-  seconds?: bigint | number | string
-  nanos?: number
-  toDate?: () => Date
-}) {
-  if (!timestamp) {
-    return "—"
-  }
-
-  if (typeof timestamp.toDate === "function") {
-    return timestamp.toDate().toLocaleDateString(undefined, {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    })
-  }
-
-  const seconds = Number(timestamp.seconds ?? 0)
-  const nanos = Number(timestamp.nanos ?? 0)
-  const date = new Date(seconds * 1000 + nanos / 1_000_000)
-
-  if (Number.isNaN(date.getTime())) {
-    return "—"
-  }
-
-  return date.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  })
-}
-
-export type WorkspaceLibraryItem = {
-  id: string
-  title: string
-  createdBy: string
-  visibility: string
-  updatedAt: string
-}
-
-export function workspaceNotesQueryOptions(workspaceId: string) {
-  return queryOptions({
-    queryKey: [...workspaceLibraryQueryKey, workspaceId, "notes"],
-    staleTime: 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-    retry: 1,
-    queryFn: async (): Promise<WorkspaceLibraryItem[]> => {
-      const response = await notesRpcClient.listWorkspaceNotes({ workspaceId })
-      return response.notes.map((note: Note) => ({
-        id: note.id,
-        title: note.title || "Untitled note",
-        createdBy: note.createdBy || "Unknown",
-        visibility: note.isPrivate ? "Private" : "Shared",
-        updatedAt: formatWorkspaceLibraryTimestamp(note.updatedAt),
-      }))
-    },
-  })
-}
-
-export function workspaceBoardsQueryOptions(workspaceId: string) {
-  return queryOptions({
-    queryKey: [...workspaceLibraryQueryKey, workspaceId, "boards"],
-    staleTime: 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-    retry: 1,
-    queryFn: async (): Promise<WorkspaceLibraryItem[]> => {
-      const response = await whiteboardRpcClient.listWorkspaceBoards({ workspaceId })
-      return response.boards.map((board: Board) => ({
-        id: board.id,
-        title: board.title || "Untitled board",
-        createdBy: board.createdBy || "Unknown",
-        visibility: board.isPrivate ? "Private" : "Shared",
-        updatedAt: formatWorkspaceLibraryTimestamp(board.updatedAt),
-      }))
-    },
   })
 }
 
@@ -196,6 +112,18 @@ export function useWorkspaceBoards(workspaceId: string, enabled = true) {
   })
 }
 
+// ─── Mutations ────────────────────────────────────────────────────────────────
+
+export function buildWorkspaceSlug(name: string) {
+  const normalized = name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+
+  return normalized || "workspace"
+}
+
 type CreateWorkspaceInput = {
   name: string
   slug: string
@@ -208,9 +136,8 @@ export function useCreateWorkspace() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (input: CreateWorkspaceInput) => {
-      return workspaceRpcClient.createWorkspace(create(CreateWorkspaceRequestSchema, input))
-    },
+    mutationFn: async (input: CreateWorkspaceInput) =>
+      workspaceRpcClient.createWorkspace(create(CreateWorkspaceRequestSchema, input)),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: workspaceQueryKey })
     },
@@ -233,7 +160,6 @@ export function useGenerateWorkspaceInviteCode() {
         invitedEmail: "",
         role,
       })
-
       return response.token
     },
   })
@@ -244,14 +170,10 @@ export function useAcceptWorkspaceInvitation() {
 
   return useMutation({
     mutationFn: async (inviteCode: string): Promise<Workspace> => {
-      const response = await workspaceRpcClient.acceptInvitation({
-        token: inviteCode,
-      })
-
+      const response = await workspaceRpcClient.acceptInvitation({ token: inviteCode })
       if (!response.workspace) {
         throw new Error("invite response missing workspace")
       }
-
       return response.workspace
     },
     onSuccess: async () => {
@@ -265,9 +187,7 @@ export function useRejectWorkspaceInvitation() {
 
   return useMutation({
     mutationFn: async (inviteCode: string): Promise<void> => {
-      await workspaceRpcClient.rejectInvitation({
-        token: inviteCode,
-      })
+      await workspaceRpcClient.rejectInvitation({ token: inviteCode })
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: workspaceQueryKey })
@@ -284,12 +204,8 @@ export function useLeaveWorkspace() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async ({ workspaceId, userId }: LeaveWorkspaceInput) => {
-      return workspaceRpcClient.removeMember({
-        workspaceId,
-        userId,
-      })
-    },
+    mutationFn: async ({ workspaceId, userId }: LeaveWorkspaceInput) =>
+      workspaceRpcClient.removeMember({ workspaceId, userId }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: workspaceQueryKey })
     },

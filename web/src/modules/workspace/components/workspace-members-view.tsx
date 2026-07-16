@@ -16,15 +16,12 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
-import {
-  WorkspaceRole,
-  type Workspace,
-  type WorkspaceMember,
-} from "@/gen/pb/workspace/workspace_pb"
+import { WorkspaceRole, type WorkspaceMember } from "@/gen/pb/workspace/workspace_pb"
 import { useCurrentUser } from "@/modules/auth/api/use-current-user"
 import {
   useGenerateWorkspaceInviteCode,
   useLeaveWorkspace,
+  type PlainWorkspace,
 } from "@/modules/workspace/api/use-workspaces"
 
 import { WorkspaceMembersTable } from "./workspace-members-table"
@@ -52,15 +49,13 @@ function canManageMembers(role: WorkspaceRole | string | number) {
 }
 
 type WorkspaceMembersViewProps = {
-  workspace?: Workspace
+  workspace?: PlainWorkspace
   members?: WorkspaceMember[]
-  isMembersLoading?: boolean
 }
 
 export function WorkspaceMembersView({
   workspace,
   members = [],
-  isMembersLoading = false,
 }: WorkspaceMembersViewProps) {
   const router = useRouter()
   const { data: currentUser } = useCurrentUser()
@@ -152,11 +147,37 @@ export function WorkspaceMembersView({
 
   if (!workspace) {
     return (
-      <div className="flex min-h-full flex-1 items-center justify-center p-6">
-        <div className="w-full max-w-7xl space-y-4">
-          <Skeleton className="h-[180px] w-full rounded-[32px]" />
-          <Skeleton className="h-[120px] w-full rounded-2xl" />
-          <Skeleton className="h-[420px] w-full rounded-3xl" />
+      <div className="min-h-full flex-1 bg-background">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
+          <section className="flex flex-col gap-4 rounded-[32px] border border-border/60 bg-card px-6 py-6 shadow-sm sm:px-8">
+            <Skeleton className="h-3 w-36 rounded" />
+            <Skeleton className="h-9 w-56 rounded-lg" />
+            <Skeleton className="h-4 w-80 rounded" />
+          </section>
+          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div className="rounded-3xl border border-border/60 bg-card p-5 shadow-sm" key={i}>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="space-y-3">
+                    <Skeleton className="h-3 w-24 rounded" />
+                    <Skeleton className="h-8 w-12 rounded" />
+                  </div>
+                  <Skeleton className="size-11 shrink-0 rounded-2xl" />
+                </div>
+              </div>
+            ))}
+          </section>
+          <section className="rounded-3xl border border-border/70 bg-card/90 shadow-sm backdrop-blur">
+            <div className="space-y-0">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div className="flex items-center gap-4 border-b border-border/60 px-6 py-4" key={i}>
+                  <Skeleton className="size-9 shrink-0 rounded-full" />
+                  <Skeleton className="h-4 w-36 rounded" />
+                  <Skeleton className="ml-auto h-6 w-16 rounded-full" />
+                </div>
+              ))}
+            </div>
+          </section>
         </div>
       </div>
     )
@@ -258,7 +279,7 @@ export function WorkspaceMembersView({
           </div>
         </section>
 
-        <WorkspaceMembersTable isLoading={isMembersLoading} members={members} />
+        <WorkspaceMembersTable members={members} />
 
         <Dialog onOpenChange={setIsInviteDialogOpen} open={isInviteDialogOpen}>
           <DialogContent className="max-w-xl">

@@ -1,65 +1,83 @@
 "use server"
 
-import { createHash } from "node:crypto"
 import { cookies } from "next/headers"
-import { authRpcClient } from "@/lib/rpc"
-import { REFRESH_TOKEN_COOKIE_NAME } from "@/lib/auth-cookie"
 
-const serverInflightRefresh = new Map<string, Promise<string | null>>()
+import { unauthenticatedAuthClient, getServerRpcClients } from "@/lib/rpc-server"
+import {
+  ACCESS_TOKEN_COOKIE_NAME,
+  REFRESH_TOKEN_COOKIE_NAME,
+} from "@/lib/auth-cookie"
+import { assertSameOriginRequest } from "@/lib/csrf"
 
-function refreshDedupKey(refreshToken: string): string {
-  return createHash("sha256").update(refreshToken).digest("hex")
-}
+function setAuthCookies(
+  cookieStore: Awaited<ReturnType<typeof cookies>>,
+  accessToken: string,
+  refreshToken: string,
+) {
+  const secure = process.env.NODE_ENV === "production"
 
-function setRefreshCookie(cookieStore: Awaited<ReturnType<typeof cookies>>, refreshToken: string) {
+  cookieStore.set(ACCESS_TOKEN_COOKIE_NAME, accessToken, {
+    httpOnly: true,
+    secure,
+    sameSite: "strict",
+    path: "/",
+    maxAge: 15 * 60,
+  })
+
   cookieStore.set(REFRESH_TOKEN_COOKIE_NAME, refreshToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    secure,
+    sameSite: "strict",
     path: "/",
     maxAge: 7 * 24 * 60 * 60,
   })
 }
 
-export async function setAuthCookies(refreshToken: string) {
+async function clearAuthCookies() {
   const cookieStore = await cookies()
-  setRefreshCookie(cookieStore, refreshToken)
+  cookieStore.delete(ACCESS_TOKEN_COOKIE_NAME)
+  cookieStore.delete(REFRESH_TOKEN_COOKIE_NAME)
+}
+
+export async function loginAction(value: { email: string; password: string }) {
+  await assertSameOriginRequest()
+
+  const response = await unauthenticatedAuthClient.login(value)
+  const cookieStore = await cookies()
+  setAuthCookies(cookieStore, response.accessToken, response.refreshToken)
+
+  return {
+    userId: response.userId,
+    name: response.name,
+    email: response.email,
+  }
+}
+
+export async function registerAction(value: { name: string; email: string; password: string }) {
+  await assertSameOriginRequest()
+
+  const response = await unauthenticatedAuthClient.register(value)
+  const cookieStore = await cookies()
+  setAuthCookies(cookieStore, response.accessToken, response.refreshToken)
+
+  return {
+    userId: response.userId,
+    name: response.name,
+    email: response.email,
+  }
 }
 
 export async function refreshAccessTokenAction() {
   const cookieStore = await cookies()
   const refreshToken = cookieStore.get(REFRESH_TOKEN_COOKIE_NAME)?.value
-  if (!refreshToken) return null
 
-  const dedupKey = refreshDedupKey(refreshToken)
-  const inFlight = serverInflightRefresh.get(dedupKey)
-  if (inFlight) {
-    return inFlight
+  if (!refreshToken) {
+    return null
   }
 
-  const refreshPromise = (async () => {
-    try {
-      const response = await authRpcClient.refreshToken({
-        refreshToken,
-      })
-
-      // Update the cookie with the newly issued refresh token
-      setRefreshCookie(cookieStore, response.refreshToken)
-
-      return response.accessToken
-    } catch (error) {
-      console.error("Failed to refresh token", error)
-      // Refresh failure should only clear local session state.
-      // Logout remains an explicit user action.
-      cookieStore.delete(REFRESH_TOKEN_COOKIE_NAME)
-      return null
-    } finally {
-      serverInflightRefresh.delete(dedupKey)
-    }
-  })()
-
-  serverInflightRefresh.set(dedupKey, refreshPromise)
-  return refreshPromise
+  const response = await unauthenticatedAuthClient.refreshToken({ refreshToken })
+  setAuthCookies(cookieStore, response.accessToken, response.refreshToken)
+  return response.accessToken
 }
 
 export async function requireAccessTokenAction(): Promise<string> {
@@ -71,19 +89,34 @@ export async function requireAccessTokenAction(): Promise<string> {
   return token
 }
 
+export async function getCurrentUserAction() {
+  const { authClient } = await getServerRpcClients()
+
+  try {
+    const response = await authClient.getCurrentUser({})
+    return {
+      userId: response.userId,
+      email: response.email,
+      name: response.name,
+    }
+  } catch {
+    return null
+  }
+}
+
 export async function logoutAction() {
+  await assertSameOriginRequest()
+
   const cookieStore = await cookies()
   const refreshToken = cookieStore.get(REFRESH_TOKEN_COOKIE_NAME)?.value
 
   if (refreshToken) {
     try {
-      // Call the gRPC endpoint so backend can invalidate the current session row
-      await authRpcClient.logout({ refreshToken })
+      await unauthenticatedAuthClient.logout({ refreshToken })
     } catch (error) {
-      // Log but don't block logout — still clear the cookie
       console.error("RPC logout failed", error)
     }
   }
 
-  cookieStore.delete(REFRESH_TOKEN_COOKIE_NAME)
+  await clearAuthCookies()
 }

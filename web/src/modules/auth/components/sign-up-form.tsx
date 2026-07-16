@@ -1,18 +1,15 @@
 "use client"
 
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { useForm } from "@tanstack/react-form"
 import { useStore } from "@tanstack/react-form"
 import { z } from "zod"
 
-import { setAuthCookies } from "@/actions/auth"
+import { registerAction } from "@/actions/auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useAuth } from "@/lib/auth-context"
-import { authBrowserRpcClient } from "@/lib/rpc"
 
 import { AuthDivider, AuthShell, defaultRegisterContent, SocialGoogleButton } from "./auth"
 
@@ -30,8 +27,6 @@ function zodFieldValidator<T>(schema: z.ZodType<T>) {
 }
 
 export function SignUpForm() {
-  const router = useRouter()
-  const { setAccessToken } = useAuth()
   const [submitError, setSubmitError] = useState<string | null>(null)
 
   const form = useForm({
@@ -43,11 +38,11 @@ export function SignUpForm() {
     onSubmit: async ({ value }) => {
       setSubmitError(null)
       try {
-        const response = await authBrowserRpcClient.register(value)
-        await setAuthCookies(response.refreshToken)
-        setAccessToken(response.accessToken)
-        router.replace("/workspace")
-        router.refresh()
+        // Server action sets the HttpOnly access + refresh token cookies.
+        await registerAction(value)
+        // Hard-navigate so the browser sends a full request through the
+        // proxy. Client-side transitions skip the proxy entirely.
+        window.location.href = "/workspace"
       } catch (error) {
         setSubmitError(error instanceof Error ? error.message : "Failed to create account")
         throw error

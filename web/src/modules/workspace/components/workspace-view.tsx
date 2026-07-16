@@ -7,18 +7,18 @@ import { useRouter } from "next/navigation"
 
 import AnimatedTabs from "@/components/ui/animated-tabs"
 import { Button } from "@/components/ui/button"
-import type { Workspace } from "@/gen/pb/workspace/workspace_pb"
 import { Skeleton } from "@/components/ui/skeleton"
 
 import { useCreateWhiteboard } from "@/modules/whiteboard/api/use-whiteboards"
 import { useCreateNote } from "@/modules/notes/api/use-notes"
 
 import { useWorkspaceBoards, useWorkspaceNotes } from "../api/use-workspaces"
+import type { PlainWorkspace } from "../api/workspace-queries"
 import { WorkspaceLibraryTable } from "./workspace-library-table"
 import { WorkspaceHeader } from "./workspace-header"
 
 type WorkspaceViewProps = {
-  workspace?: Workspace
+  workspace?: PlainWorkspace
 }
 
 const tabs = [
@@ -71,7 +71,6 @@ export function WorkspaceView({ workspace }: WorkspaceViewProps) {
         emptyState: "No notes have been created in this workspace yet.",
         icon: "notes" as const,
         items: notesQuery.data ?? [],
-        isLoading: notesQuery.isLoading,
       }
     }
 
@@ -81,23 +80,55 @@ export function WorkspaceView({ workspace }: WorkspaceViewProps) {
       emptyState: "No whiteboards have been created in this workspace yet.",
       icon: "whiteboards" as const,
       items: whiteboardsQuery.data ?? [],
-      isLoading: whiteboardsQuery.isLoading,
     }
   }, [
     activeTab,
     notesQuery.data,
-    notesQuery.isLoading,
     whiteboardsQuery.data,
-    whiteboardsQuery.isLoading,
   ])
+
+  // if (isLoading || !workspace) {
+  //   return (
+  //     <div className="flex min-h-full flex-1 items-center justify-center p-6">
+  //       <div className="w-full max-w-7xl space-y-4">
+  //         <Skeleton className="h-55 w-full rounded-4xl" />
+  //         <Skeleton className="h-24 w-full rounded-2xl" />
+  //         <Skeleton className="h-105 w-full rounded-3xl" />
+  //       </div>
+  //     </div>
+  //   )
+  // }
 
   if (!workspace) {
     return (
-      <div className="flex min-h-full flex-1 items-center justify-center p-6">
-        <div className="w-full max-w-7xl space-y-4">
-          <Skeleton className="h-55 w-full rounded-4xl" />
-          <Skeleton className="h-24 w-full rounded-2xl" />
-          <Skeleton className="h-105 w-full rounded-3xl" />
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-background">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
+          <section className="relative overflow-hidden rounded-[32px] border border-border/60 bg-card shadow-sm">
+            <div className="absolute inset-0 bg-gradient-to-br from-slate-100 via-slate-50 to-amber-50/40" />
+            <div className="relative flex min-h-[180px] flex-col justify-between gap-6 p-6 sm:min-h-[220px] sm:p-8">
+              <Skeleton className="h-11 w-64 rounded-lg bg-slate-200/60" />
+              <div className="rounded-2xl border border-white/50 bg-white/55 px-4 py-3 backdrop-blur-md">
+                <Skeleton className="h-4 w-80 rounded bg-slate-200/50" />
+              </div>
+            </div>
+          </section>
+          <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div className="space-y-2">
+              <Skeleton className="h-3 w-16 rounded" />
+              <Skeleton className="h-9 w-48 rounded-lg" />
+            </div>
+          </section>
+          <section className="rounded-3xl border border-border/70 bg-card/90 shadow-sm backdrop-blur">
+            <div className="space-y-0">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div className="flex items-center gap-4 border-b border-border/60 px-6 py-4" key={i}>
+                  <Skeleton className="size-9 shrink-0 rounded-full" />
+                  <Skeleton className="h-4 w-40 rounded" />
+                  <Skeleton className="ml-auto h-6 w-16 rounded-full" />
+                </div>
+              ))}
+            </div>
+          </section>
         </div>
       </div>
     )
@@ -169,7 +200,6 @@ export function WorkspaceView({ workspace }: WorkspaceViewProps) {
         <WorkspaceLibraryTable
           emptyState={libraryView.emptyState}
           icon={libraryView.icon}
-          isLoading={libraryView.isLoading}
           items={libraryView.items}
           subtitle={libraryView.subtitle}
           title={libraryView.title}

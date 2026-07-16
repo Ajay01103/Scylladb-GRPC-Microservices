@@ -5,5 +5,9 @@ import { hasServerSession } from "@/lib/server-auth"
 export default async function Home() {
   const authenticated = await hasServerSession()
 
-  redirect(authenticated ? "/workspace" : "/login")
+  if (!authenticated) {
+    redirect("/login")
+  }
+
+  redirect("/redirect")
 }

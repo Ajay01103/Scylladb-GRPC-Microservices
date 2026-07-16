@@ -1,8 +1,5 @@
-import {
-  QueryClient,
-  defaultShouldDehydrateQuery,
-  environmentManager,
-} from "@tanstack/react-query"
+import { QueryClient, defaultShouldDehydrateQuery, environmentManager } from "@tanstack/react-query"
+import { cache } from "react"
 
 function makeQueryClient() {
   return new QueryClient({
@@ -22,13 +19,14 @@ function makeQueryClient() {
   })
 }
 
-let browserQueryClient: QueryClient | undefined = undefined
+let browserQueryClient: QueryClient | undefined
+
+// cache() is request-scoped in RSC — this gives every server component
+// in the SAME request the same client, without leaking across requests.
+const getServerQueryClient = cache(makeQueryClient)
 
 export function getQueryClient() {
-  if (environmentManager.isServer()) {
-    // Server: always a fresh client — no cross-request leakage
-    return makeQueryClient()
-  }
+  if (environmentManager.isServer()) return getServerQueryClient()
   if (!browserQueryClient) browserQueryClient = makeQueryClient()
   return browserQueryClient
 }
