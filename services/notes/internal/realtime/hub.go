@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -37,7 +39,7 @@ type client struct {
 // roomMessage carries a raw JSON frame from one client to be broadcast to peers.
 type roomMessage struct {
 	data   []byte
-	sender *client // exact connection that sent this frame — used for fan-out skip
+	sender *client   // exact connection that sent this frame — used for fan-out skip
 	userID uuid.UUID // kept for logging and persistence attribution
 }
 
@@ -181,11 +183,18 @@ const (
 
 // NewHub creates a Hub that serves WebSocket note rooms.
 func NewHub(svc *service.Service, logger *zap.Logger) *Hub {
+	allowedOrigin := os.Getenv("FRONTEND_ORIGIN")
+	if allowedOrigin == "" {
+		allowedOrigin = "http://localhost:3000"
+	}
 	return &Hub{
 		svc:    svc,
 		logger: logger,
 		upgrader: websocket.Upgrader{
-			CheckOrigin: func(_ *http.Request) bool { return true },
+			CheckOrigin: func(r *http.Request) bool {
+				origin := r.Header.Get("Origin")
+				return origin == "" || strings.TrimRight(origin, "/") == strings.TrimRight(allowedOrigin, "/")
+			},
 		},
 		rooms: make(map[uuid.UUID]*room),
 	}

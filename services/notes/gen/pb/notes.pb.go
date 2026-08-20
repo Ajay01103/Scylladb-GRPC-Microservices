@@ -767,6 +767,102 @@ func (x *AssetDownloadUrlResponse) GetExpiresAtUnix() int64 {
 	return 0
 }
 
+type GetNoteBySlugRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Slug          string                 `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetNoteBySlugRequest) Reset() {
+	*x = GetNoteBySlugRequest{}
+	mi := &file_notes_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetNoteBySlugRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetNoteBySlugRequest) ProtoMessage() {}
+
+func (x *GetNoteBySlugRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_notes_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetNoteBySlugRequest.ProtoReflect.Descriptor instead.
+func (*GetNoteBySlugRequest) Descriptor() ([]byte, []int) {
+	return file_notes_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *GetNoteBySlugRequest) GetSlug() string {
+	if x != nil {
+		return x.Slug
+	}
+	return ""
+}
+
+type GetNoteBySlugResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Note          *Note                  `protobuf:"bytes,1,opt,name=note,proto3" json:"note,omitempty"`
+	WorkspaceId   string                 `protobuf:"bytes,2,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetNoteBySlugResponse) Reset() {
+	*x = GetNoteBySlugResponse{}
+	mi := &file_notes_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetNoteBySlugResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetNoteBySlugResponse) ProtoMessage() {}
+
+func (x *GetNoteBySlugResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_notes_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetNoteBySlugResponse.ProtoReflect.Descriptor instead.
+func (*GetNoteBySlugResponse) Descriptor() ([]byte, []int) {
+	return file_notes_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *GetNoteBySlugResponse) GetNote() *Note {
+	if x != nil {
+		return x.Note
+	}
+	return nil
+}
+
+func (x *GetNoteBySlugResponse) GetWorkspaceId() string {
+	if x != nil {
+		return x.WorkspaceId
+	}
+	return ""
+}
+
 var File_notes_proto protoreflect.FileDescriptor
 
 const file_notes_proto_rawDesc = "" +
@@ -831,7 +927,12 @@ const file_notes_proto_rawDesc = "" +
 	"\n" +
 	"size_bytes\x18\x05 \x01(\x03R\tsizeBytes\x12!\n" +
 	"\fdownload_url\x18\x06 \x01(\tR\vdownloadUrl\x12&\n" +
-	"\x0fexpires_at_unix\x18\a \x01(\x03R\rexpiresAtUnix2\xa5\x04\n" +
+	"\x0fexpires_at_unix\x18\a \x01(\x03R\rexpiresAtUnix\"*\n" +
+	"\x14GetNoteBySlugRequest\x12\x12\n" +
+	"\x04slug\x18\x01 \x01(\tR\x04slug\"[\n" +
+	"\x15GetNoteBySlugResponse\x12\x1f\n" +
+	"\x04note\x18\x01 \x01(\v2\v.notes.NoteR\x04note\x12!\n" +
+	"\fworkspace_id\x18\x02 \x01(\tR\vworkspaceId2\xf1\x04\n" +
 	"\fNotesService\x123\n" +
 	"\n" +
 	"CreateNote\x12\x18.notes.CreateNoteRequest\x1a\v.notes.Note\x12-\n" +
@@ -840,7 +941,8 @@ const file_notes_proto_rawDesc = "" +
 	"\x10AppendNoteUpdate\x12\x1e.notes.AppendNoteUpdateRequest\x1a\x16.google.protobuf.Empty\x12[\n" +
 	"\x16GenerateAssetUploadUrl\x12$.notes.GenerateAssetUploadUrlRequest\x1a\x1b.notes.PresignedUrlResponse\x12R\n" +
 	"\x11RegisterNoteAsset\x12\x1f.notes.RegisterNoteAssetRequest\x1a\x1c.notes.RegisterAssetResponse\x12Y\n" +
-	"\x13GetAssetDownloadUrl\x12!.notes.GetAssetDownloadUrlRequest\x1a\x1f.notes.AssetDownloadUrlResponseB0Z.github.com/Ajay01103/go-notion/notes/gen/pb;pbb\x06proto3"
+	"\x13GetAssetDownloadUrl\x12!.notes.GetAssetDownloadUrlRequest\x1a\x1f.notes.AssetDownloadUrlResponse\x12J\n" +
+	"\rGetNoteBySlug\x12\x1b.notes.GetNoteBySlugRequest\x1a\x1c.notes.GetNoteBySlugResponseB0Z.github.com/Ajay01103/go-notion/notes/gen/pb;pbb\x06proto3"
 
 var (
 	file_notes_proto_rawDescOnce sync.Once
@@ -854,7 +956,7 @@ func file_notes_proto_rawDescGZIP() []byte {
 	return file_notes_proto_rawDescData
 }
 
-var file_notes_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_notes_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_notes_proto_goTypes = []any{
 	(*Note)(nil),                          // 0: notes.Note
 	(*CreateNoteRequest)(nil),             // 1: notes.CreateNoteRequest
@@ -868,32 +970,37 @@ var file_notes_proto_goTypes = []any{
 	(*RegisterAssetResponse)(nil),         // 9: notes.RegisterAssetResponse
 	(*GetAssetDownloadUrlRequest)(nil),    // 10: notes.GetAssetDownloadUrlRequest
 	(*AssetDownloadUrlResponse)(nil),      // 11: notes.AssetDownloadUrlResponse
-	(*timestamppb.Timestamp)(nil),         // 12: google.protobuf.Timestamp
-	(*emptypb.Empty)(nil),                 // 13: google.protobuf.Empty
+	(*GetNoteBySlugRequest)(nil),          // 12: notes.GetNoteBySlugRequest
+	(*GetNoteBySlugResponse)(nil),         // 13: notes.GetNoteBySlugResponse
+	(*timestamppb.Timestamp)(nil),         // 14: google.protobuf.Timestamp
+	(*emptypb.Empty)(nil),                 // 15: google.protobuf.Empty
 }
 var file_notes_proto_depIdxs = []int32{
-	12, // 0: notes.Note.created_at:type_name -> google.protobuf.Timestamp
-	12, // 1: notes.Note.updated_at:type_name -> google.protobuf.Timestamp
+	14, // 0: notes.Note.created_at:type_name -> google.protobuf.Timestamp
+	14, // 1: notes.Note.updated_at:type_name -> google.protobuf.Timestamp
 	0,  // 2: notes.ListWorkspaceNotesResponse.notes:type_name -> notes.Note
-	1,  // 3: notes.NotesService.CreateNote:input_type -> notes.CreateNoteRequest
-	2,  // 4: notes.NotesService.GetNote:input_type -> notes.GetNoteRequest
-	3,  // 5: notes.NotesService.ListWorkspaceNotes:input_type -> notes.ListWorkspaceNotesRequest
-	5,  // 6: notes.NotesService.AppendNoteUpdate:input_type -> notes.AppendNoteUpdateRequest
-	6,  // 7: notes.NotesService.GenerateAssetUploadUrl:input_type -> notes.GenerateAssetUploadUrlRequest
-	8,  // 8: notes.NotesService.RegisterNoteAsset:input_type -> notes.RegisterNoteAssetRequest
-	10, // 9: notes.NotesService.GetAssetDownloadUrl:input_type -> notes.GetAssetDownloadUrlRequest
-	0,  // 10: notes.NotesService.CreateNote:output_type -> notes.Note
-	0,  // 11: notes.NotesService.GetNote:output_type -> notes.Note
-	4,  // 12: notes.NotesService.ListWorkspaceNotes:output_type -> notes.ListWorkspaceNotesResponse
-	13, // 13: notes.NotesService.AppendNoteUpdate:output_type -> google.protobuf.Empty
-	7,  // 14: notes.NotesService.GenerateAssetUploadUrl:output_type -> notes.PresignedUrlResponse
-	9,  // 15: notes.NotesService.RegisterNoteAsset:output_type -> notes.RegisterAssetResponse
-	11, // 16: notes.NotesService.GetAssetDownloadUrl:output_type -> notes.AssetDownloadUrlResponse
-	10, // [10:17] is the sub-list for method output_type
-	3,  // [3:10] is the sub-list for method input_type
-	3,  // [3:3] is the sub-list for extension type_name
-	3,  // [3:3] is the sub-list for extension extendee
-	0,  // [0:3] is the sub-list for field type_name
+	0,  // 3: notes.GetNoteBySlugResponse.note:type_name -> notes.Note
+	1,  // 4: notes.NotesService.CreateNote:input_type -> notes.CreateNoteRequest
+	2,  // 5: notes.NotesService.GetNote:input_type -> notes.GetNoteRequest
+	3,  // 6: notes.NotesService.ListWorkspaceNotes:input_type -> notes.ListWorkspaceNotesRequest
+	5,  // 7: notes.NotesService.AppendNoteUpdate:input_type -> notes.AppendNoteUpdateRequest
+	6,  // 8: notes.NotesService.GenerateAssetUploadUrl:input_type -> notes.GenerateAssetUploadUrlRequest
+	8,  // 9: notes.NotesService.RegisterNoteAsset:input_type -> notes.RegisterNoteAssetRequest
+	10, // 10: notes.NotesService.GetAssetDownloadUrl:input_type -> notes.GetAssetDownloadUrlRequest
+	12, // 11: notes.NotesService.GetNoteBySlug:input_type -> notes.GetNoteBySlugRequest
+	0,  // 12: notes.NotesService.CreateNote:output_type -> notes.Note
+	0,  // 13: notes.NotesService.GetNote:output_type -> notes.Note
+	4,  // 14: notes.NotesService.ListWorkspaceNotes:output_type -> notes.ListWorkspaceNotesResponse
+	15, // 15: notes.NotesService.AppendNoteUpdate:output_type -> google.protobuf.Empty
+	7,  // 16: notes.NotesService.GenerateAssetUploadUrl:output_type -> notes.PresignedUrlResponse
+	9,  // 17: notes.NotesService.RegisterNoteAsset:output_type -> notes.RegisterAssetResponse
+	11, // 18: notes.NotesService.GetAssetDownloadUrl:output_type -> notes.AssetDownloadUrlResponse
+	13, // 19: notes.NotesService.GetNoteBySlug:output_type -> notes.GetNoteBySlugResponse
+	12, // [12:20] is the sub-list for method output_type
+	4,  // [4:12] is the sub-list for method input_type
+	4,  // [4:4] is the sub-list for extension type_name
+	4,  // [4:4] is the sub-list for extension extendee
+	0,  // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_notes_proto_init() }
@@ -907,7 +1014,7 @@ func file_notes_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_notes_proto_rawDesc), len(file_notes_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

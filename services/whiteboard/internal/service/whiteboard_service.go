@@ -68,6 +68,13 @@ func (s *Service) CreateBoard(ctx context.Context, workspaceID, userID uuid.UUID
 		s.logger.Error("failed to insert boards_by_id", zap.Error(err), zap.String("board_id", boardID.String()))
 	}
 
+	if err := s.session.Query(
+		`INSERT INTO boards_by_workspace_and_title (workspace_id, title, board_id, created_by, is_private, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		toGocqlUUID(workspaceID), title, toGocqlUUID(boardID), toGocqlUUID(userID), isPrivate, now, now,
+	).WithContext(ctx).Exec(); err != nil {
+		s.logger.Error("failed to insert boards_by_workspace_and_title", zap.Error(err), zap.String("board_id", boardID.String()))
+	}
+
 	return &pb.Board{
 		Id:          boardID.String(),
 		WorkspaceId: workspaceID.String(),
@@ -271,6 +278,83 @@ func (s *Service) getBoardByID(ctx context.Context, boardID uuid.UUID) (uuid.UUI
 	}
 
 	return fromGocqlUUID(workspaceID), title, fromGocqlUUID(createdBy), isPrivate, createdAt, updatedAt, nil
+}
+
+// ListWorkspaceIDsForUser returns all workspace IDs the user is a member of.
+func (s *Service) ListWorkspaceIDsForUser(ctx context.Context, userID uuid.UUID) ([]string, error) {
+	iter := s.session.Query(
+		`SELECT workspace_id FROM workspace_ks.workspace_members_by_user WHERE user_id = ?`,
+		userID.String(),
+	).WithContext(ctx).Iter()
+
+	var wsID string
+	var ids []string
+	for iter.Scan(&wsID) {
+		ids = append(ids, wsID)
+	}
+	if err := iter.Close(); err != nil {
+		return nil, fmt.Errorf("list workspace ids for user: %w", err)
+	}
+	return ids, nil
+}
+
+// GetBoardBySlug finds a board by its title (slug) across all workspaces the
+// requester belongs to. It performs one direct-partition lookup per workspace
+// against boards_by_workspace_and_title (no secondary index, no ALLOW FILTERING).
+// Private boards are only returned if the requester is the creator.
+func (s *Service) GetBoardBySlug(ctx context.Context, slug string, requesterID uuid.UUID) (*pb.Board, string, error) {
+	if slug == "" {
+		return nil, "", errors.New("slug is required")
+	}
+
+	workspaceIDs, err := s.ListWorkspaceIDsForUser(ctx, requesterID)
+	if err != nil {
+		return nil, "", err
+	}
+
+	for _, wsIDStr := range workspaceIDs {
+		wsID, err := uuid.Parse(wsIDStr)
+		if err != nil {
+			continue
+		}
+
+		var boardIDRaw gocql.UUID
+		var createdByRaw gocql.UUID
+		var isPrivate bool
+		var createdAt, updatedAt time.Time
+
+		err = s.session.Query(
+			`SELECT board_id, created_by, is_private, created_at, updated_at
+			 FROM boards_by_workspace_and_title
+			 WHERE workspace_id = ? AND title = ?`,
+			toGocqlUUID(wsID), slug,
+		).WithContext(ctx).Scan(&boardIDRaw, &createdByRaw, &isPrivate, &createdAt, &updatedAt)
+		if err == gocql.ErrNotFound {
+			continue
+		}
+		if err != nil {
+			return nil, "", fmt.Errorf("get board by slug (workspace %s): %w", wsIDStr, err)
+		}
+
+		createdBy := fromGocqlUUID(createdByRaw)
+		// Private boards are strictly creator-only.
+		if isPrivate && createdBy != requesterID {
+			continue
+		}
+
+		boardID := fromGocqlUUID(boardIDRaw)
+		return &pb.Board{
+			Id:          boardID.String(),
+			WorkspaceId: wsIDStr,
+			Title:       slug,
+			CreatedBy:   createdBy.String(),
+			IsPrivate:   isPrivate,
+			CreatedAt:   timestamppb.New(createdAt),
+			UpdatedAt:   timestamppb.New(updatedAt),
+		}, wsIDStr, nil
+	}
+
+	return nil, "", errors.New("board not found")
 }
 
 func (s *Service) RegisterAsset(ctx context.Context, assetID string, boardID, workspaceID, userID uuid.UUID, name, mimeType string, sizeBytes int64, s3Key string) (*pb.RegisterAssetResponse, error) {

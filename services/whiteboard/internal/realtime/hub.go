@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -51,19 +53,26 @@ type room struct {
 	broadcast chan roomMessage
 	onEmpty   func()
 
-	mu             sync.Mutex
-	buffer         []service.BufferedOp
-	flushTimer     *time.Timer
-	currentDoc     []byte
-	currentClock   int64
+	mu           sync.Mutex
+	buffer       []service.BufferedOp
+	flushTimer   *time.Timer
+	currentDoc   []byte
+	currentClock int64
 }
 
 func NewHub(svc *service.Service, logger *zap.Logger) *Hub {
+	allowedOrigin := os.Getenv("FRONTEND_ORIGIN")
+	if allowedOrigin == "" {
+		allowedOrigin = "http://localhost:3000"
+	}
 	return &Hub{
 		svc:    svc,
 		logger: logger,
 		upgrader: websocket.Upgrader{
-			CheckOrigin: func(_ *http.Request) bool { return true },
+			CheckOrigin: func(r *http.Request) bool {
+				origin := r.Header.Get("Origin")
+				return origin == "" || strings.TrimRight(origin, "/") == strings.TrimRight(allowedOrigin, "/")
+			},
 		},
 		rooms: make(map[uuid.UUID]*room),
 	}

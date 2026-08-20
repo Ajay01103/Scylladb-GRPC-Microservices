@@ -9,12 +9,16 @@ import (
 )
 
 type Claims struct {
-	Subject  string
-	Issuer   string
-	Audience []string
-	Expiry   time.Time
-	IssuedAt time.Time
-	Extra    map[string]any
+	Subject       string
+	Issuer        string
+	Audience      []string
+	Expiry        time.Time
+	IssuedAt      time.Time
+	TokenType     string
+	SessionID     string
+	Generation    int64
+	GlobalVersion int
+	Extra         map[string]any
 }
 
 type Verifier struct {
@@ -63,11 +67,32 @@ func (v *Verifier) Verify(ctx context.Context, rawToken string) (*Claims, error)
 	}
 
 	return &Claims{
-		Subject:  token.Subject(),
-		Issuer:   token.Issuer(),
-		Audience: token.Audience(),
-		Expiry:   token.Expiration(),
-		IssuedAt: token.IssuedAt(),
-		Extra:    extra,
+		Subject:       token.Subject(),
+		Issuer:        token.Issuer(),
+		Audience:      token.Audience(),
+		Expiry:        token.Expiration(),
+		IssuedAt:      token.IssuedAt(),
+		TokenType:     stringClaim(token.PrivateClaims(), "token_type"),
+		SessionID:     stringClaim(token.PrivateClaims(), "sid"),
+		Generation:    int64Claim(token.PrivateClaims(), "gen"),
+		GlobalVersion: intClaim(token.PrivateClaims(), "gv"),
+		Extra:         extra,
 	}, nil
+}
+
+func stringClaim(claims map[string]any, name string) string {
+	value, _ := claims[name].(string)
+	return value
+}
+
+func int64Claim(claims map[string]any, name string) int64 {
+	if value, ok := claims[name].(int64); ok {
+		return value
+	}
+	floatValue, _ := claims[name].(float64)
+	return int64(floatValue)
+}
+
+func intClaim(claims map[string]any, name string) int {
+	return int(int64Claim(claims, name))
 }

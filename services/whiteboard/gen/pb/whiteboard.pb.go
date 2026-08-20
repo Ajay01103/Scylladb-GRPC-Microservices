@@ -511,6 +511,102 @@ func (x *RegisterAssetResponse) GetS3Key() string {
 	return ""
 }
 
+type GetBoardBySlugRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Slug          string                 `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetBoardBySlugRequest) Reset() {
+	*x = GetBoardBySlugRequest{}
+	mi := &file_whiteboard_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetBoardBySlugRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetBoardBySlugRequest) ProtoMessage() {}
+
+func (x *GetBoardBySlugRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_whiteboard_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetBoardBySlugRequest.ProtoReflect.Descriptor instead.
+func (*GetBoardBySlugRequest) Descriptor() ([]byte, []int) {
+	return file_whiteboard_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *GetBoardBySlugRequest) GetSlug() string {
+	if x != nil {
+		return x.Slug
+	}
+	return ""
+}
+
+type GetBoardBySlugResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Board         *Board                 `protobuf:"bytes,1,opt,name=board,proto3" json:"board,omitempty"`
+	WorkspaceId   string                 `protobuf:"bytes,2,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetBoardBySlugResponse) Reset() {
+	*x = GetBoardBySlugResponse{}
+	mi := &file_whiteboard_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetBoardBySlugResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetBoardBySlugResponse) ProtoMessage() {}
+
+func (x *GetBoardBySlugResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_whiteboard_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetBoardBySlugResponse.ProtoReflect.Descriptor instead.
+func (*GetBoardBySlugResponse) Descriptor() ([]byte, []int) {
+	return file_whiteboard_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *GetBoardBySlugResponse) GetBoard() *Board {
+	if x != nil {
+		return x.Board
+	}
+	return nil
+}
+
+func (x *GetBoardBySlugResponse) GetWorkspaceId() string {
+	if x != nil {
+		return x.WorkspaceId
+	}
+	return ""
+}
+
 var File_whiteboard_proto protoreflect.FileDescriptor
 
 const file_whiteboard_proto_rawDesc = "" +
@@ -555,13 +651,19 @@ const file_whiteboard_proto_rawDesc = "" +
 	"\x06s3_key\x18\a \x01(\tR\x05s3Key\"I\n" +
 	"\x15RegisterAssetResponse\x12\x19\n" +
 	"\basset_id\x18\x01 \x01(\tR\aassetId\x12\x15\n" +
-	"\x06s3_key\x18\x02 \x01(\tR\x05s3Key2\x9a\x03\n" +
+	"\x06s3_key\x18\x02 \x01(\tR\x05s3Key\"+\n" +
+	"\x15GetBoardBySlugRequest\x12\x12\n" +
+	"\x04slug\x18\x01 \x01(\tR\x04slug\"d\n" +
+	"\x16GetBoardBySlugResponse\x12'\n" +
+	"\x05board\x18\x01 \x01(\v2\x11.whiteboard.BoardR\x05board\x12!\n" +
+	"\fworkspace_id\x18\x02 \x01(\tR\vworkspaceId2\xf3\x03\n" +
 	"\x11WhiteboardService\x12@\n" +
 	"\vCreateBoard\x12\x1e.whiteboard.CreateBoardRequest\x1a\x11.whiteboard.Board\x12:\n" +
 	"\bGetBoard\x12\x1b.whiteboard.GetBoardRequest\x1a\x11.whiteboard.Board\x12f\n" +
 	"\x13ListWorkspaceBoards\x12&.whiteboard.ListWorkspaceBoardsRequest\x1a'.whiteboard.ListWorkspaceBoardsResponse\x12I\n" +
 	"\rAppendBoardOp\x12 .whiteboard.AppendBoardOpRequest\x1a\x16.google.protobuf.Empty\x12T\n" +
-	"\rRegisterAsset\x12 .whiteboard.RegisterAssetRequest\x1a!.whiteboard.RegisterAssetResponseB5Z3github.com/Ajay01103/go-notion/whiteboard/gen/pb;pbb\x06proto3"
+	"\rRegisterAsset\x12 .whiteboard.RegisterAssetRequest\x1a!.whiteboard.RegisterAssetResponse\x12W\n" +
+	"\x0eGetBoardBySlug\x12!.whiteboard.GetBoardBySlugRequest\x1a\".whiteboard.GetBoardBySlugResponseB5Z3github.com/Ajay01103/go-notion/whiteboard/gen/pb;pbb\x06proto3"
 
 var (
 	file_whiteboard_proto_rawDescOnce sync.Once
@@ -575,7 +677,7 @@ func file_whiteboard_proto_rawDescGZIP() []byte {
 	return file_whiteboard_proto_rawDescData
 }
 
-var file_whiteboard_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_whiteboard_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_whiteboard_proto_goTypes = []any{
 	(*Board)(nil),                       // 0: whiteboard.Board
 	(*CreateBoardRequest)(nil),          // 1: whiteboard.CreateBoardRequest
@@ -585,28 +687,33 @@ var file_whiteboard_proto_goTypes = []any{
 	(*AppendBoardOpRequest)(nil),        // 5: whiteboard.AppendBoardOpRequest
 	(*RegisterAssetRequest)(nil),        // 6: whiteboard.RegisterAssetRequest
 	(*RegisterAssetResponse)(nil),       // 7: whiteboard.RegisterAssetResponse
-	(*timestamppb.Timestamp)(nil),       // 8: google.protobuf.Timestamp
-	(*emptypb.Empty)(nil),               // 9: google.protobuf.Empty
+	(*GetBoardBySlugRequest)(nil),       // 8: whiteboard.GetBoardBySlugRequest
+	(*GetBoardBySlugResponse)(nil),      // 9: whiteboard.GetBoardBySlugResponse
+	(*timestamppb.Timestamp)(nil),       // 10: google.protobuf.Timestamp
+	(*emptypb.Empty)(nil),               // 11: google.protobuf.Empty
 }
 var file_whiteboard_proto_depIdxs = []int32{
-	8, // 0: whiteboard.Board.created_at:type_name -> google.protobuf.Timestamp
-	8, // 1: whiteboard.Board.updated_at:type_name -> google.protobuf.Timestamp
-	0, // 2: whiteboard.ListWorkspaceBoardsResponse.boards:type_name -> whiteboard.Board
-	1, // 3: whiteboard.WhiteboardService.CreateBoard:input_type -> whiteboard.CreateBoardRequest
-	2, // 4: whiteboard.WhiteboardService.GetBoard:input_type -> whiteboard.GetBoardRequest
-	3, // 5: whiteboard.WhiteboardService.ListWorkspaceBoards:input_type -> whiteboard.ListWorkspaceBoardsRequest
-	5, // 6: whiteboard.WhiteboardService.AppendBoardOp:input_type -> whiteboard.AppendBoardOpRequest
-	6, // 7: whiteboard.WhiteboardService.RegisterAsset:input_type -> whiteboard.RegisterAssetRequest
-	0, // 8: whiteboard.WhiteboardService.CreateBoard:output_type -> whiteboard.Board
-	0, // 9: whiteboard.WhiteboardService.GetBoard:output_type -> whiteboard.Board
-	4, // 10: whiteboard.WhiteboardService.ListWorkspaceBoards:output_type -> whiteboard.ListWorkspaceBoardsResponse
-	9, // 11: whiteboard.WhiteboardService.AppendBoardOp:output_type -> google.protobuf.Empty
-	7, // 12: whiteboard.WhiteboardService.RegisterAsset:output_type -> whiteboard.RegisterAssetResponse
-	8, // [8:13] is the sub-list for method output_type
-	3, // [3:8] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	10, // 0: whiteboard.Board.created_at:type_name -> google.protobuf.Timestamp
+	10, // 1: whiteboard.Board.updated_at:type_name -> google.protobuf.Timestamp
+	0,  // 2: whiteboard.ListWorkspaceBoardsResponse.boards:type_name -> whiteboard.Board
+	0,  // 3: whiteboard.GetBoardBySlugResponse.board:type_name -> whiteboard.Board
+	1,  // 4: whiteboard.WhiteboardService.CreateBoard:input_type -> whiteboard.CreateBoardRequest
+	2,  // 5: whiteboard.WhiteboardService.GetBoard:input_type -> whiteboard.GetBoardRequest
+	3,  // 6: whiteboard.WhiteboardService.ListWorkspaceBoards:input_type -> whiteboard.ListWorkspaceBoardsRequest
+	5,  // 7: whiteboard.WhiteboardService.AppendBoardOp:input_type -> whiteboard.AppendBoardOpRequest
+	6,  // 8: whiteboard.WhiteboardService.RegisterAsset:input_type -> whiteboard.RegisterAssetRequest
+	8,  // 9: whiteboard.WhiteboardService.GetBoardBySlug:input_type -> whiteboard.GetBoardBySlugRequest
+	0,  // 10: whiteboard.WhiteboardService.CreateBoard:output_type -> whiteboard.Board
+	0,  // 11: whiteboard.WhiteboardService.GetBoard:output_type -> whiteboard.Board
+	4,  // 12: whiteboard.WhiteboardService.ListWorkspaceBoards:output_type -> whiteboard.ListWorkspaceBoardsResponse
+	11, // 13: whiteboard.WhiteboardService.AppendBoardOp:output_type -> google.protobuf.Empty
+	7,  // 14: whiteboard.WhiteboardService.RegisterAsset:output_type -> whiteboard.RegisterAssetResponse
+	9,  // 15: whiteboard.WhiteboardService.GetBoardBySlug:output_type -> whiteboard.GetBoardBySlugResponse
+	10, // [10:16] is the sub-list for method output_type
+	4,  // [4:10] is the sub-list for method input_type
+	4,  // [4:4] is the sub-list for extension type_name
+	4,  // [4:4] is the sub-list for extension extendee
+	0,  // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_whiteboard_proto_init() }
@@ -620,7 +727,7 @@ func file_whiteboard_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_whiteboard_proto_rawDesc), len(file_whiteboard_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

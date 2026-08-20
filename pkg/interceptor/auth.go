@@ -20,10 +20,24 @@ type TokenVerifier interface {
 	Verify(context.Context, string) (*jwks.Claims, error)
 }
 
+type TokenRevocationChecker interface {
+	ValidateAccessToken(context.Context, string) error
+}
+
+type TokenRevocationCheckerFunc func(context.Context, string) error
+
+func (f TokenRevocationCheckerFunc) ValidateAccessToken(ctx context.Context, token string) error {
+	return f(ctx, token)
+}
+
 // NewAuthInterceptor creates a unary interceptor for JWT authentication.
 // It validates bearer tokens via the provided verifier and injects the user ID into context.
 // Unauthenticated requests are rejected before the handler is invoked.
 func NewAuthInterceptor(validator TokenVerifier) connect.UnaryInterceptorFunc {
+	return NewAuthInterceptorWithRevocation(validator, nil)
+}
+
+func NewAuthInterceptorWithRevocation(validator TokenVerifier, revocationChecker TokenRevocationChecker) connect.UnaryInterceptorFunc {
 	return func(next connect.UnaryFunc) connect.UnaryFunc {
 		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
 			// Extract bearer token from Authorization header
@@ -49,6 +63,17 @@ func NewAuthInterceptor(validator TokenVerifier) connect.UnaryInterceptorFunc {
 			}
 			if claims == nil || claims.Subject == "" {
 				return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("token subject is missing"))
+			}
+			if claims.TokenType != "access" {
+				return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("token is not an access token"))
+			}
+			if claims.SessionID == "" || claims.Generation <= 0 {
+				return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("token session claims are missing"))
+			}
+			if revocationChecker != nil {
+				if err := revocationChecker.ValidateAccessToken(ctx, tokenStr); err != nil {
+					return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("token revocation check failed: %w", err))
+				}
 			}
 
 			// Inject the authenticated user ID into the request context

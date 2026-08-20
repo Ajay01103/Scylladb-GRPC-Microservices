@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -16,9 +17,12 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 
+	authpb "github.com/Ajay01103/go-notion/auth/gen/pb"
+	authpbconnect "github.com/Ajay01103/go-notion/auth/gen/pb/pbconnect"
 	"github.com/Ajay01103/go-notion/pkg/interceptor"
 	"github.com/Ajay01103/go-notion/pkg/jwks"
 	pkglogger "github.com/Ajay01103/go-notion/pkg/logger"
+	"github.com/Ajay01103/go-notion/pkg/token"
 	"github.com/Ajay01103/go-notion/workspace/config"
 	"github.com/Ajay01103/go-notion/workspace/db"
 	"github.com/Ajay01103/go-notion/workspace/gen/pb/pbconnect"
@@ -111,7 +115,7 @@ func run() error {
 		return fmt.Errorf("create jwks cache: %w", err)
 	}
 
-	jwksVerifier := jwks.NewVerifier(jwksCache, "")
+	jwksVerifier := jwks.NewVerifier(jwksCache, token.TokenIssuer, token.TokenAudience)
 
 	// Create workspace service
 	workspaceSvc := service.New(session, logger)
@@ -121,7 +125,20 @@ func run() error {
 
 	// Create interceptors
 	loggingInterceptor := interceptor.NewLoggingInterceptor(logger)
-	authInterceptor := interceptor.NewAuthInterceptor(jwksVerifier)
+	authClient := authpbconnect.NewAuthServiceClient(http.DefaultClient, authRPCURL(), connect.WithGRPC())
+	authInterceptor := interceptor.NewAuthInterceptorWithRevocation(
+		jwksVerifier,
+		interceptor.TokenRevocationCheckerFunc(func(ctx context.Context, rawToken string) error {
+			response, err := authClient.ValidateToken(ctx, connect.NewRequest(&authpb.ValidateTokenRequest{AccessToken: rawToken}))
+			if err != nil {
+				return err
+			}
+			if !response.Msg.GetValid() {
+				return errors.New("access token is revoked")
+			}
+			return nil
+		}),
+	)
 
 	// 5. Start Connect RPC server
 	mux := http.NewServeMux()
@@ -177,4 +194,11 @@ func run() error {
 	logger.Info("server stopped")
 
 	return nil
+}
+
+func authRPCURL() string {
+	if value := os.Getenv("AUTH_RPC_URL"); value != "" {
+		return value
+	}
+	return "http://localhost:50051"
 }

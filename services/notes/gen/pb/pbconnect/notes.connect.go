@@ -53,6 +53,9 @@ const (
 	// NotesServiceGetAssetDownloadUrlProcedure is the fully-qualified name of the NotesService's
 	// GetAssetDownloadUrl RPC.
 	NotesServiceGetAssetDownloadUrlProcedure = "/notes.NotesService/GetAssetDownloadUrl"
+	// NotesServiceGetNoteBySlugProcedure is the fully-qualified name of the NotesService's
+	// GetNoteBySlug RPC.
+	NotesServiceGetNoteBySlugProcedure = "/notes.NotesService/GetNoteBySlug"
 )
 
 // NotesServiceClient is a client for the notes.NotesService service.
@@ -64,6 +67,7 @@ type NotesServiceClient interface {
 	GenerateAssetUploadUrl(context.Context, *connect.Request[pb.GenerateAssetUploadUrlRequest]) (*connect.Response[pb.PresignedUrlResponse], error)
 	RegisterNoteAsset(context.Context, *connect.Request[pb.RegisterNoteAssetRequest]) (*connect.Response[pb.RegisterAssetResponse], error)
 	GetAssetDownloadUrl(context.Context, *connect.Request[pb.GetAssetDownloadUrlRequest]) (*connect.Response[pb.AssetDownloadUrlResponse], error)
+	GetNoteBySlug(context.Context, *connect.Request[pb.GetNoteBySlugRequest]) (*connect.Response[pb.GetNoteBySlugResponse], error)
 }
 
 // NewNotesServiceClient constructs a client for the notes.NotesService service. By default, it uses
@@ -119,6 +123,12 @@ func NewNotesServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(notesServiceMethods.ByName("GetAssetDownloadUrl")),
 			connect.WithClientOptions(opts...),
 		),
+		getNoteBySlug: connect.NewClient[pb.GetNoteBySlugRequest, pb.GetNoteBySlugResponse](
+			httpClient,
+			baseURL+NotesServiceGetNoteBySlugProcedure,
+			connect.WithSchema(notesServiceMethods.ByName("GetNoteBySlug")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -131,6 +141,7 @@ type notesServiceClient struct {
 	generateAssetUploadUrl *connect.Client[pb.GenerateAssetUploadUrlRequest, pb.PresignedUrlResponse]
 	registerNoteAsset      *connect.Client[pb.RegisterNoteAssetRequest, pb.RegisterAssetResponse]
 	getAssetDownloadUrl    *connect.Client[pb.GetAssetDownloadUrlRequest, pb.AssetDownloadUrlResponse]
+	getNoteBySlug          *connect.Client[pb.GetNoteBySlugRequest, pb.GetNoteBySlugResponse]
 }
 
 // CreateNote calls notes.NotesService.CreateNote.
@@ -168,6 +179,11 @@ func (c *notesServiceClient) GetAssetDownloadUrl(ctx context.Context, req *conne
 	return c.getAssetDownloadUrl.CallUnary(ctx, req)
 }
 
+// GetNoteBySlug calls notes.NotesService.GetNoteBySlug.
+func (c *notesServiceClient) GetNoteBySlug(ctx context.Context, req *connect.Request[pb.GetNoteBySlugRequest]) (*connect.Response[pb.GetNoteBySlugResponse], error) {
+	return c.getNoteBySlug.CallUnary(ctx, req)
+}
+
 // NotesServiceHandler is an implementation of the notes.NotesService service.
 type NotesServiceHandler interface {
 	CreateNote(context.Context, *connect.Request[pb.CreateNoteRequest]) (*connect.Response[pb.Note], error)
@@ -177,6 +193,7 @@ type NotesServiceHandler interface {
 	GenerateAssetUploadUrl(context.Context, *connect.Request[pb.GenerateAssetUploadUrlRequest]) (*connect.Response[pb.PresignedUrlResponse], error)
 	RegisterNoteAsset(context.Context, *connect.Request[pb.RegisterNoteAssetRequest]) (*connect.Response[pb.RegisterAssetResponse], error)
 	GetAssetDownloadUrl(context.Context, *connect.Request[pb.GetAssetDownloadUrlRequest]) (*connect.Response[pb.AssetDownloadUrlResponse], error)
+	GetNoteBySlug(context.Context, *connect.Request[pb.GetNoteBySlugRequest]) (*connect.Response[pb.GetNoteBySlugResponse], error)
 }
 
 // NewNotesServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -228,6 +245,12 @@ func NewNotesServiceHandler(svc NotesServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(notesServiceMethods.ByName("GetAssetDownloadUrl")),
 		connect.WithHandlerOptions(opts...),
 	)
+	notesServiceGetNoteBySlugHandler := connect.NewUnaryHandler(
+		NotesServiceGetNoteBySlugProcedure,
+		svc.GetNoteBySlug,
+		connect.WithSchema(notesServiceMethods.ByName("GetNoteBySlug")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/notes.NotesService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case NotesServiceCreateNoteProcedure:
@@ -244,6 +267,8 @@ func NewNotesServiceHandler(svc NotesServiceHandler, opts ...connect.HandlerOpti
 			notesServiceRegisterNoteAssetHandler.ServeHTTP(w, r)
 		case NotesServiceGetAssetDownloadUrlProcedure:
 			notesServiceGetAssetDownloadUrlHandler.ServeHTTP(w, r)
+		case NotesServiceGetNoteBySlugProcedure:
+			notesServiceGetNoteBySlugHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -279,4 +304,8 @@ func (UnimplementedNotesServiceHandler) RegisterNoteAsset(context.Context, *conn
 
 func (UnimplementedNotesServiceHandler) GetAssetDownloadUrl(context.Context, *connect.Request[pb.GetAssetDownloadUrlRequest]) (*connect.Response[pb.AssetDownloadUrlResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("notes.NotesService.GetAssetDownloadUrl is not implemented"))
+}
+
+func (UnimplementedNotesServiceHandler) GetNoteBySlug(context.Context, *connect.Request[pb.GetNoteBySlugRequest]) (*connect.Response[pb.GetNoteBySlugResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("notes.NotesService.GetNoteBySlug is not implemented"))
 }

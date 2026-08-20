@@ -107,4 +107,16 @@ service NotesService {
   rpc GenerateAssetUploadUrl(GenerateAssetUploadUrlRequest) returns (PresignedUrlResponse);
   rpc RegisterNoteAsset(RegisterNoteAssetRequest) returns (RegisterAssetResponse);
   rpc GetAssetDownloadUrl(GetAssetDownloadUrlRequest) returns (AssetDownloadUrlResponse);
+
+  rpc GetNoteBySlug(GetNoteBySlugRequest) returns (GetNoteBySlugResponse);
 }
+
+message GetNoteBySlugRequest {
+  string slug = 1;
+}
+
+message GetNoteBySlugResponse {
+  Note note = 1;
+  string workspace_id = 2;
+}
+

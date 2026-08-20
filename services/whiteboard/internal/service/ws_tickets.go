@@ -50,11 +50,16 @@ func (s *Service) RedeemWSTicket(ctx context.Context, ticket string) (uuid.UUID,
 		return uuid.Nil, fmt.Errorf("lookup ws ticket: %w", err)
 	}
 
-	if err := s.session.Query(
-		`DELETE FROM ws_tickets WHERE ticket = ?`,
+	applied := map[string]interface{}{}
+	lwt, err := s.session.Query(
+		`DELETE FROM ws_tickets WHERE ticket = ? IF EXISTS`,
 		ticket,
-	).WithContext(ctx).Exec(); err != nil {
-		return uuid.Nil, fmt.Errorf("delete ws ticket: %w", err)
+	).WithContext(ctx).MapScanCAS(applied)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("redeem ws ticket delete: %w", err)
+	}
+	if !lwt {
+		return uuid.Nil, errors.New("ticket already redeemed")
 	}
 
 	s.logger.Debug("websocket ticket redeemed",

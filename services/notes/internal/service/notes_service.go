@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/gocql/gocql"
@@ -38,6 +39,49 @@ func New(session *gocql.Session, logger *zap.Logger, presigner *s3.Presigner) *S
 	return &Service{session: session, logger: logger, presigner: presigner}
 }
 
+// reserveNoteTitle atomically reserves a unique title for a note in
+// notes_by_workspace_and_title using a Scylla lightweight transaction
+// (INSERT ... IF NOT EXISTS). On collision it retries with a numeric suffix
+// (-2, -3, …) up to maxAttempts times.
+// Returns the reserved title and LWT row data (note_id/created_by/is_private
+// still empty — caller fills those in after generating noteID).
+const maxTitleReserveAttempts = 20
+
+func (s *Service) reserveNoteTitle(
+	ctx context.Context,
+	workspaceID uuid.UUID,
+	noteID uuid.UUID,
+	baseTitle string,
+	userID uuid.UUID,
+	isPrivate bool,
+	now time.Time,
+) (string, error) {
+	for attempt := 0; attempt < maxTitleReserveAttempts; attempt++ {
+		candidate := baseTitle
+		if attempt > 0 {
+			candidate = baseTitle + "-" + strconv.Itoa(attempt+1)
+		}
+
+		applied := false
+		casResult := map[string]interface{}{}
+		var err error
+		applied, err = s.session.Query(
+			`INSERT INTO notes_by_workspace_and_title
+			 (workspace_id, title, note_id, created_by, is_private, created_at, updated_at)
+			 VALUES (?, ?, ?, ?, ?, ?, ?) IF NOT EXISTS`,
+			toGocqlUUID(workspaceID), candidate, toGocqlUUID(noteID),
+			toGocqlUUID(userID), isPrivate, now, now,
+		).WithContext(ctx).MapScanCAS(casResult)
+		if err != nil {
+			return "", fmt.Errorf("reserve note title LWT (attempt %d): %w", attempt+1, err)
+		}
+		if applied {
+			return candidate, nil
+		}
+	}
+	return "", fmt.Errorf("could not reserve unique title after %d attempts for base %q", maxTitleReserveAttempts, baseTitle)
+}
+
 func (s *Service) CreateNote(ctx context.Context, workspaceID, userID uuid.UUID, title string, isPrivate bool) (*pb.Note, error) {
 	if ok, err := s.HasWorkspaceAccess(ctx, workspaceID, userID); err != nil || !ok {
 		if err != nil {
@@ -49,16 +93,24 @@ func (s *Service) CreateNote(ctx context.Context, workspaceID, userID uuid.UUID,
 	noteID := uuid.New()
 	now := time.Now().UTC()
 
+	// Atomically reserve a unique title in the lookup table. If the base title
+	// is already taken, reserveNoteTitle auto-appends -2, -3, … until it wins
+	// an LWT or exhausts attempts.
+	finalTitle, err := s.reserveNoteTitle(ctx, workspaceID, noteID, title, userID, isPrivate, now)
+	if err != nil {
+		return nil, err
+	}
+
 	if err := s.session.Query(
 		`INSERT INTO notes (workspace_id, note_id, title, created_by, is_private, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		toGocqlUUID(workspaceID), toGocqlUUID(noteID), title, toGocqlUUID(userID), isPrivate, now, now,
+		toGocqlUUID(workspaceID), toGocqlUUID(noteID), finalTitle, toGocqlUUID(userID), isPrivate, now, now,
 	).WithContext(ctx).Exec(); err != nil {
 		return nil, fmt.Errorf("create note: %w", err)
 	}
 
 	if err := s.session.Query(
 		`INSERT INTO notes_by_id (note_id, workspace_id, title, created_by, is_private, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		toGocqlUUID(noteID), toGocqlUUID(workspaceID), title, toGocqlUUID(userID), isPrivate, now, now,
+		toGocqlUUID(noteID), toGocqlUUID(workspaceID), finalTitle, toGocqlUUID(userID), isPrivate, now, now,
 	).WithContext(ctx).Exec(); err != nil {
 		s.logger.Error("failed to insert notes_by_id", zap.Error(err), zap.String("note_id", noteID.String()))
 	}
@@ -66,7 +118,7 @@ func (s *Service) CreateNote(ctx context.Context, workspaceID, userID uuid.UUID,
 	return &pb.Note{
 		Id:          noteID.String(),
 		WorkspaceId: workspaceID.String(),
-		Title:       title,
+		Title:       finalTitle,
 		CreatedBy:   userID.String(),
 		IsPrivate:   isPrivate,
 		CreatedAt:   timestamppb.New(now),
@@ -275,6 +327,83 @@ func (s *Service) getNoteByID(ctx context.Context, noteID uuid.UUID) (uuid.UUID,
 	}
 
 	return fromGocqlUUID(workspaceID), title, fromGocqlUUID(createdBy), isPrivate, createdAt, updatedAt, nil
+}
+
+// ListWorkspaceIDsForUser returns all workspace IDs the user is a member of.
+func (s *Service) ListWorkspaceIDsForUser(ctx context.Context, userID uuid.UUID) ([]string, error) {
+	iter := s.session.Query(
+		`SELECT workspace_id FROM workspace_ks.workspace_members_by_user WHERE user_id = ?`,
+		userID.String(),
+	).WithContext(ctx).Iter()
+
+	var wsID string
+	var ids []string
+	for iter.Scan(&wsID) {
+		ids = append(ids, wsID)
+	}
+	if err := iter.Close(); err != nil {
+		return nil, fmt.Errorf("list workspace ids for user: %w", err)
+	}
+	return ids, nil
+}
+
+// GetNoteBySlug finds a note by its title (slug) across all workspaces the
+// requester belongs to. It performs one direct-partition lookup per workspace
+// against notes_by_workspace_and_title (no secondary index, no ALLOW FILTERING).
+// Private notes are only returned if the requester is the creator.
+func (s *Service) GetNoteBySlug(ctx context.Context, slug string, requesterID uuid.UUID) (*pb.Note, string, error) {
+	if slug == "" {
+		return nil, "", errors.New("slug is required")
+	}
+
+	workspaceIDs, err := s.ListWorkspaceIDsForUser(ctx, requesterID)
+	if err != nil {
+		return nil, "", err
+	}
+
+	for _, wsIDStr := range workspaceIDs {
+		wsID, err := uuid.Parse(wsIDStr)
+		if err != nil {
+			continue
+		}
+
+		var noteIDRaw gocql.UUID
+		var createdByRaw gocql.UUID
+		var isPrivate bool
+		var createdAt, updatedAt time.Time
+
+		err = s.session.Query(
+			`SELECT note_id, created_by, is_private, created_at, updated_at
+			 FROM notes_by_workspace_and_title
+			 WHERE workspace_id = ? AND title = ?`,
+			toGocqlUUID(wsID), slug,
+		).WithContext(ctx).Scan(&noteIDRaw, &createdByRaw, &isPrivate, &createdAt, &updatedAt)
+		if err == gocql.ErrNotFound {
+			continue
+		}
+		if err != nil {
+			return nil, "", fmt.Errorf("get note by slug (workspace %s): %w", wsIDStr, err)
+		}
+
+		createdBy := fromGocqlUUID(createdByRaw)
+		// Private notes are strictly creator-only.
+		if isPrivate && createdBy != requesterID {
+			continue
+		}
+
+		noteID := fromGocqlUUID(noteIDRaw)
+		return &pb.Note{
+			Id:          noteID.String(),
+			WorkspaceId: wsIDStr,
+			Title:       slug,
+			CreatedBy:   createdBy.String(),
+			IsPrivate:   isPrivate,
+			CreatedAt:   timestamppb.New(createdAt),
+			UpdatedAt:   timestamppb.New(updatedAt),
+		}, wsIDStr, nil
+	}
+
+	return nil, "", errors.New("note not found")
 }
 
 const (

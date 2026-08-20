@@ -49,6 +49,9 @@ const (
 	// WhiteboardServiceRegisterAssetProcedure is the fully-qualified name of the WhiteboardService's
 	// RegisterAsset RPC.
 	WhiteboardServiceRegisterAssetProcedure = "/whiteboard.WhiteboardService/RegisterAsset"
+	// WhiteboardServiceGetBoardBySlugProcedure is the fully-qualified name of the WhiteboardService's
+	// GetBoardBySlug RPC.
+	WhiteboardServiceGetBoardBySlugProcedure = "/whiteboard.WhiteboardService/GetBoardBySlug"
 )
 
 // WhiteboardServiceClient is a client for the whiteboard.WhiteboardService service.
@@ -58,6 +61,7 @@ type WhiteboardServiceClient interface {
 	ListWorkspaceBoards(context.Context, *connect.Request[pb.ListWorkspaceBoardsRequest]) (*connect.Response[pb.ListWorkspaceBoardsResponse], error)
 	AppendBoardOp(context.Context, *connect.Request[pb.AppendBoardOpRequest]) (*connect.Response[emptypb.Empty], error)
 	RegisterAsset(context.Context, *connect.Request[pb.RegisterAssetRequest]) (*connect.Response[pb.RegisterAssetResponse], error)
+	GetBoardBySlug(context.Context, *connect.Request[pb.GetBoardBySlugRequest]) (*connect.Response[pb.GetBoardBySlugResponse], error)
 }
 
 // NewWhiteboardServiceClient constructs a client for the whiteboard.WhiteboardService service. By
@@ -101,6 +105,12 @@ func NewWhiteboardServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			connect.WithSchema(whiteboardServiceMethods.ByName("RegisterAsset")),
 			connect.WithClientOptions(opts...),
 		),
+		getBoardBySlug: connect.NewClient[pb.GetBoardBySlugRequest, pb.GetBoardBySlugResponse](
+			httpClient,
+			baseURL+WhiteboardServiceGetBoardBySlugProcedure,
+			connect.WithSchema(whiteboardServiceMethods.ByName("GetBoardBySlug")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -111,6 +121,7 @@ type whiteboardServiceClient struct {
 	listWorkspaceBoards *connect.Client[pb.ListWorkspaceBoardsRequest, pb.ListWorkspaceBoardsResponse]
 	appendBoardOp       *connect.Client[pb.AppendBoardOpRequest, emptypb.Empty]
 	registerAsset       *connect.Client[pb.RegisterAssetRequest, pb.RegisterAssetResponse]
+	getBoardBySlug      *connect.Client[pb.GetBoardBySlugRequest, pb.GetBoardBySlugResponse]
 }
 
 // CreateBoard calls whiteboard.WhiteboardService.CreateBoard.
@@ -138,6 +149,11 @@ func (c *whiteboardServiceClient) RegisterAsset(ctx context.Context, req *connec
 	return c.registerAsset.CallUnary(ctx, req)
 }
 
+// GetBoardBySlug calls whiteboard.WhiteboardService.GetBoardBySlug.
+func (c *whiteboardServiceClient) GetBoardBySlug(ctx context.Context, req *connect.Request[pb.GetBoardBySlugRequest]) (*connect.Response[pb.GetBoardBySlugResponse], error) {
+	return c.getBoardBySlug.CallUnary(ctx, req)
+}
+
 // WhiteboardServiceHandler is an implementation of the whiteboard.WhiteboardService service.
 type WhiteboardServiceHandler interface {
 	CreateBoard(context.Context, *connect.Request[pb.CreateBoardRequest]) (*connect.Response[pb.Board], error)
@@ -145,6 +161,7 @@ type WhiteboardServiceHandler interface {
 	ListWorkspaceBoards(context.Context, *connect.Request[pb.ListWorkspaceBoardsRequest]) (*connect.Response[pb.ListWorkspaceBoardsResponse], error)
 	AppendBoardOp(context.Context, *connect.Request[pb.AppendBoardOpRequest]) (*connect.Response[emptypb.Empty], error)
 	RegisterAsset(context.Context, *connect.Request[pb.RegisterAssetRequest]) (*connect.Response[pb.RegisterAssetResponse], error)
+	GetBoardBySlug(context.Context, *connect.Request[pb.GetBoardBySlugRequest]) (*connect.Response[pb.GetBoardBySlugResponse], error)
 }
 
 // NewWhiteboardServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -184,6 +201,12 @@ func NewWhiteboardServiceHandler(svc WhiteboardServiceHandler, opts ...connect.H
 		connect.WithSchema(whiteboardServiceMethods.ByName("RegisterAsset")),
 		connect.WithHandlerOptions(opts...),
 	)
+	whiteboardServiceGetBoardBySlugHandler := connect.NewUnaryHandler(
+		WhiteboardServiceGetBoardBySlugProcedure,
+		svc.GetBoardBySlug,
+		connect.WithSchema(whiteboardServiceMethods.ByName("GetBoardBySlug")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/whiteboard.WhiteboardService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case WhiteboardServiceCreateBoardProcedure:
@@ -196,6 +219,8 @@ func NewWhiteboardServiceHandler(svc WhiteboardServiceHandler, opts ...connect.H
 			whiteboardServiceAppendBoardOpHandler.ServeHTTP(w, r)
 		case WhiteboardServiceRegisterAssetProcedure:
 			whiteboardServiceRegisterAssetHandler.ServeHTTP(w, r)
+		case WhiteboardServiceGetBoardBySlugProcedure:
+			whiteboardServiceGetBoardBySlugHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -223,4 +248,8 @@ func (UnimplementedWhiteboardServiceHandler) AppendBoardOp(context.Context, *con
 
 func (UnimplementedWhiteboardServiceHandler) RegisterAsset(context.Context, *connect.Request[pb.RegisterAssetRequest]) (*connect.Response[pb.RegisterAssetResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("whiteboard.WhiteboardService.RegisterAsset is not implemented"))
+}
+
+func (UnimplementedWhiteboardServiceHandler) GetBoardBySlug(context.Context, *connect.Request[pb.GetBoardBySlugRequest]) (*connect.Response[pb.GetBoardBySlugResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("whiteboard.WhiteboardService.GetBoardBySlug is not implemented"))
 }

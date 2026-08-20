@@ -56,10 +56,20 @@ message RegisterAssetResponse {
   string s3_key = 2;
 }
 
+message GetBoardBySlugRequest {
+  string slug = 1;
+}
+
+message GetBoardBySlugResponse {
+  Board board = 1;
+  string workspace_id = 2;
+}
+
 service WhiteboardService {
   rpc CreateBoard(CreateBoardRequest) returns (Board);
   rpc GetBoard(GetBoardRequest) returns (Board);
   rpc ListWorkspaceBoards(ListWorkspaceBoardsRequest) returns (ListWorkspaceBoardsResponse);
   rpc AppendBoardOp(AppendBoardOpRequest) returns (google.protobuf.Empty);
   rpc RegisterAsset(RegisterAssetRequest) returns (RegisterAssetResponse);
+  rpc GetBoardBySlug(GetBoardBySlugRequest) returns (GetBoardBySlugResponse);
 }

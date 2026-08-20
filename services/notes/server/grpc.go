@@ -167,3 +167,26 @@ func (s *NotesServer) GetAssetDownloadUrl(ctx context.Context, req *connect.Requ
 	}
 	return connect.NewResponse(res), nil
 }
+
+func (s *NotesServer) GetNoteBySlug(ctx context.Context, req *connect.Request[pb.GetNoteBySlugRequest]) (*connect.Response[pb.GetNoteBySlugResponse], error) {
+	if req.Msg.GetSlug() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("slug is required"))
+	}
+	userID, err := interceptor.UserIDFromContext(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, err)
+	}
+
+	note, workspaceID, err := s.svc.GetNoteBySlug(ctx, req.Msg.GetSlug(), userID)
+	if err != nil {
+		if err.Error() == "note not found" {
+			return nil, connect.NewError(connect.CodeNotFound, err)
+		}
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&pb.GetNoteBySlugResponse{
+		Note:        note,
+		WorkspaceId: workspaceID,
+	}), nil
+}
+

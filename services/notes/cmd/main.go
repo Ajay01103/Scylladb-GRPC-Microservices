@@ -24,6 +24,8 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 
+	authpb "github.com/Ajay01103/go-notion/auth/gen/pb"
+	authpbconnect "github.com/Ajay01103/go-notion/auth/gen/pb/pbconnect"
 	notesconfig "github.com/Ajay01103/go-notion/notes/config"
 	"github.com/Ajay01103/go-notion/notes/db"
 	"github.com/Ajay01103/go-notion/notes/gen/pb/pbconnect"
@@ -34,6 +36,7 @@ import (
 	"github.com/Ajay01103/go-notion/pkg/interceptor"
 	"github.com/Ajay01103/go-notion/pkg/jwks"
 	pkglogger "github.com/Ajay01103/go-notion/pkg/logger"
+	"github.com/Ajay01103/go-notion/pkg/token"
 )
 
 // ── Per-user ticket rate limiter ─────────────────────────────────────────────
@@ -152,7 +155,7 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("create jwks cache: %w", err)
 	}
-	jwksVerifier := jwks.NewVerifier(jwksCache, "")
+	jwksVerifier := jwks.NewVerifier(jwksCache, token.TokenIssuer, token.TokenAudience)
 
 	s3awscfg, err := config.LoadDefaultConfig(context.Background(),
 		config.WithRegion(cfg.S3Region),
@@ -177,7 +180,18 @@ func run() error {
 	ticketLimiter := newTicketRateLimiter()
 
 	loggingInterceptor := interceptor.NewLoggingInterceptor(logger)
-	authInterceptor := interceptor.NewAuthInterceptor(jwksVerifier)
+	authClient := authpbconnect.NewAuthServiceClient(http.DefaultClient, authRPCURL(), connect.WithGRPC())
+	revocationChecker := interceptor.TokenRevocationCheckerFunc(func(ctx context.Context, rawToken string) error {
+		response, err := authClient.ValidateToken(ctx, connect.NewRequest(&authpb.ValidateTokenRequest{AccessToken: rawToken}))
+		if err != nil {
+			return err
+		}
+		if !response.Msg.GetValid() {
+			return errors.New("access token is revoked")
+		}
+		return nil
+	})
+	authInterceptor := interceptor.NewAuthInterceptorWithRevocation(jwksVerifier, revocationChecker)
 
 	mux := http.NewServeMux()
 
@@ -191,7 +205,7 @@ func run() error {
 	// passes it as a query param when upgrading, since WebSocket connections
 	// cannot send custom Authorization headers.
 	wsTicketHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		userID, err := authenticateHTTP(r, jwksVerifier)
+		userID, err := authenticateHTTP(r, jwksVerifier, revocationChecker)
 		if err != nil {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
@@ -299,7 +313,14 @@ func run() error {
 	return nil
 }
 
-func authenticateHTTP(r *http.Request, verifier *jwks.Verifier) (uuid.UUID, error) {
+func authRPCURL() string {
+	if value := os.Getenv("AUTH_RPC_URL"); value != "" {
+		return value
+	}
+	return "http://localhost:50051"
+}
+
+func authenticateHTTP(r *http.Request, verifier *jwks.Verifier, revocationChecker interceptor.TokenRevocationChecker) (uuid.UUID, error) {
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {
 		return uuid.Nil, errors.New("authorization token is not provided")
@@ -321,6 +342,9 @@ func authenticateHTTP(r *http.Request, verifier *jwks.Verifier) (uuid.UUID, erro
 	}
 	if claims == nil || claims.Subject == "" {
 		return uuid.Nil, errors.New("token subject is missing")
+	}
+	if err := revocationChecker.ValidateAccessToken(r.Context(), tokenStr); err != nil {
+		return uuid.Nil, err
 	}
 
 	return uuid.Parse(claims.Subject)

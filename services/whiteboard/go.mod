@@ -4,6 +4,7 @@ go 1.25.0
 
 require (
 	connectrpc.com/connect v1.19.1
+	github.com/Ajay01103/go-notion/auth v0.0.0-00010101000000-000000000000
 	github.com/Ajay01103/go-notion/pkg v0.0.0-00010101000000-000000000000
 	github.com/gocql/gocql v1.7.0
 	github.com/google/uuid v1.6.0
@@ -48,3 +49,5 @@ require (
 )
 
 replace github.com/Ajay01103/go-notion/pkg => ../../pkg
+
+replace github.com/Ajay01103/go-notion/auth => ../auth

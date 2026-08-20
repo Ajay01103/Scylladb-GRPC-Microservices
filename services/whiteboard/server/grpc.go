@@ -137,3 +137,25 @@ func (s *WhiteboardServer) RegisterAsset(ctx context.Context, req *connect.Reque
 	return connect.NewResponse(res), nil
 }
 
+func (s *WhiteboardServer) GetBoardBySlug(ctx context.Context, req *connect.Request[pb.GetBoardBySlugRequest]) (*connect.Response[pb.GetBoardBySlugResponse], error) {
+	if req.Msg.GetSlug() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("slug is required"))
+	}
+	userID, err := interceptor.UserIDFromContext(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, err)
+	}
+
+	board, workspaceID, err := s.svc.GetBoardBySlug(ctx, req.Msg.GetSlug(), userID)
+	if err != nil {
+		if err.Error() == "board not found" {
+			return nil, connect.NewError(connect.CodeNotFound, err)
+		}
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&pb.GetBoardBySlugResponse{
+		Board:       board,
+		WorkspaceId: workspaceID,
+	}), nil
+}
+

@@ -13,6 +13,8 @@ type TokenType string
 const (
 	TokenTypeAccess  TokenType = "access"
 	TokenTypeRefresh TokenType = "refresh"
+	TokenIssuer                = "go-notion-auth"
+	TokenAudience              = "go-notion-api"
 )
 
 // AccessPayload holds the JWT claims for an access token.
@@ -76,6 +78,8 @@ func (p *AccessPayload) FillClaims(claims *AccessTokenClaims) {
 	claims.GlobalVer = p.GlobalVer
 	claims.RegisteredClaims = jwt.RegisteredClaims{
 		Subject:   p.UserID.String(),
+		Issuer:    TokenIssuer,
+		Audience:  jwt.ClaimStrings{TokenAudience},
 		IssuedAt:  jwt.NewNumericDate(p.IssuedAt),
 		ExpiresAt: jwt.NewNumericDate(p.ExpiredAt),
 	}
@@ -186,6 +190,8 @@ func (p *RefreshPayload) FillClaims(claims *RefreshTokenClaims) {
 	claims.GlobalVer = p.GlobalVer
 	claims.RegisteredClaims = jwt.RegisteredClaims{
 		Subject:   p.UserID.String(),
+		Issuer:    TokenIssuer,
+		Audience:  jwt.ClaimStrings{TokenAudience},
 		IssuedAt:  jwt.NewNumericDate(p.IssuedAt),
 		ExpiresAt: jwt.NewNumericDate(p.ExpiredAt),
 	}
