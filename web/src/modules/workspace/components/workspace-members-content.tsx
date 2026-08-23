@@ -12,10 +12,5 @@ export function WorkspaceMembersContent({ workspaceId }: { workspaceId: string }
   const { data: workspace } = useSuspenseQuery(workspaceQueryOptions(workspaceId))
   const { data: members } = useSuspenseQuery(workspaceMembersQueryOptions(workspaceId))
 
-  return (
-    <WorkspaceMembersView
-      members={members ?? []}
-      workspace={workspace}
-    />
-  )
+  return <WorkspaceMembersView members={members ?? []} workspace={workspace} />
 }

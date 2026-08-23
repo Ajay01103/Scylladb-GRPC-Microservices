@@ -19,18 +19,20 @@ import Carousel from "@yoopta/carousel"
 import Mention from "@yoopta/mention"
 import { MathInline, MathBlock } from "@yoopta/math"
 import TableOfContents from "@yoopta/table-of-contents"
+import { toast } from "sonner"
 
 import { PollPlugin } from "./poll"
 import { StickyNotePlugin } from "./sticky-notes"
 import { getNoteAssetContext } from "@/modules/notes/api/note-asset-context"
 import { uploadNoteAssetAction } from "@/actions/note-assets"
+import { AssetImageRenderer } from "../asset-image-renderer"
 
 import "katex/dist/katex.min.css"
 
 async function uploadToS3(file: File) {
   const { noteId, workspaceId } = getNoteAssetContext()
   if (!noteId || !workspaceId) {
-    return null
+    throw new Error("No note or workspace selected")
   }
 
   const formData = new FormData()
@@ -41,31 +43,40 @@ async function uploadToS3(file: File) {
 
   const res = await uploadNoteAssetAction(formData)
   if (!res.success) {
-    return null
+    throw new Error(res.error || "Upload failed")
   }
 
   return res
 }
 
 const YImage = Image.extend({
+  elements: {
+    image: {
+      render: AssetImageRenderer,
+    },
+  },
   options: {
     upload: async (file: File) => {
-      const result = await uploadToS3(file)
-      if (result) {
+      try {
+        const result = await uploadToS3(file)
         return {
-          id: result.assetId,
-          src: result.src,
+          id: result.assetId ?? null,
+          src: result.src ?? URL.createObjectURL(file),
+          alt: file.name,
+          fit: "cover",
+          sizes: { width: file.size, height: file.size },
+          s3Key: result.s3Key ?? null,
+        }
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Image upload failed"
+        toast.error(msg)
+        return {
+          id: file.name,
+          src: URL.createObjectURL(file),
           alt: file.name,
           fit: "cover",
           sizes: { width: file.size, height: file.size },
         }
-      }
-      return {
-        id: file.name,
-        src: URL.createObjectURL(file),
-        alt: file.name,
-        fit: "cover",
-        sizes: { width: file.size, height: file.size },
       }
     },
   },
@@ -76,22 +87,25 @@ export const YOOPTA_PLUGINS = [
   File.extend({
     options: {
       upload: async (file: File) => {
-        const result = await uploadToS3(file)
-        if (result) {
+        try {
+          const result = await uploadToS3(file)
           return {
-            id: result.assetId,
-            src: result.src,
+            id: result.assetId ?? file.name,
+            src: result.src ?? URL.createObjectURL(file),
             name: file.name,
             size: file.size,
             format: file.name.split(".").pop(),
           }
-        }
-        return {
-          id: file.name,
-          src: URL.createObjectURL(file),
-          name: file.name,
-          size: file.size,
-          format: file.name.split(".").pop(),
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : "File upload failed"
+          toast.error(msg)
+          return {
+            id: file.name,
+            src: URL.createObjectURL(file),
+            name: file.name,
+            size: file.size,
+            format: file.name.split(".").pop(),
+          }
         }
       },
     },
@@ -123,22 +137,25 @@ export const YOOPTA_PLUGINS = [
   Video.extend({
     options: {
       upload: async (file: File) => {
-        const result = await uploadToS3(file)
-        if (result) {
+        try {
+          const result = await uploadToS3(file)
           return {
-            id: result.assetId,
-            src: result.src,
+            id: result.assetId ?? file.name,
+            src: result.src ?? URL.createObjectURL(file),
             name: file.name,
             size: file.size,
             format: file.name.split(".").pop(),
           }
-        }
-        return {
-          id: file.name,
-          src: URL.createObjectURL(file),
-          name: file.name,
-          size: file.size,
-          format: file.name.split(".").pop(),
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : "Video upload failed"
+          toast.error(msg)
+          return {
+            id: file.name,
+            src: URL.createObjectURL(file),
+            name: file.name,
+            size: file.size,
+            format: file.name.split(".").pop(),
+          }
         }
       },
     },

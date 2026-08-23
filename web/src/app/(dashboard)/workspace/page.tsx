@@ -1,9 +1,7 @@
 import { redirect } from "next/navigation"
 
 import { getQueryClient } from "@/lib/get-query-client"
-import {
-  prefetchWorkspaces,
-} from "@/modules/workspace/api/workspace-server-queries"
+import { prefetchWorkspaces } from "@/modules/workspace/api/workspace-server-queries"
 
 export const dynamic = "force-dynamic"
 
@@ -11,9 +9,7 @@ export default async function WorkspaceLandingPage() {
   const queryClient = getQueryClient()
   await prefetchWorkspaces(queryClient)
 
-  const workspaces = queryClient.getQueryData(["myWorkspaces"]) as
-    | Array<{ id: string }>
-    | undefined
+  const workspaces = queryClient.getQueryData(["myWorkspaces"]) as Array<{ id: string }> | undefined
 
   if (!workspaces || workspaces.length === 0) {
     return (

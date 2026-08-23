@@ -14,3 +14,7 @@ If there is no `.codegraph/` directory, skip CodeGraph entirely — indexing is 
 ## Typescript 7
 
 This project uses typescript 7 comes with tsgo cli replacing the tsc cli so use tsgo inplace of tsc
+
+## Midddlewre
+
+in Next js 16 the middleware.ts is replaced by proxy.ts and proxy.ts is the new middleware convention

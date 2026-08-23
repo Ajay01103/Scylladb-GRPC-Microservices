@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf"
  * Describes the file whiteboard.proto.
  */
 export const file_whiteboard: GenFile /*@__PURE__*/ = fileDesc(
-  "ChB3aGl0ZWJvYXJkLnByb3RvEgp3aGl0ZWJvYXJkIsABCgVCb2FyZBIKCgJpZBgBIAEoCRIUCgx3b3Jrc3BhY2VfaWQYAiABKAkSDQoFdGl0bGUYAyABKAkSEgoKY3JlYXRlZF9ieRgEIAEoCRISCgppc19wcml2YXRlGAUgASgIEi4KCmNyZWF0ZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIk0KEkNyZWF0ZUJvYXJkUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkSDQoFdGl0bGUYAiABKAkSEgoKaXNfcHJpdmF0ZRgDIAEoCCIjCg9HZXRCb2FyZFJlcXVlc3QSEAoIYm9hcmRfaWQYASABKAkiMgoaTGlzdFdvcmtzcGFjZUJvYXJkc1JlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJIkAKG0xpc3RXb3Jrc3BhY2VCb2FyZHNSZXNwb25zZRIhCgZib2FyZHMYASADKAsyES53aGl0ZWJvYXJkLkJvYXJkIkoKFEFwcGVuZEJvYXJkT3BSZXF1ZXN0EhAKCGJvYXJkX2lkGAEgASgJEg8KB29wX3R5cGUYAiABKAkSDwoHcmVjb3JkcxgDIAEoDCKVAQoUUmVnaXN0ZXJBc3NldFJlcXVlc3QSEAoIYXNzZXRfaWQYASABKAkSEAoIYm9hcmRfaWQYAiABKAkSFAoMd29ya3NwYWNlX2lkGAMgASgJEgwKBG5hbWUYBCABKAkSEQoJbWltZV90eXBlGAUgASgJEhIKCnNpemVfYnl0ZXMYBiABKAMSDgoGczNfa2V5GAcgASgJIjkKFVJlZ2lzdGVyQXNzZXRSZXNwb25zZRIQCghhc3NldF9pZBgBIAEoCRIOCgZzM19rZXkYAiABKAkymgMKEVdoaXRlYm9hcmRTZXJ2aWNlEkAKC0NyZWF0ZUJvYXJkEh4ud2hpdGVib2FyZC5DcmVhdGVCb2FyZFJlcXVlc3QaES53aGl0ZWJvYXJkLkJvYXJkEjoKCEdldEJvYXJkEhsud2hpdGVib2FyZC5HZXRCb2FyZFJlcXVlc3QaES53aGl0ZWJvYXJkLkJvYXJkEmYKE0xpc3RXb3Jrc3BhY2VCb2FyZHMSJi53aGl0ZWJvYXJkLkxpc3RXb3Jrc3BhY2VCb2FyZHNSZXF1ZXN0Gicud2hpdGVib2FyZC5MaXN0V29ya3NwYWNlQm9hcmRzUmVzcG9uc2USSQoNQXBwZW5kQm9hcmRPcBIgLndoaXRlYm9hcmQuQXBwZW5kQm9hcmRPcFJlcXVlc3QaFi5nb29nbGUucHJvdG9idWYuRW1wdHkSVAoNUmVnaXN0ZXJBc3NldBIgLndoaXRlYm9hcmQuUmVnaXN0ZXJBc3NldFJlcXVlc3QaIS53aGl0ZWJvYXJkLlJlZ2lzdGVyQXNzZXRSZXNwb25zZUI1WjNnaXRodWIuY29tL0FqYXkwMTEwMy9nby1ub3Rpb24vd2hpdGVib2FyZC9nZW4vcGI7cGJiBnByb3RvMw",
+  "ChB3aGl0ZWJvYXJkLnByb3RvEgp3aGl0ZWJvYXJkIsABCgVCb2FyZBIKCgJpZBgBIAEoCRIUCgx3b3Jrc3BhY2VfaWQYAiABKAkSDQoFdGl0bGUYAyABKAkSEgoKY3JlYXRlZF9ieRgEIAEoCRISCgppc19wcml2YXRlGAUgASgIEi4KCmNyZWF0ZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIk0KEkNyZWF0ZUJvYXJkUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkSDQoFdGl0bGUYAiABKAkSEgoKaXNfcHJpdmF0ZRgDIAEoCCIjCg9HZXRCb2FyZFJlcXVlc3QSEAoIYm9hcmRfaWQYASABKAkiMgoaTGlzdFdvcmtzcGFjZUJvYXJkc1JlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJIkAKG0xpc3RXb3Jrc3BhY2VCb2FyZHNSZXNwb25zZRIhCgZib2FyZHMYASADKAsyES53aGl0ZWJvYXJkLkJvYXJkIkoKFEFwcGVuZEJvYXJkT3BSZXF1ZXN0EhAKCGJvYXJkX2lkGAEgASgJEg8KB29wX3R5cGUYAiABKAkSDwoHcmVjb3JkcxgDIAEoDCKVAQoUUmVnaXN0ZXJBc3NldFJlcXVlc3QSEAoIYXNzZXRfaWQYASABKAkSEAoIYm9hcmRfaWQYAiABKAkSFAoMd29ya3NwYWNlX2lkGAMgASgJEgwKBG5hbWUYBCABKAkSEQoJbWltZV90eXBlGAUgASgJEhIKCnNpemVfYnl0ZXMYBiABKAMSDgoGczNfa2V5GAcgASgJIjkKFVJlZ2lzdGVyQXNzZXRSZXNwb25zZRIQCghhc3NldF9pZBgBIAEoCRIOCgZzM19rZXkYAiABKAkiJQoVR2V0Qm9hcmRCeVNsdWdSZXF1ZXN0EgwKBHNsdWcYASABKAkiUAoWR2V0Qm9hcmRCeVNsdWdSZXNwb25zZRIgCgVib2FyZBgBIAEoCzIRLndoaXRlYm9hcmQuQm9hcmQSFAoMd29ya3NwYWNlX2lkGAIgASgJMvMDChFXaGl0ZWJvYXJkU2VydmljZRJACgtDcmVhdGVCb2FyZBIeLndoaXRlYm9hcmQuQ3JlYXRlQm9hcmRSZXF1ZXN0GhEud2hpdGVib2FyZC5Cb2FyZBI6CghHZXRCb2FyZBIbLndoaXRlYm9hcmQuR2V0Qm9hcmRSZXF1ZXN0GhEud2hpdGVib2FyZC5Cb2FyZBJmChNMaXN0V29ya3NwYWNlQm9hcmRzEiYud2hpdGVib2FyZC5MaXN0V29ya3NwYWNlQm9hcmRzUmVxdWVzdBonLndoaXRlYm9hcmQuTGlzdFdvcmtzcGFjZUJvYXJkc1Jlc3BvbnNlEkkKDUFwcGVuZEJvYXJkT3ASIC53aGl0ZWJvYXJkLkFwcGVuZEJvYXJkT3BSZXF1ZXN0GhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5ElQKDVJlZ2lzdGVyQXNzZXQSIC53aGl0ZWJvYXJkLlJlZ2lzdGVyQXNzZXRSZXF1ZXN0GiEud2hpdGVib2FyZC5SZWdpc3RlckFzc2V0UmVzcG9uc2USVwoOR2V0Qm9hcmRCeVNsdWcSIS53aGl0ZWJvYXJkLkdldEJvYXJkQnlTbHVnUmVxdWVzdBoiLndoaXRlYm9hcmQuR2V0Qm9hcmRCeVNsdWdSZXNwb25zZUI1WjNnaXRodWIuY29tL0FqYXkwMTEwMy9nby1ub3Rpb24vd2hpdGVib2FyZC9nZW4vcGI7cGJiBnByb3RvMw",
   [file_google_protobuf_empty, file_google_protobuf_timestamp],
 )
 
@@ -241,6 +241,45 @@ export const RegisterAssetResponseSchema: GenMessage<RegisterAssetResponse> /*@_
   messageDesc(file_whiteboard, 7)
 
 /**
+ * @generated from message whiteboard.GetBoardBySlugRequest
+ */
+export type GetBoardBySlugRequest = Message<"whiteboard.GetBoardBySlugRequest"> & {
+  /**
+   * @generated from field: string slug = 1;
+   */
+  slug: string
+}
+
+/**
+ * Describes the message whiteboard.GetBoardBySlugRequest.
+ * Use `create(GetBoardBySlugRequestSchema)` to create a new message.
+ */
+export const GetBoardBySlugRequestSchema: GenMessage<GetBoardBySlugRequest> /*@__PURE__*/ =
+  messageDesc(file_whiteboard, 8)
+
+/**
+ * @generated from message whiteboard.GetBoardBySlugResponse
+ */
+export type GetBoardBySlugResponse = Message<"whiteboard.GetBoardBySlugResponse"> & {
+  /**
+   * @generated from field: whiteboard.Board board = 1;
+   */
+  board?: Board | undefined
+
+  /**
+   * @generated from field: string workspace_id = 2;
+   */
+  workspaceId: string
+}
+
+/**
+ * Describes the message whiteboard.GetBoardBySlugResponse.
+ * Use `create(GetBoardBySlugResponseSchema)` to create a new message.
+ */
+export const GetBoardBySlugResponseSchema: GenMessage<GetBoardBySlugResponse> /*@__PURE__*/ =
+  messageDesc(file_whiteboard, 9)
+
+/**
  * @generated from service whiteboard.WhiteboardService
  */
 export const WhiteboardService: GenService<{
@@ -283,5 +322,13 @@ export const WhiteboardService: GenService<{
     methodKind: "unary"
     input: typeof RegisterAssetRequestSchema
     output: typeof RegisterAssetResponseSchema
+  }
+  /**
+   * @generated from rpc whiteboard.WhiteboardService.GetBoardBySlug
+   */
+  getBoardBySlug: {
+    methodKind: "unary"
+    input: typeof GetBoardBySlugRequestSchema
+    output: typeof GetBoardBySlugResponseSchema
   }
 }> /*@__PURE__*/ = serviceDesc(file_whiteboard, 0)

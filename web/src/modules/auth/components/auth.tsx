@@ -1,11 +1,9 @@
 "use client"
 
 import * as React from "react"
-import { useState, useId, useEffect } from "react"
-import Link from "next/link"
-import { Label as LabelPrimitive, Slot } from "radix-ui"
+import { useState, useEffect } from "react"
+import { Label as LabelPrimitive } from "radix-ui"
 import { cva, type VariantProps } from "class-variance-authority"
-import { Eye, EyeOff } from "lucide-react"
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { Button } from "@/components/ui/button"

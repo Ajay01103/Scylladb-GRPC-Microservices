@@ -1,7 +1,6 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Loader2 } from "lucide-react"
 import { type YooEditor, type YooptaContentValue } from "@yoopta/editor"
 
 import { requestNotesWsTicketAction } from "@/actions/ws-tickets"
@@ -14,7 +13,7 @@ import {
   type SocketState,
 } from "@/lib/board-socket-manager"
 import { useCurrentUser } from "@/modules/auth/api/use-current-user"
-import { useNoteBySlug } from "@/modules/notes/api/use-notes"
+import { useSuspenseNoteBySlug } from "@/modules/notes/api/use-notes"
 import { setNoteAssetContext, clearNoteAssetContext } from "@/modules/notes/api/note-asset-context"
 import { FullSetupEditor } from "@/components/editor"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -113,7 +112,7 @@ function hashColor(str: string): string {
 type NoteViewProps = { slug: string }
 
 export function NoteView({ slug }: NoteViewProps) {
-  const { note, workspaceId, isLoading: isLoadingNote, isError } = useNoteBySlug(slug)
+  const { note, workspaceId } = useSuspenseNoteBySlug(slug)
 
   // Stable ref to the editor — never replaced after first assignment.
   const editorRef = useRef<YooEditor | null>(null)
@@ -152,15 +151,13 @@ export function NoteView({ slug }: NoteViewProps) {
   const lastCursorSendRef = useRef(0)
   const editorContainerRef = useRef<HTMLDivElement>(null)
 
-  const noteIdRef = useRef<string | undefined>(undefined)
-  noteIdRef.current = note?.id
+  const noteIdRef = useRef<string>(note.id)
+  noteIdRef.current = note.id
 
   useEffect(() => {
-    if (note?.id && workspaceId) {
-      setNoteAssetContext(note.id, workspaceId)
-    }
+    setNoteAssetContext(note.id, workspaceId)
     return () => clearNoteAssetContext()
-  }, [note?.id, workspaceId])
+  }, [note.id, workspaceId])
 
   // The last document snapshot we sent over the wire. Diffed against the next
   // onChange value to produce a block-level patch instead of a full snapshot.
@@ -248,7 +245,6 @@ export function NoteView({ slug }: NoteViewProps) {
 
   // ── WebSocket connection + lifecycle (single effect like whiteboard) ──────
   useEffect(() => {
-    if (!note?.id) return
     const noteId = note.id
 
     // Reset the diff baseline when connecting to a new note so stale state
@@ -264,7 +260,7 @@ export function NoteView({ slug }: NoteViewProps) {
       // on every attempt so silent JWT refreshes are picked up automatically.
       // scheduleReconnect will therefore always use a fresh, non-expired token
       // even when the original JWT has long since expired.
-      fetchTicket: async (signal) => {
+      fetchTicket: async (_signal) => {
         return requestNotesWsTicketAction().catch((err) => {
           if (!(err instanceof DOMException && err.name === "AbortError")) {
             console.error("[note-view] fetchTicket error:", err)
@@ -280,7 +276,7 @@ export function NoteView({ slug }: NoteViewProps) {
     return () => {
       disconnectRoom(noteId)
     }
-  }, [note?.id])
+  }, [note.id])
 
   // ── Throttled cursor send on mouse move within editor area ────────────────
   useEffect(() => {
@@ -338,7 +334,6 @@ export function NoteView({ slug }: NoteViewProps) {
 
   // ── WebSocket message + state listeners (separate, stable lifecycle) ──────
   useEffect(() => {
-    if (!note?.id) return
     const noteId = note.id
 
     const removeMsg = addMessageListener(noteId, (event: MessageEvent) => {
@@ -448,7 +443,7 @@ export function NoteView({ slug }: NoteViewProps) {
       removeMsg()
       removeState()
     }
-  }, [note?.id, applyRemoteValue])
+  }, [note.id, applyRemoteValue])
 
   // ── Directly subscribe to editor changes ──────────────────────────────
   // Bypasses YooptaEditor's onChange prop which doesn't fire for user edits.
@@ -520,32 +515,11 @@ export function NoteView({ slug }: NoteViewProps) {
   const isConnecting = socketState === "connecting"
   const isErr = socketState === "error"
 
-  if (isLoadingNote) {
-    return (
-      <div className="flex min-h-0 flex-1 items-center justify-center text-sm text-muted-foreground">
-        <div className="flex items-center gap-2">
-          <Loader2 className="size-4 animate-spin" />
-          Loading note…
-        </div>
-      </div>
-    )
-  }
-
-  if (isError || !note) {
-    return (
-      <div className="flex min-h-0 flex-1 items-center justify-center text-sm text-muted-foreground">
-        Note not found.
-      </div>
-    )
-  }
-
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* ── Header ────────────────────────────────────────────────────────── */}
       <header className="flex shrink-0 items-center justify-between border-b border-border/60 px-6 py-3">
-        <h1 className="truncate text-base font-semibold text-foreground">
-          {note.title ?? "Untitled note"}
-        </h1>
+        <h1 className="truncate text-base font-semibold text-foreground">{note.title}</h1>
 
         <div className="flex items-center gap-3">
           <AvatarStack size={28}>

@@ -3,10 +3,7 @@
 import { cookies } from "next/headers"
 
 import { unauthenticatedAuthClient, getServerRpcClients } from "@/lib/rpc-server"
-import {
-  ACCESS_TOKEN_COOKIE_NAME,
-  REFRESH_TOKEN_COOKIE_NAME,
-} from "@/lib/auth-cookie"
+import { ACCESS_TOKEN_COOKIE_NAME, REFRESH_TOKEN_COOKIE_NAME } from "@/lib/auth-cookie"
 import { assertSameOriginRequest } from "@/lib/csrf"
 
 function setAuthCookies(

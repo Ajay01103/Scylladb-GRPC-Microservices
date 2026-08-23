@@ -81,11 +81,7 @@ export function WorkspaceView({ workspace }: WorkspaceViewProps) {
       icon: "whiteboards" as const,
       items: whiteboardsQuery.data ?? [],
     }
-  }, [
-    activeTab,
-    notesQuery.data,
-    whiteboardsQuery.data,
-  ])
+  }, [activeTab, notesQuery.data, whiteboardsQuery.data])
 
   // if (isLoading || !workspace) {
   //   return (
@@ -121,7 +117,10 @@ export function WorkspaceView({ workspace }: WorkspaceViewProps) {
           <section className="rounded-3xl border border-border/70 bg-card/90 shadow-sm backdrop-blur">
             <div className="space-y-0">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div className="flex items-center gap-4 border-b border-border/60 px-6 py-4" key={i}>
+                <div
+                  className="flex items-center gap-4 border-b border-border/60 px-6 py-4"
+                  key={i}
+                >
                   <Skeleton className="size-9 shrink-0 rounded-full" />
                   <Skeleton className="h-4 w-40 rounded" />
                   <Skeleton className="ml-auto h-6 w-16 rounded-full" />

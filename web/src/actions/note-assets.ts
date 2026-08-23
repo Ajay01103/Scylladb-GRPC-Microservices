@@ -20,6 +20,14 @@ const s3Client = new S3Client({
   forcePathStyle: true,
 })
 
+function normalizeS3Key(value: string): string {
+  const bucketPrefix = `${S3_BUCKET}/`
+  if (value.startsWith(bucketPrefix)) {
+    return value.slice(bucketPrefix.length)
+  }
+  return value.replace(/^\/?uploads\//, "")
+}
+
 async function getNotesServerClient() {
   const token = await requireAccessTokenAction()
   const transport = createConnectTransport({
@@ -75,11 +83,26 @@ export async function uploadNoteAssetAction(formData: FormData) {
   }
 }
 
-export async function downloadNoteAssetAction(s3Key: string) {
+export async function downloadNoteAssetAction(assetId: string, legacyS3Key?: string) {
   try {
+    let s3Key = legacyS3Key
+    if (!s3Key) {
+      try {
+        const client = await getNotesServerClient()
+        const asset = await client.getAssetDownloadUrl({ assetId })
+        s3Key = asset.s3Key
+      } catch (error) {
+        console.warn("Asset ID lookup failed; no legacy S3 key was provided", error)
+      }
+    }
+
+    if (!s3Key) {
+      throw new Error("Asset storage key is missing")
+    }
+
     const command = new GetObjectCommand({
       Bucket: S3_BUCKET,
-      Key: s3Key,
+      Key: normalizeS3Key(s3Key),
     })
     const response = await s3Client.send(command)
     if (!response.Body) {

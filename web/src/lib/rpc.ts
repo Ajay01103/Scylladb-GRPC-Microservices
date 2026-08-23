@@ -31,5 +31,11 @@ function createTransport(baseUrl: string) {
 // login/register/logout go through server actions, not this client.
 export const authBrowserRpcClient = createClient(AuthService, createTransport(AUTH_BASE_URL))
 export const notesRpcClient = createClient(NotesService, createTransport(NOTES_BASE_URL))
-export const whiteboardRpcClient = createClient(WhiteboardService, createTransport(WHITEBOARD_BASE_URL))
-export const workspaceRpcClient = createClient(WorkspaceService, createTransport(WORKSPACE_BASE_URL))
+export const whiteboardRpcClient = createClient(
+  WhiteboardService,
+  createTransport(WHITEBOARD_BASE_URL),
+)
+export const workspaceRpcClient = createClient(
+  WorkspaceService,
+  createTransport(WORKSPACE_BASE_URL),
+)

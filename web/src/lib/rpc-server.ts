@@ -2,7 +2,7 @@ import "server-only"
 
 import { cache } from "react"
 import { createClient, type Interceptor } from "@connectrpc/connect"
-import { createGrpcTransport } from "@connectrpc/connect-node"  // ✅ NOT connect-web
+import { createGrpcTransport } from "@connectrpc/connect-node" // ✅ NOT connect-web
 import { AuthService } from "@/gen/pb/auth/auth_pb"
 import { NotesService } from "@/gen/pb/notes/notes_pb"
 import { WhiteboardService } from "@/gen/pb/whiteboard/whiteboard_pb"
@@ -35,7 +35,8 @@ function bearerInterceptor(token: string | null): Interceptor {
 }
 
 function makeTransport(baseUrl: string, token: string | null) {
-  return createGrpcTransport({        // ✅ HTTP/2 + gRPC framing — works in Node.js
+  return createGrpcTransport({
+    // ✅ HTTP/2 + gRPC framing — works in Node.js
     baseUrl,
     // httpVersion: "2",
     interceptors: [bearerInterceptor(token)],

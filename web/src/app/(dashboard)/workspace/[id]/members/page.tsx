@@ -1,9 +1,7 @@
 import { Suspense } from "react"
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query"
-import { redirect } from "next/navigation"
 
 import { getQueryClient } from "@/lib/get-query-client"
-import { getServerRpcClients } from "@/lib/rpc-server"
 import {
   prefetchWorkspace,
   prefetchWorkspaceMembers,
@@ -19,9 +17,6 @@ export default async function WorkspaceMembersPage({
 }) {
   const { id: workspaceId } = await params
   const queryClient = getQueryClient()
-
-  const { token } = await getServerRpcClients()
-  if (!token) redirect("/login")
 
   await Promise.all([
     prefetchWorkspace(queryClient, workspaceId),

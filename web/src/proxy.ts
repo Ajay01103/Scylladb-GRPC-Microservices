@@ -72,11 +72,15 @@ export default async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
+    "/",
     "/dashboard",
     "/dashboard/:path*",
-    "/redirect",
     "/workspace",
     "/workspace/:path*",
+    "/notes",
+    "/notes/:path*",
+    "/whiteboard",
+    "/whiteboard/:path*",
     // NOTE: /api/rpc/* is intentionally excluded — the route handler
     // reads the access_token cookie directly and attaches it as Bearer.
     // Running the full refresh-token validation here would race against

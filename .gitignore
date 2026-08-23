@@ -6,9 +6,7 @@
 .cursor
 .claude
 
-cookie-auth-architecture.md
-go-notion-frontend-audit.md
-rpc-cookie-auth-analysis.md
+mds
 token-store.txt
 
 .venv

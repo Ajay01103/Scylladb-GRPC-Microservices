@@ -62,10 +62,7 @@ export function WorkspaceViewSkeleton() {
           </div>
           <div className="space-y-0">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div
-                className="flex items-center gap-4 border-b border-border/60 px-6 py-4"
-                key={i}
-              >
+              <div className="flex items-center gap-4 border-b border-border/60 px-6 py-4" key={i}>
                 <Skeleton className="size-9 shrink-0 rounded-full" />
                 <div className="flex-1 space-y-2">
                   <Skeleton className="h-4 w-40 rounded" />

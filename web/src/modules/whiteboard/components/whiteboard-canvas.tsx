@@ -41,7 +41,7 @@ async function messageDataToText(data: unknown) {
   return null
 }
 
-function extractDocumentPayload(text: string): unknown | null {
+function extractDocumentPayload(text: string): unknown {
   try {
     const payload = JSON.parse(text) as
       | { type?: string; document?: unknown }
@@ -102,7 +102,7 @@ export function WhiteboardCanvas({ boardId, workspaceId, slug }: WhiteboardCanva
   }
 
   const editorRef = useRef<Editor | null>(null)
-  const pendingDocumentRef = useRef<unknown | null>(null)
+  const pendingDocumentRef = useRef<unknown>(null)
   const loadedSnapshotRef = useRef(false)
 
   // Cache object URLs locally to bypass CORS when rendering images.
@@ -119,8 +119,12 @@ export function WhiteboardCanvas({ boardId, workspaceId, slug }: WhiteboardCanva
   // once) still sees fresh values via the closure.
   const boardIdRef = useRef(boardId)
   const workspaceIdRef = useRef(workspaceId)
-  useEffect(() => { boardIdRef.current = boardId }, [boardId])
-  useEffect(() => { workspaceIdRef.current = workspaceId }, [workspaceId])
+  useEffect(() => {
+    boardIdRef.current = boardId
+  }, [boardId])
+  useEffect(() => {
+    workspaceIdRef.current = workspaceId
+  }, [workspaceId])
 
   const [store] = useState(() =>
     createTLStore({
@@ -140,7 +144,11 @@ export function WhiteboardCanvas({ boardId, workspaceId, slug }: WhiteboardCanva
         },
         resolve(asset: TLAsset) {
           const src = asset.props.src
-          if (src && typeof src === "string" && (src.startsWith("http") || src.startsWith("/uploads/"))) {
+          if (
+            src &&
+            typeof src === "string" &&
+            (src.startsWith("http") || src.startsWith("/uploads/"))
+          ) {
             const cachedBlobUrl = blobUrlCacheRef.current.get(asset.id)
             if (cachedBlobUrl) return cachedBlobUrl
 
@@ -155,11 +163,7 @@ export function WhiteboardCanvas({ boardId, workspaceId, slug }: WhiteboardCanva
                   .then((res) => {
                     if (res.success && res.base64 && res.mimeType) {
                       const byteCharacters = atob(res.base64)
-                      const byteNumbers = new Array(byteCharacters.length)
-                      for (let i = 0; i < byteCharacters.length; i++) {
-                        byteNumbers[i] = byteCharacters.charCodeAt(i)
-                      }
-                      const byteArray = new Uint8Array(byteNumbers)
+                      const byteArray = Uint8Array.from(byteCharacters, (c) => c.charCodeAt(0))
                       const blob = new Blob([byteArray], { type: res.mimeType })
                       const blobUrl = URL.createObjectURL(blob)
                       blobUrlCacheRef.current.set(asset.id, blobUrl)

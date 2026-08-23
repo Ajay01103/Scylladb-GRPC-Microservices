@@ -2,35 +2,19 @@
 
 import { create } from "@bufbuild/protobuf"
 import { useMemo } from "react"
-import { useMutation, useQueries, useQueryClient, type UseQueryResult } from "@tanstack/react-query"
+import {
+  useMutation,
+  useQueries,
+  useQueryClient,
+  useSuspenseQuery,
+  type UseQueryResult,
+} from "@tanstack/react-query"
 import { generateSlug } from "random-word-slugs"
 
 import { CreateBoardRequestSchema, type Board } from "@/gen/pb/whiteboard/whiteboard_pb"
 import { whiteboardRpcClient } from "@/lib/rpc"
 import { useMyWorkspaces, workspaceLibraryQueryKey } from "@/modules/workspace/api/use-workspaces"
-
-function formatWhiteboardTimestamp(timestamp?: {
-  seconds?: bigint | number | string
-  nanos?: number
-}) {
-  if (!timestamp) {
-    return "—"
-  }
-
-  const seconds = Number(timestamp.seconds ?? 0)
-  const nanos = Number(timestamp.nanos ?? 0)
-  const date = new Date(seconds * 1000 + nanos / 1_000_000)
-
-  if (Number.isNaN(date.getTime())) {
-    return "—"
-  }
-
-  return date.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  })
-}
+import { makeWhiteboardBySlugQueryOptions } from "@/modules/whiteboard/api/whiteboard-queries"
 
 export function createWhiteboardSlug() {
   return generateSlug(2, { format: "kebab" })
@@ -111,12 +95,25 @@ export function useWhiteboardBySlug(slug?: string) {
     return null
   }, [boardQueries, safeSlug, workspaceIds])
 
-  const isLoadingBoards = boardQueries.some((query) => query.isLoading || query.isFetching)
+  const isLoadingBoards = boardQueries.length === 0 || boardQueries.some((query) => query.isLoading)
 
   return {
     board: matchedBoard?.board ?? null,
     workspaceId: matchedBoard?.workspaceId ?? null,
     isLoading: workspacesQuery.isLoading || isLoadingBoards,
     isError: workspacesQuery.isError || boardQueries.some((query) => query.isError),
+  }
+}
+
+/**
+ * Suspense variant for whiteboard by slug.
+ * Only use inside a component wrapped in a <Suspense> boundary
+ * (e.g. fed by HydrationBoundary from a server prefetch).
+ */
+export function useWhiteboardBySlugSuspense(slug: string) {
+  const { data } = useSuspenseQuery(makeWhiteboardBySlugQueryOptions({ whiteboardRpcClient }, slug))
+  return {
+    board: data.board,
+    workspaceId: data.workspaceId,
   }
 }

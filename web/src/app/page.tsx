@@ -1,13 +1,14 @@
 import { redirect } from "next/navigation"
 
-import { hasServerSession } from "@/lib/server-auth"
+import { getServerRpcClients } from "@/lib/rpc-server"
 
 export default async function Home() {
-  const authenticated = await hasServerSession()
+  const { workspaceClient } = await getServerRpcClients()
+  const { workspaces } = await workspaceClient.listMyWorkspaces({ pageSize: 1, pageToken: "" })
 
-  if (!authenticated) {
-    redirect("/login")
+  if (workspaces.length === 0) {
+    redirect("/workspace")
   }
 
-  redirect("/redirect")
+  redirect(`/workspace/${workspaces[0].id}`)
 }

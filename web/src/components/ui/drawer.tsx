@@ -1,15 +1,6 @@
 "use client"
 
-import {
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  Drawer as DrawerPrimitive,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer"
+import { Drawer as VaulDrawer } from "vaul"
 import { cn } from "@/lib/utils"
 import { AnimatePresence, motion, useReducedMotion } from "motion/react"
 import { useCallback, useEffect, useRef, useState } from "react"
@@ -146,9 +137,9 @@ export default function Drawer({
   const vaulOpen = open || isAnimatingOut
 
   return (
-    <DrawerPrimitive
+    <VaulDrawer.Root
       direction={side}
-      onOpenChange={(next) => {
+      onOpenChange={(next: boolean) => {
         if (!next && isAnimatingOut) {
           return // Ignore vaul's close during our exit animation
         }
@@ -156,14 +147,14 @@ export default function Drawer({
       }}
       open={vaulOpen}
     >
-      {trigger && <DrawerTrigger asChild>{trigger}</DrawerTrigger>}
+      {trigger && <VaulDrawer.Trigger asChild>{trigger}</VaulDrawer.Trigger>}
 
       {/*
         We render DrawerContent so vaul's drag gestures still work, but we
         layer motion.div overlays on top for the visual polish (backdrop blur,
         spring slide-in, content stagger, handle pulse).
       */}
-      <DrawerContent
+      <VaulDrawer.Content
         className={cn(
           // Hide vaul's default CSS transition — we animate with motion
           "!transition-none !duration-0",
@@ -193,8 +184,8 @@ export default function Drawer({
               {(title || description) && (
                 <StaggerChild index={0} shouldReduceMotion={shouldReduceMotion}>
                   <DrawerHeader>
-                    {title && <DrawerTitle>{title}</DrawerTitle>}
-                    {description && <DrawerDescription>{description}</DrawerDescription>}
+                    {title && <VaulDrawer.Title>{title}</VaulDrawer.Title>}
+                    {description && <VaulDrawer.Description>{description}</VaulDrawer.Description>}
                   </DrawerHeader>
                 </StaggerChild>
               )}
@@ -221,21 +212,34 @@ export default function Drawer({
             </motion.div>
           )}
         </AnimatePresence>
-      </DrawerContent>
-    </DrawerPrimitive>
+      </VaulDrawer.Content>
+    </VaulDrawer.Root>
   )
+}
+
+/* ------------------------------------------------------------------ */
+/*  Shadcn-style semantic wrappers                                      */
+/* ------------------------------------------------------------------ */
+
+function DrawerHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn("flex flex-col space-y-1.5 text-center sm:text-left", className)}
+      {...props}
+    />
+  )
+}
+
+function DrawerFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn("mt-auto flex flex-col gap-2 p-4", className)} {...props} />
 }
 
 /* ------------------------------------------------------------------ */
 /*  Re-exports                                                         */
 /* ------------------------------------------------------------------ */
 
-export {
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-}
+export const DrawerClose = VaulDrawer.Close
+export const DrawerContent = VaulDrawer.Content
+export const DrawerDescription = VaulDrawer.Description
+export const DrawerTitle = VaulDrawer.Title
+export const DrawerTrigger = VaulDrawer.Trigger
